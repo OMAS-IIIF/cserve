@@ -1,0 +1,69 @@
+cmake_minimum_required(VERSION 3.19)
+
+project(cserve VERSION 1.0)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+set(DARWIN "Darwin")
+set(LINUX "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
+    message(STATUS "Compiling for Darwin...")
+    message(STATUS ${CMAKE_SYSTEM_NAME})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    SET(CMAKE_MACOSX_RPATH 1)
+    SET(LUA_ARCH "macosx")
+    # ToDo: shouldn't this be also set on the mac through FindOpenSSL?
+    SET(OPENSSL_ROOT_DIR "/usr/local/opt/openssl" CACHE FILEPATH "openssl")
+    SET(OPENSSL_USE_STATIC_LIBS ON)
+elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
+    message(STATUS "Compiling for Linux64...")
+    message(STATUS ${CMAKE_SYSTEM_NAME})
+    execute_process(COMMAND /usr/bin/lsb_release -si COMMAND tr -d '\n' OUTPUT_VARIABLE CMAKE_DISTRO_NAME)
+    MESSAGE(STATUS "Distro: " ${CMAKE_DISTRO_NAME})
+endif()
+
+#
+# set path to special find_package() code
+#
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+
+#
+# OpenSSL ??
+#
+include(FindOpenSSL)
+if(OPENSSL_FOUND)
+    message(STATUS "Found OpenSSL at ${OPENSSL_ROOT_DIR}")
+    add_definitions(${CMAKE_CXX_FLAGS} " -DSHTTPS_ENABLE_SSL")
+    add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
+    message(STATUS "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
+    message(STATUS "OPENSSL_VERSION=${OPENSSL_VERSION}")
+else()
+    message(STATUS "No SSL support found!")
+endif()
+
+#
+# libmagic
+# (used to be build locally from source was moved to prerequisites)
+#
+find_package(LibMagic REQUIRED)
+
+
+add_library(cserve
+        Global.h
+        makeunique.h
+        jwt.c jwt.h
+        Error.cpp Error.h
+        SockStream.cpp Sockstream.h
+        Connection.cpp Connection.h
+        Hash.cpp Hash.h
+        Parsing.cpp Parsing.h
+        LuaServer.cpp LuaServer.h
+        SocketControl.cpp SocketControl.h
+        ThreadControl.cpp ThreadControl.h
+        Cserve.cpp Cserve.h)
+
+target_include_directories(cserve
+        INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
+        )
