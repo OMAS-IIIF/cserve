@@ -10,7 +10,7 @@ set(LINUX "Linux")
 if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
     message(STATUS "Compiling for Darwin...")
     message(STATUS ${CMAKE_SYSTEM_NAME})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
     SET(CMAKE_MACOSX_RPATH 1)
     SET(LUA_ARCH "macosx")
     # ToDo: shouldn't this be also set on the mac through FindOpenSSL?
@@ -55,6 +55,7 @@ include_directories(
 )
 
 
+
 add_library(cserve
         Global.h
         makeunique.h
@@ -62,6 +63,7 @@ add_library(cserve
         Error.cpp Error.h
         SockStream.cpp Sockstream.h
         Connection.cpp Connection.h
+        ChunkReader.cpp ChunkReader.h
         Hash.cpp Hash.h
         Parsing.cpp Parsing.h
         LuaServer.cpp LuaServer.h

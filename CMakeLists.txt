@@ -57,7 +57,14 @@ find_package(LibMagic REQUIRED)
 
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
+add_subdirectory(${EXT_PROJECTS_DIR}/jansson)
+
 add_subdirectory(lib)
+
+link_directories(
+        ${CONFIGURE_LIBDIR}
+        /usr/local/lib
+)
 
 include_directories(
         ${COMMON_LOCAL}/include
@@ -69,7 +76,18 @@ add_executable(cserver
 
 configure_file(${COMMON_SOURCE_FILES_DIR}/CserverVersion.h.in ${COMMON_SOURCE_FILES_DIR}/CserverVersion.h)
 
-target_link_libraries(cserver cserve lua sqlite)
+target_link_libraries(cserver
+        cserve
+        magic
+        lua
+        jansson
+        sqlite3
+        curl)
+
+if(OPENSSL_FOUND)
+    target_link_libraries(cserver ${OPENSSL_LIBRARIES})
+endif()
+
 
 target_include_directories(
         cserver PUBLIC
