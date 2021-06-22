@@ -61,6 +61,7 @@ add_subdirectory(lib)
 
 include_directories(
         ${COMMON_LOCAL}/include
+        /usr/local/include
 )
 
 add_executable(cserver
