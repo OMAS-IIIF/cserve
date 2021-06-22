@@ -49,6 +49,11 @@ endif()
 #
 find_package(LibMagic REQUIRED)
 
+include_directories(
+        ${COMMON_LOCAL}/include
+        /usr/local/include
+)
+
 
 add_library(cserve
         Global.h

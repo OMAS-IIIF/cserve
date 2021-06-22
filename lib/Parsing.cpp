@@ -263,7 +263,7 @@ namespace cserve {
             } catch (std::out_of_range &e) {
                 std::stringstream ss;
                 ss << "Unsupported file type: \"" << filename << "\"";
-                throw shttps::Error(__file__, __LINE__, ss.str());
+                throw cserve::Error(__file__, __LINE__, ss.str());
             }
 
             return true;

@@ -47,7 +47,7 @@
 #include "SockStream.h"
 #include "LuaServer.h"
 #include "Connection.h"
-#include "Server.h"
+#include "Cserve.h"
 #include "Error.h"
 //#include "ChunkReader.h"
 
@@ -925,8 +925,8 @@ namespace cserve {
     *
     */
     static int lua_fs_mvfile(lua_State *L) {
-        lua_getglobal(L, shttps::luaconnection);
-        shttps::Connection *conn = (shttps::Connection *) lua_touserdata(L, -1);
+        lua_getglobal(L, cserve::luaconnection);
+        cserve::Connection *conn = (cserve::Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stacks
         int top = lua_gettop(L);
 
@@ -939,7 +939,7 @@ namespace cserve {
 
         std::string infile;
         if (lua_isinteger(L, 1)) {
-            std::vector<shttps::Connection::UploadedFile> uploads = conn->uploads();
+            std::vector<cserve::Connection::UploadedFile> uploads = conn->uploads();
             int tmpfile_id = static_cast<int>(lua_tointeger(L, 1));
             try {
                 infile = uploads.at(tmpfile_id - 1).tmpname; // In Lua, indexes are 1-based.
@@ -1995,7 +1995,7 @@ namespace cserve {
      *
      * shttp saves uploaded files in a temporary location (given by the config variable "tmpdir")
      * and deletes it after the request has been served. This function is used to copy the file
-     * to another location where it can be used/retrieved by shttps/sipi.
+     * to another location where it can be used/retrieved by cserve/sipi.
      *
      * LUA: server.copyTmpfile(from, target)
      * from:    an index (integer value) of array server.uploads.
@@ -2323,7 +2323,7 @@ namespace cserve {
 
         std::string path;
         if (lua_isinteger(L, 1)) {
-            std::vector<shttps::Connection::UploadedFile> uploads = conn->uploads();
+            std::vector<cserve::Connection::UploadedFile> uploads = conn->uploads();
             int tmpfile_id = static_cast<int>(lua_tointeger(L, 1));
             try {
                 path = uploads.at(tmpfile_id - 1).tmpname; // In Lua, indexes are 1-based.
@@ -2382,7 +2382,7 @@ namespace cserve {
         std::string filename;
         std::string expected_mimetype = "";
         if (lua_isinteger(L, 1)) {
-            std::vector<shttps::Connection::UploadedFile> uploads = conn->uploads();
+            std::vector<cserve::Connection::UploadedFile> uploads = conn->uploads();
             int tmpfile_id = static_cast<int>(lua_tointeger(L, 1));
             try {
                 path = uploads.at(tmpfile_id - 1).tmpname; // In Lua, indexes are 1-based.

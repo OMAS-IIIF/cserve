@@ -147,7 +147,7 @@ namespace cserve {
      * @param user_data
      * @param hd Pointer to string object containing the lua script file name
      */
-    void ScriptHandler(shttps::Connection &conn, LuaServer &lua, void *user_data, void *hd) {
+    void ScriptHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, void *hd) {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
 
@@ -283,7 +283,7 @@ namespace cserve {
      * @param user_data Hook to user data
      * @param hd nullptr or pair (docroot, route)
      */
-    void FileHandler(shttps::Connection &conn, LuaServer &lua, void *user_data, void *hd) {
+    void FileHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, void *hd) {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
 
@@ -435,7 +435,7 @@ namespace cserve {
                 conn << htmlcode;
                 conn.flush();
             } else {
-                std::string actual_mimetype = shttps::Parsing::getFileMimetype(infile).first;
+                std::string actual_mimetype = cserve::Parsing::getFileMimetype(infile).first;
                 //
                 // first we get the filesize and time using fstat
                 //
@@ -577,7 +577,7 @@ namespace cserve {
             if (getuid() == 0) { // must be root to setuid() !!
                 struct passwd pwd, *res;
                 size_t buffer_len = sysconf(_SC_GETPW_R_SIZE_MAX) * sizeof(char);
-                auto buffer = make_unique<char[]>(buffer_len);
+                auto buffer = std::make_unique<char[]>(buffer_len);
                 getpwnam_r(userid_str.c_str(), &pwd, buffer.get(), buffer_len, &res);
 
                 if (res != nullptr) {
@@ -775,12 +775,12 @@ namespace cserve {
                         std::unique_ptr<SockStream> sockstream;
 #ifdef SHTTPS_ENABLE_SSL
                         if (msg.ssl_sid != nullptr) {
-                            sockstream = make_unique<SockStream>(msg.ssl_sid);
+                            sockstream = std::make_unique<SockStream>(msg.ssl_sid);
                         } else {
-                            sockstream = make_unique<SockStream>(msg.sid);
+                            sockstream = std::make_unique<SockStream>(msg.sid);
                         }
 #else
-                        sockstream = make_unique<SockStream>(receive_msg.sid);
+                        sockstream = std::make_unique<SockStream>(receive_msg.sid);
 #endif
 
                         std::istream ins(sockstream.get());
@@ -788,7 +788,7 @@ namespace cserve {
                         //
                         // let's process the current request
                         //
-                        shttps::ThreadStatus tstatus;
+                        cserve::ThreadStatus tstatus;
                         int keep_alive = 1;
                         std::string tmpstr(msg.peer_ip);
 #ifdef SHTTPS_ENABLE_SSL
@@ -1262,7 +1262,7 @@ namespace cserve {
     //=========================================================================
 
 
-    shttps::ThreadStatus
+    cserve::ThreadStatus
     Server::processRequest(std::istream *ins, std::ostream *os, std::string &peer_ip, int peer_port, bool secure,
                            int &keep_alive, bool socket_reuse) {
         if (_tmpdir.empty()) {
