@@ -438,7 +438,7 @@ namespace cserve {
 
 
 
-    void sqliteGlobals(lua_State *L, shttps::Connection &conn, void *user_data) {
+    void sqliteGlobals(lua_State *L, cserve::Connection &conn, void *user_data) {
 
         //
         // let's prepare the metatable for the stmt-object

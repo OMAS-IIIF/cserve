@@ -67,6 +67,7 @@ add_library(cserve
         Hash.cpp Hash.h
         Parsing.cpp Parsing.h
         LuaServer.cpp LuaServer.h
+        LuaSqlite.cpp LuaSqlite.h
         SocketControl.cpp SocketControl.h
         ThreadControl.cpp ThreadControl.h
         Cserve.cpp Cserve.h)
