@@ -72,7 +72,7 @@ include_directories(
 )
 
 add_executable(cserver
-        ${COMMON_SOURCE_FILES_DIR}/cserver.cpp)
+        ${COMMON_SOURCE_FILES_DIR}/cserver.cpp ${COMMON_SOURCE_FILES_DIR}/CLI11.hpp)
 
 configure_file(${COMMON_SOURCE_FILES_DIR}/CserverVersion.h.in ${COMMON_SOURCE_FILES_DIR}/CserverVersion.h)
 
@@ -83,6 +83,7 @@ target_link_libraries(cserver
         jansson
         sqlite3
         curl)
+
 
 if(OPENSSL_FOUND)
     target_link_libraries(cserver ${OPENSSL_LIBRARIES})
