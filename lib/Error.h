@@ -86,6 +86,15 @@ namespace cserve {
         std::string to_string(void) const;
 
         /*!
+         * String conversion operator.
+         * @return Error message a s std::string
+         */
+        inline operator std::string() const {
+            return to_string();
+        }
+
+
+        /*!
         * The overloaded << operator which is used to write the error message to the output
         *
         * \param[in] outStream The output stream

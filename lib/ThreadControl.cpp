@@ -6,6 +6,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
+#include "spdlog/spdlog.h"
+#include "Cserve.h"
 
 static const char __file__[] = __FILE__;
 
@@ -21,7 +23,7 @@ namespace cserve {
         for (int n = 0; n < n_threads; n++) {
             int control_pipe[2];
             if (socketpair(PF_LOCAL, SOCK_STREAM, 0, control_pipe) != 0) {
-                syslog(LOG_ERR, "Creating pipe failed at [%s: %d]: %m", __file__, __LINE__);
+                Server::logger()->error("Creating pipe failed at [{}: {}]: {}", __file__, __LINE__, strerror(errno));
                 return;
             }
             child_data.push_back({control_pipe[1], control_pipe[0], serv});
@@ -36,7 +38,7 @@ namespace cserve {
             pthread_attr_t tattr;
             pthread_attr_init(&tattr);
             if (pthread_create(&thread_data.tid, &tattr, start_routine, (void *) (&cd[n])) < 0) {
-                syslog(LOG_ERR, "Could not create thread at [%s: %d]: %m", __file__, __LINE__);
+                Server::logger()->error("Could not create thread at [{}: {}]: {}", __file__, __LINE__, strerror(errno));
                 break;
             }
             thread_list.push_back(thread_data);
@@ -49,7 +51,7 @@ namespace cserve {
         for (auto const &thread : thread_list) {
             int err = pthread_join(thread.tid, nullptr);
             if (err != 0) {
-                syslog(LOG_INFO, "pthread_join failed with error code: %s", strerror(err));
+                Server::logger()->info("pthread_join failed with error code: {}", strerror(err));
             }
         }
     }

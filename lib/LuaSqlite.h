@@ -21,8 +21,8 @@
  * License along with Sipi.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SIPI_LUASQLITE_H
-#define SIPI_LUASQLITE_H
+#ifndef CSERVE_LUASQLITE_H
+#define CSERVE_LUASQLITE_H
 
 #include <iostream>
 #include <vector>

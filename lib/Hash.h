@@ -26,8 +26,8 @@
  * to read, write and modify images. Reading and writing is supported in several standard formats
  * such as TIFF, J2k, PNG etc.
  */
-#ifndef __shttps_hash_h
-#define __shttps_hash_h
+#ifndef __cserve_hash_h
+#define __cserve_hash_h
 
 #include <iostream>
 
@@ -92,7 +92,7 @@ namespace cserve {
         * \code{.cpp}
         * stringstream strstr;
         * ss << "Waseliwas " << a_number << " ist das ?";
-        * shttps::Hash h(shttp::HashType:md5);
+        * cserve::Hash h(shttp::HashType:md5);
         * strstr >> h;
         * std::string checksum = h.hash();
         * \endcode

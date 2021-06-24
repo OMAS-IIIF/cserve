@@ -21,7 +21,9 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 set(COMMON_SOURCE_FILES_DIR ${PROJECT_SOURCE_DIR}/src)
+set(COMMON_LIBRARY_FILES_DIR ${PROJECT_SOURCE_DIR}/lib)
 set(COMMON_INCLUDE_FILES_DIR ${PROJECT_SOURCE_DIR}/include)
+
 #set(DOXYGEN_FILES_DIR ${PROJECT_SOURCE_DIR}/doxygen)
 set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 #set(COMMON_PATCHES ${PROJECT_SOURCE_DIR}/patches)
@@ -40,7 +42,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 include(FindOpenSSL)
 if(OPENSSL_FOUND)
     message(STATUS "Found OpenSSL at ${OPENSSL_ROOT_DIR}")
-    add_definitions(${CMAKE_C_FLAGS} " -DSHTTPS_ENABLE_SSL")
+    add_definitions(${CMAKE_C_FLAGS} " -DCSERVE_ENABLE_SSL")
     add_definitions(${CMAKE_C_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
     message(STATUS "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
     message(STATUS "OPENSSL_VERSION=${OPENSSL_VERSION}")
@@ -58,6 +60,8 @@ find_package(LibMagic REQUIRED)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
 add_subdirectory(${EXT_PROJECTS_DIR}/jansson)
+add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
+#add_subdirectory(${EXT_PROJECTS_DIR}/fmt)
 
 add_subdirectory(lib)
 
@@ -74,7 +78,7 @@ include_directories(
 add_executable(cserver
         ${COMMON_SOURCE_FILES_DIR}/cserver.cpp ${COMMON_SOURCE_FILES_DIR}/CLI11.hpp)
 
-configure_file(${COMMON_SOURCE_FILES_DIR}/CserverVersion.h.in ${COMMON_SOURCE_FILES_DIR}/CserverVersion.h)
+configure_file(${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h.in ${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h)
 
 target_link_libraries(cserver
         cserve
@@ -82,7 +86,8 @@ target_link_libraries(cserver
         lua
         jansson
         sqlite3
-        curl)
+        curl
+        spdlog)
 
 
 if(OPENSSL_FOUND)

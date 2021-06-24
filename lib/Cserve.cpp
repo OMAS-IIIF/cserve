@@ -47,11 +47,11 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <pwd.h>
-#include <syslog.h>
 //
 // openssl includes
 //#include "openssl/applink.c"
 
+#include "spdlog/spdlog.h"
 
 #include "Global.h"
 #include "SockStream.h"
@@ -60,17 +60,20 @@
 #include "Parsing.h"
 #include "makeunique.h"
 
+#include "CserveVersion.h"
+
 static const char __file__[] = __FILE__;
 
 static std::mutex debugio; // mutex to protect debugging messages from threads
 
-namespace cserve {
+std::string cserve::Server::_loggername = "";
+std::shared_ptr<spdlog::logger> cserve::Server::_logger = nullptr;
 
-    const char loggername[] = "Sipi"; // see Global.h !!
+namespace cserve {
 
     typedef struct {
         int sock;
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
         SSL *cSSL;
 #endif
         std::string peer_ip;
@@ -128,10 +131,11 @@ namespace cserve {
         try {
             conn << "No handler available" << Connection::flush_data;
         } catch (InputFailure iofail) {
+            Server::logger()->error("No handler and no connection available.");
             return;
         }
 
-        syslog(LOG_WARNING, "No handler available! Host: %s Uri: %s", conn.host().c_str(), conn.uri().c_str());
+        Server::logger()->error("No handler available. Host: '{}' Uri: '{}'", conn.host(), conn.uri());
         return;
     }
     //=========================================================================
@@ -158,7 +162,7 @@ namespace cserve {
             conn.header("Content-Type", "text/text; charset=utf-8");
             conn << "File not found\n";
             conn.flush();
-            syslog(LOG_ERR, "ScriptHandler: %s not readable!", script.c_str());
+            Server::logger()->error("ScriptHandler '{}' not readable", script);
             return;
         }
 
@@ -193,7 +197,7 @@ namespace cserve {
                         return;
                     }
 
-                    syslog(LOG_ERR, "ScriptHandler: error executing lua script: %s", err.to_string().c_str());
+                    Server::logger()->error("ScriptHandler: error executing lua script: '{}'", err.to_string());
                     return;
                 }
                 conn.flush();
@@ -239,7 +243,7 @@ namespace cserve {
                             return;
                         }
 
-                        syslog(LOG_ERR, "ScriptHandler: error executing lua chunk: %s", err.to_string().c_str());
+                        Server::logger()->error("ScriptHandler: error executing lua chunk: '{}'", err.to_string());
                         return;
                     }
                 }
@@ -252,7 +256,7 @@ namespace cserve {
                 conn.header("Content-Type", "text/text; charset=utf-8");
                 conn << "Script has no valid extension: '" << extension << "' !";
                 conn.flush();
-                syslog(LOG_ERR, "ScriptHandler: error executing script, unknown extension: %s", extension.c_str());
+                Server::logger()->error("ScriptHandler: error executing script, unknown extension: '{}'", extension);
             }
         } catch (InputFailure iofail) {
             return; // we have an io error => just return, the thread will exit
@@ -266,7 +270,7 @@ namespace cserve {
                 return;
             }
 
-            syslog(LOG_ERR, "FileHandler: internal error: %s", err.to_string().c_str());
+            Server::logger()->error("FileHandler: internal error: '{}'", err.to_string());
             return;
         }
     }
@@ -313,7 +317,7 @@ namespace cserve {
             conn.header("Content-Type", "text/text; charset=utf-8");
             conn << "File not found\n";
             conn.flush();
-            syslog(LOG_ERR, "FileHandler: %s not readable", infile.c_str());
+            Server::logger()->error("FileHandler: '{}' not readable.", infile);
             return;
         }
 
@@ -325,7 +329,7 @@ namespace cserve {
                 conn.header("Content-Type", "text/text; charset=utf-8");
                 conn << infile << " not aregular file\n";
                 conn.flush();
-                syslog(LOG_ERR, "FileHandler: %s is not regular file", infile.c_str());
+                Server::logger()->error("FileHandler: '{}' is not regular file.", infile);
                 return;
             }
         } else {
@@ -333,7 +337,7 @@ namespace cserve {
             conn.header("Content-Type", "text/text; charset=utf-8");
             conn << "Could not stat file" << infile << "\n";
             conn.flush();
-            syslog(LOG_ERR, "FileHandler: Could not stat %s", infile.c_str());
+            Server::logger()->error("FileHandler: Could not stat '{}'", infile);
             return;
         }
 
@@ -377,11 +381,10 @@ namespace cserve {
                         conn << "Lua Error:\r\n==========\r\n" << err << "\r\n";
                         conn.flush();
                     } catch (int i) {
-                        syslog(LOG_ERR, "FileHandler: error executing lua chunk!");
+                        Server::logger()->error("FileHandler: error executing lua chunk: {}", err.to_string());
                         return;
                     }
-
-                    syslog(LOG_ERR, "FileHandler: error executing lua chunk: %s", err.to_string().c_str());
+                    Server::logger()->error("FileHandler: error executing lua chunk: {}", err.to_string());
                     return;
                 }
 
@@ -426,7 +429,7 @@ namespace cserve {
                             conn.flush();
                         } catch (InputFailure iofail) {}
 
-                        syslog(LOG_ERR, "FileHandler: error executing lua chunk: %s", err.to_string().c_str());
+                        Server::logger()->error("FileHandler: error executing lua chunk: {}", err.to_string());
                         return;
                     }
                 }
@@ -510,7 +513,7 @@ namespace cserve {
                 conn.flush();
             } catch (InputFailure iofail) {}
 
-            syslog(LOG_ERR, "FileHandler: internal error: %s", err.to_string().c_str());
+            Server::logger()->error("FileHandler: internal error: {}", err.to_string());
             return;
         }
     }
@@ -531,43 +534,28 @@ namespace cserve {
      * @param loglevel_p Loglevel, must be one of "DEBUG", "INFO", "NOTICE", "WARNING", "ERR",
      *                   "CRIT", "ALERT" or "EMERG".
      */
-    Server::Server(int port_p,
-                   unsigned nthreads_p,
-                   const std::string userid_str,
-                   const std::string &logfile_p,
-                   const std::string &loglevel_p) : _port(port_p), _nthreads(nthreads_p), _logfilename(logfile_p),
-                                                    _loglevel(loglevel_p) {
+    Server::Server(int port,
+                   unsigned nthreads,
+                   const std::string &userid_str) :
+                   _port(port),
+                   _nthreads(nthreads) {
         _ssl_port = -1;
-
         _user_data = nullptr;
         running = false;
         _keep_alive_timeout = 20;
 
-        int ll;
-
-        if (_loglevel == "DEBUG") {
-            ll = LOG_DEBUG;
-        } else if (_loglevel == "INFO") {
-            ll = LOG_INFO;
-        } else if (_loglevel == "NOTICE") {
-            ll = LOG_NOTICE;
-        } else if (_loglevel == "WARNING") {
-            ll = LOG_WARNING;
-        } else if (_loglevel == "ERR") {
-            ll = LOG_ERR;
-        } else if (_loglevel == "CRIT") {
-            ll = LOG_CRIT;
-        } else if (_loglevel == "ALERT") {
-            ll = LOG_ALERT;
-        } else if (_loglevel == "EMERG") {
-            ll = LOG_EMERG;
-        } else {
-            ll = LOG_ERR;
+        std::shared_ptr<spdlog::logger> logger;
+        if (_loggername.empty()) {
+            logger = spdlog::stdout_color_mt("cserve_logger");
+        }
+        else if ((logger = spdlog::get(_loggername)) == nullptr) {
+            logger = spdlog::stdout_color_mt(_loggername);
         }
 
         //openlog(loggername, LOG_CONS | LOG_PERROR, LOG_DAEMON);
-        openlog(loggername, LOG_PERROR, LOG_DAEMON);
-        setlogmask(LOG_UPTO(ll));
+        //openlog(loggername, LOG_PERROR, LOG_DAEMON);
+        //setlogmask(LOG_UPTO(LOG_DEBUG));
+
 
         //
         // Her we check if we have to change to a different uid. This can only be done
@@ -583,27 +571,27 @@ namespace cserve {
                 if (res != nullptr) {
                     if (setuid(pwd.pw_uid) == 0) {
                         int old_ll = setlogmask(LOG_MASK(LOG_INFO));
-                        syslog(LOG_INFO, "Server will run as user %s (%d)", userid_str.c_str(), getuid());
+                        Server::logger()->info("Server will run as user {} ({}).", userid_str, getuid());
                         setlogmask(old_ll);
 
                         if (setgid(pwd.pw_gid) == 0) {
                             int old_ll = setlogmask(LOG_MASK(LOG_INFO));
-                            syslog(LOG_INFO, "Server will run with group-id %d", getgid());
+                            Server::logger()->info("Server will run with group-id {}", getgid());
                             setlogmask(old_ll);
                         } else {
-                            syslog(LOG_ERR, "setgid() failed! Reason: %m");
+                            Server::logger()->error("setgid() failed: {}", strerror(errno));
                         }
                     } else {
-                        syslog(LOG_ERR, "setgid() failed! Reason: %m");
+                        Server::logger()->error("setgid() failed: {}", strerror(errno));
                     }
                 } else {
-                    syslog(LOG_ERR, "Could not get uid of user %s: you must start Sipi as root", userid_str.c_str());
+                    Server::logger()->error("Could not get uid of user {}: you must start Sipi as root.", userid_str);
                 }
             } else {
-                syslog(LOG_ERR, "Could not get uid of user %s: you must start Sipi as root", userid_str.c_str());
+                Server::logger()->error("Could not get uid of user {}: you must start Sipi as root.", userid_str);
             }
         }
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
         SSL_load_error_strings();
         SSL_library_init();
         OpenSSL_add_all_algorithms();
@@ -613,7 +601,7 @@ namespace cserve {
 
 
 
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
     /**
      * Set the Jason Web Token (jwt) secret that the server will use
      *
@@ -681,14 +669,14 @@ namespace cserve {
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
         if (sockfd < 0) {
-            syslog(LOG_ERR, "Could not create socket: %m");
+            Server::logger()->error("Could not create socket: {}", strerror(errno));
             exit(1);
         }
 
         int optval = 1;
 
         if (::setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval) < 0) {
-            syslog(LOG_ERR, "Could not set socket option: %m");
+            Server::logger()->error("Could not set socket option: {}", strerror(errno));
             exit(1);
         }
 
@@ -701,12 +689,12 @@ namespace cserve {
 
         /* Now bind the host address using bind() call.*/
         if (::bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-            syslog(LOG_ERR, "Could not bind socket: %m");
+            Server::logger()->error("Could not bind socket: {}", strerror(errno));
             exit(1);
         }
 
         if (::listen(sockfd, SOMAXCONN) < 0) {
-            syslog(LOG_ERR, "Could not listen on socket: %m");
+            Server::logger()->error("Could not listen on socket: {}", strerror(errno));
             exit(1);
         }
 
@@ -714,7 +702,20 @@ namespace cserve {
     }
     //=========================================================================
 
+    std::shared_ptr<spdlog::logger> Server::create_logger(spdlog::level::level_enum level,  bool consolelog, const std::string &logfile) {
+        if (Server::_loggername.empty()) Server::_loggername = "cserver_logger";
+        Server::_logger = spdlog::stdout_color_mt(Server::_loggername);
+        return Server::_logger;
+    }
+    //=========================================================================
 
+    std::shared_ptr<spdlog::logger> Server::logger() {
+        if (Server::_logger == nullptr) {
+            Server::_logger = Server::create_logger();
+        }
+        return Server::_logger;
+    };
+    //=========================================================================
 
     /**
      * Close a socket
@@ -722,25 +723,25 @@ namespace cserve {
      * @return
      */
     static int close_socket(const SocketControl::SocketInfo &sockid) {
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
         if (sockid.ssl_sid != nullptr) {
             int sstat;
             while ((sstat = SSL_shutdown(sockid.ssl_sid)) == 0);
             if (sstat < 0) {
-                syslog(LOG_WARNING, "SSL socket error: shutdown of socket failed at [%s: %d] with error code %d",
-                       __file__, __LINE__, SSL_get_error(sockid.ssl_sid, sstat));
+                Server::logger()->warn("SSL socket error: shutdown of socket failed at [{}: {}] with error code {}",
+                                       __file__, __LINE__, SSL_get_error(sockid.ssl_sid, sstat));
             }
             SSL_free(sockid.ssl_sid);
         }
 #endif
         if (shutdown(sockid.sid, SHUT_RDWR) < 0) {
-            syslog(LOG_DEBUG, "Debug: shutting down socket at [%s: %d]: %m failed (client terminated already?)",
-                   __file__, __LINE__);
+            Server::logger()->debug("Debug: shutting down socket at [{}: {}]: {} failed (client terminated already?)",
+                                    __file__, __LINE__, strerror(errno));
         }
 
         if (close(sockid.sid) == -1) {
-            syslog(LOG_DEBUG, "Debug: closing socket at [%s: %d]: %m failed (client terminated already?)", __file__,
-                   __LINE__);
+            Server::logger()->debug("Debug: closing socket at [{}: {}]: {} failed (client terminated already?)",
+                                    __file__, __LINE__, strerror(errno));
         }
 
         return 0;
@@ -759,7 +760,7 @@ namespace cserve {
         do {
             poll_status = poll(readfds, 1, -1);
             if (poll_status < 0) {
-                syslog(LOG_ERR, "Blocking poll on control pipe failed at [%s: %d]", __file__, __LINE__);
+                Server::logger()->error("Blocking poll on control pipe failed at [{}: {}]", __file__, __LINE__);
                 tdata->result = -1;
                 return nullptr;
             }
@@ -773,7 +774,7 @@ namespace cserve {
                         // here we process the request
                         //
                         std::unique_ptr<SockStream> sockstream;
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
                         if (msg.ssl_sid != nullptr) {
                             sockstream = std::make_unique<SockStream>(msg.ssl_sid);
                         } else {
@@ -791,7 +792,7 @@ namespace cserve {
                         cserve::ThreadStatus tstatus;
                         int keep_alive = 1;
                         std::string tmpstr(msg.peer_ip);
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
                         if (msg.ssl_sid != nullptr) {
                             tstatus = tdata->serv->processRequest(&ins, &os, tmpstr,
                                                                   msg.peer_port, true, keep_alive);
@@ -832,10 +833,10 @@ namespace cserve {
             } else if (readfds[0].revents == POLLHUP) {
                 return nullptr;
             } else if (readfds[0].revents == POLLERR) {
-                syslog(LOG_ERR, "Thread pool got POLLERR message");
+                Server::logger()->error("Thread pool got POLLERR message");
                 return nullptr;
             } else {
-                syslog(LOG_ERR, "Thread pool got UNKNONW(!) message");
+                Server::logger()->error("Thread pool got UNKNONW(!) message");
                 return nullptr;
             }
         } while (true);
@@ -854,7 +855,7 @@ namespace cserve {
         socket_id.sid = accept(sock, (struct sockaddr *) &cli_addr, &cli_size);
 
         if (socket_id.sid <= 0) {
-            syslog(LOG_ERR, "Socket error  at [%s: %d]: %m", __file__, __LINE__);
+            Server::logger()->error("Socket error  at [{}: {}]: {}", __file__, __LINE__, strerror(errno));
             // ToDo: Perform appropriate action!
         }
         socket_id.type = SocketControl::NOOP;
@@ -874,59 +875,57 @@ namespace cserve {
         } else {
             socket_id.peer_port = -1;
         }
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
         SSL *cSSL = nullptr;
 
         if (ssl) {
             SSL_CTX *sslctx;
             try {
                 if ((sslctx = SSL_CTX_new(SSLv23_server_method())) == nullptr) {
-                    syslog(LOG_ERR, "OpenSSL error: SSL_CTX_new() failed");
+                    Server::logger()->error("OpenSSL error: SSL_CTX_new() failed");
                     throw SSLError(__file__, __LINE__, "OpenSSL error: SSL_CTX_new() failed");
                 }
                 SSL_CTX_set_options(sslctx, SSL_OP_SINGLE_DH_USE);
                 if (SSL_CTX_use_certificate_file(sslctx, _ssl_certificate.c_str(), SSL_FILETYPE_PEM) != 1) {
-                    std::string msg =
-                            "OpenSSL error: SSL_CTX_use_certificate_file(" + _ssl_certificate + ") failed";
-                    syslog(LOG_ERR, "%s", msg.c_str());
-                    throw SSLError(__file__, __LINE__, msg);
+                    Server::logger()->error("OpenSSL error [{}, {}]: SSL_CTX_use_certificate_file({}) failed.",
+                                            __file__, __LINE__, _ssl_certificate);
+                    throw SSLError(__file__, __LINE__,
+                                   fmt::format("OpenSSL error: SSL_CTX_use_certificate_file({}) failed.", _ssl_certificate));
                 }
                 if (SSL_CTX_use_PrivateKey_file(sslctx, _ssl_key.c_str(), SSL_FILETYPE_PEM) != 1) {
-                    std::string msg = "OpenSSL error: SSL_CTX_use_PrivateKey_file(" + _ssl_certificate + ") failed";
-                    syslog(LOG_ERR, "%s", msg.c_str());
-                    throw SSLError(__file__, __LINE__, msg);
+                    Server::logger()->error("OpenSSL error [{}, {}]: SSL_CTX_use_PrivateKey_file({}) failed",
+                                            __file__, __LINE__, _ssl_certificate);
+                    throw SSLError(__file__, __LINE__,
+                                   fmt::format("OpenSSL error: SSL_CTX_use_PrivateKey_file({}) failed", _ssl_certificate));
                 }
                 if (!SSL_CTX_check_private_key(sslctx)) {
-                    std::string msg = "OpenSSL error: SSL_CTX_check_private_key() failed";
-                    syslog(LOG_ERR, "%s", msg.c_str());
-                    throw SSLError(__file__, __LINE__, msg);
+                    Server::logger()->error("OpenSSL error [{}, {}]: SSL_CTX_check_private_key() failed",
+                                            __file__, __LINE__);
+                    throw SSLError(__file__, __LINE__, "OpenSSL error: SSL_CTX_check_private_key() failed");
                 }
                 if ((cSSL = SSL_new(sslctx)) == nullptr) {
-                    std::string msg = "OpenSSL error: SSL_new() failed";
-                    syslog(LOG_ERR, "%s", msg.c_str());
-                    throw SSLError(__file__, __LINE__, msg);
+                    Server::logger()->error("OpenSSL error [{}, {}]: SSL_new() failed", __file__, __LINE__);
+                    throw SSLError(__file__, __LINE__, "OpenSSL error: SSL_new() failed");
                 }
                 if (SSL_set_fd(cSSL, socket_id.sid) != 1) {
-                    std::string msg = "OpenSSL error: SSL_set_fd() failed";
-                    syslog(LOG_ERR, "%s", msg.c_str());
-                    throw SSLError(__file__, __LINE__, msg);
+                    Server::logger()->error("OpenSSL error [{}, {}]: SSL_set_fd() failed", __file__, __LINE__);
+                    throw SSLError(__file__, __LINE__, "OpenSSL error: SSL_set_fd() failed");
                 }
 
                 //Here is the SSL Accept portion.  Now all reads and writes must use SS
                 if ((SSL_accept(cSSL)) <= 0) {
-                    std::string msg = "OpenSSL error: SSL_accept() failed";
-                    syslog(LOG_ERR, "%s", msg.c_str());
-                    throw SSLError(__file__, __LINE__, msg);
+                    Server::logger()->error("OpenSSL error [{}, {}]: SSL_accept() failed", __file__, __LINE__);
+                    throw SSLError(__file__, __LINE__, "OpenSSL error: SSL_accept() failed");
                 }
             } catch (SSLError &err) {
-                syslog(LOG_ERR, "%s", err.to_string().c_str());
+                Server::logger()->error(err.to_string());
                 int sstat;
 
                 while ((sstat = SSL_shutdown(cSSL)) == 0);
 
                 if (sstat < 0) {
-                    syslog(LOG_WARNING, "SSL socket error: shutdown (2) of socket failed: %d",
-                           SSL_get_error(cSSL, sstat));
+                    Server::logger()->warn("SSL socket error: shutdown (2) of socket failed: {}",
+                                           SSL_get_error(cSSL, sstat));
                 }
 
                 SSL_free(cSSL);
@@ -942,7 +941,7 @@ namespace cserve {
      * Run the shttps server
      */
     void Server::run() {
-        syslog(LOG_DEBUG, "In Server::run");
+        Server::logger()->debug("In Server::run");
         // Start a thread just to catch signals sent to the server process.
         pthread_t sighandler_thread;
         sigset_t set;
@@ -953,22 +952,22 @@ namespace cserve {
 
         int pthread_sigmask_result = pthread_sigmask(SIG_BLOCK, &set, nullptr);
         if (pthread_sigmask_result != 0) {
-            syslog(LOG_ERR, "pthread_sigmask failed! (err=%d)", pthread_sigmask_result);
+            Server::logger()->error("pthread_sigmask failed! (err={})", pthread_sigmask_result);
         }
 
         //
         // start the thread that handles incoming signals (SIGTERM, SIGPIPE etc.)
         //
         if (pthread_create(&sighandler_thread, nullptr, &sig_thread, (void *) this) != 0) {
-            syslog(LOG_ERR, "Couldn't create thread: %s", strerror(errno));
+            Server::logger()->error("Couldn't create thread: {}", strerror(errno));
             return;
         }
 
         int old_ll = setlogmask(LOG_MASK(LOG_INFO));
-        syslog(LOG_INFO, "Starting shttps server with %d threads", _nthreads);
+        Server::logger()->info("Starting cserve server with {} threads", _nthreads);
         setlogmask(old_ll);
 
-        syslog(LOG_INFO, "Creating thread pool....");
+        Server::logger()->info("Creating thread pool....");
         ThreadControl thread_control(_nthreads, process_request, this);
         SocketControl socket_control(thread_control);
         //
@@ -979,24 +978,24 @@ namespace cserve {
             addRoute(route.method, route.route, ScriptHandler, &(route.script));
 
             old_ll = setlogmask(LOG_MASK(LOG_INFO));
-            syslog(LOG_INFO, "Added route %s with script %s", route.route.c_str(), route.script.c_str());
+            Server::logger()->info("Added route '{}' with script '{}'", route.route.c_str(), route.script.c_str());
             setlogmask(old_ll);
         }
 
         _sockfd = prepare_socket(_port);
         old_ll = setlogmask(LOG_MASK(LOG_INFO));
-        syslog(LOG_INFO, "Server listening on HTTP port %d", _port);
+        Server::logger()->info("Server listening on HTTP port {}", _port);
         setlogmask(old_ll);
 
         if (_ssl_port > 0) {
             _ssl_sockfd = prepare_socket(_ssl_port);
             old_ll = setlogmask(LOG_MASK(LOG_INFO));
-            syslog(LOG_INFO, "Server listening on SSL port %d", _ssl_port);
+            Server::logger()->info("Server listening on SSL port {}", _ssl_port);
             setlogmask(old_ll);
         }
 
         if (socketpair(PF_LOCAL, SOCK_STREAM, 0, stoppipe) != 0) {
-            syslog(LOG_ERR, "Creating pipe failed at [%s: %d]: %m", __file__, __LINE__);
+            Server::logger()->error("Creating pipe failed at [{}: {}]: {}", __file__, __LINE__, strerror(errno));
             return;
         }
 
@@ -1014,7 +1013,7 @@ namespace cserve {
             pollfd *sockets = socket_control.get_sockets_arr();
             int nsocks;
             if ((nsocks = poll(sockets, socket_control.get_sockets_size(), -1)) < 0) {
-                syslog(LOG_ERR, "Blocking poll failed at [%s: %d]: %m", __file__, __LINE__);
+                Server::logger()->error("Blocking poll failed at [{}: {}]: {}", __file__, __LINE__, strerror(errno));
                 running = false;
                 break;
             }
@@ -1097,16 +1096,16 @@ namespace cserve {
                                     //
                                     // a thread sent an EXIT message –– should not happen!!
                                     //
-                                    syslog(LOG_ERR, "A worker thread sent an EXIT message! This should never happen!");
+                                    Server::logger()->error("A worker thread sent an EXIT message! This should never happen!");
                                     break;
                                 }
                                 case SocketControl::ERROR: {
-                                    syslog(LOG_ERR, "A worker thread sent an ERROR message! This should never happen!");
+                                    Server::logger()->error("A worker thread sent an EXIT message! This should never happen!");
                                     // ToDo: React to this message
                                     break;
                                 }
                                 default: {
-                                    syslog(LOG_ERR, "A worker thread sent an non-dentifiable message! This should never happen!");
+                                    Server::logger()->error("A worker thread sent an non-identifiable message! This should never happen!");
                                     // error handling
                                 }
                             }
@@ -1119,7 +1118,7 @@ namespace cserve {
 
                             SocketControl::SocketInfo msg = SocketControl::receive_control_message(sockets[i].fd); // read the message from the pipe
                             if (msg.type != SocketControl::EXIT) {
-                                syslog(LOG_ERR, "Got unexpected message from interrupt");
+                                Server::logger()->error("Got unexpected message from interrupt");
                             }
 
                             SocketControl::SocketInfo sockid;
@@ -1137,14 +1136,15 @@ namespace cserve {
                             // we got input ready from normal listener socket
                             SocketControl::SocketInfo sockid = accept_connection(sockets[i].fd, false);
                             socket_control.add_dyn_socket(sockid);
-                            syslog(LOG_INFO, "Accepted connection from %s", sockid.peer_ip); //  ==> CHANGES open_sockets!!
+                            Server::logger()->info("Accepted connection from {}", sockid.peer_ip);
                         } else if (i == socket_control.get_ssl_socket_id()) {
                             //
                             // external SSL request coming in
                             //
                             SocketControl::SocketInfo sockid = accept_connection(sockets[i].fd, true);
                             socket_control.add_dyn_socket(sockid);
-                            syslog(LOG_INFO, "Accepted SSL connection from %s", sockid.peer_ip); //  ==> CHANGES open_sockets!!
+                            Server::logger()->info("Accepted SSL connection from {}", sockid.peer_ip);
+
                         } else {
                             //
                             // DYN_SOCKET: a client socket (already accepted) has data -> dispatch the processing to a free thread
@@ -1157,7 +1157,7 @@ namespace cserve {
                                 sockid.type = SocketControl::PROCESS_REQUEST;
                                 int n = SocketControl::send_control_message(tinfo.control_pipe, sockid);
                                 if (n < 0) {
-                                    syslog(LOG_WARNING, "Got something unexpected...");
+                                    Server::logger()->warn("Got something unexpected...");
                                 }
                             } else { // no thread available, push socket into waiting queue
                                 socket_control.move_to_waiting(i); //  ==> CHANGES open_sockets!!
@@ -1203,39 +1203,39 @@ namespace cserve {
 #else
                         } else {
 #endif
-                            syslog(LOG_ERR, "We got a HANGUP from an unknown socket (socket_id = %d)", i);
+                            Server::logger()->error("We got a HANGUP from an unknown socket (socket_id = {})", i);
                         }
                     } else {
                         // we've got something else...
                         if (sockets[i].revents & POLLERR) {
-                            syslog(LOG_DEBUG, "-->POLLERR");
+                            Server::logger()->debug("-->POLLERR");
                         }
                         if (sockets[i].revents & POLLHUP) {
-                            syslog(LOG_DEBUG, "-->POLLHUP");
+                            Server::logger()->debug("-->POLLHUP");
                         }
                         if (sockets[i].revents & POLLIN) {
-                            syslog(LOG_DEBUG, "-->POLLIN");
+                            Server::logger()->debug("-->POLLIN");
                         }
                         if (sockets[i].revents & POLLNVAL) {
-                            syslog(LOG_DEBUG, "-->POLLNVAL");
+                            Server::logger()->debug("-->POLLNVAL");
                         }
                         if (sockets[i].revents & POLLOUT) {
-                            syslog(LOG_DEBUG, "-->POLLOUT");
+                            Server::logger()->debug("-->POLLOUT");
                         }
                         if (sockets[i].revents & POLLPRI) {
-                            syslog(LOG_DEBUG, "-->POLLPRI");
+                            Server::logger()->debug("-->POLLPRI");
                         }
                         if (sockets[i].revents & POLLRDBAND) {
-                            syslog(LOG_DEBUG, "-->POLLRDBAND");
+                            Server::logger()->debug("-->POLLRDBAND");
                         }
                         if (sockets[i].revents & POLLRDNORM) {
-                            syslog(LOG_DEBUG, "-->POLLRDNORM");
+                            Server::logger()->debug("-->POLLRDNORM");
                         }
                         if (sockets[i].revents & POLLWRBAND) {
-                            syslog(LOG_DEBUG, "-->POLLWRBAND");
+                            Server::logger()->debug("-->POLLWRBAND");
                         }
                         if (sockets[i].revents & POLLWRNORM) {
-                            syslog(LOG_DEBUG, "-->POLLWRNORM");
+                            Server::logger()->debug("-->POLLWRNORM");
                         }
                         //running = false;
                         //break; // accept returned something strange – probably we want to shutdown the server
@@ -1245,7 +1245,7 @@ namespace cserve {
         }
 
         old_ll = setlogmask(LOG_MASK(LOG_INFO));
-        syslog(LOG_INFO, "Server shutting down");
+        Server::logger()->info("Server shutting down");
         setlogmask(old_ll);
 
         //close(stoppipe[0]);
@@ -1266,7 +1266,7 @@ namespace cserve {
     Server::processRequest(std::istream *ins, std::ostream *os, std::string &peer_ip, int peer_port, bool secure,
                            int &keep_alive, bool socket_reuse) {
         if (_tmpdir.empty()) {
-            syslog(LOG_WARNING, "_tmpdir is empty");
+            Server::logger()->warn("_tmpdir is empty [{}, {}].", __file__, __LINE__);
             throw Error(__file__, __LINE__, "_tmpdir is empty");
         }
         if (ins->eof() || os->eof()) return CLOSE;
@@ -1309,12 +1309,12 @@ namespace cserve {
                 RequestHandler handler = getHandler(conn, &hd);
                 handler(conn, luaserver, _user_data, hd);
             } catch (InputFailure iofail) {
-                syslog(LOG_ERR, "Possibly socket closed by peer");
+                Server::logger()->error("Possibly socket closed by peer");
                 return CLOSE; // or CLOSE ??
             }
 
             if (!conn.cleanupUploads()) {
-                syslog(LOG_ERR, "Cleanup of uploaded files failed");
+                Server::logger()->error("Cleanup of uploaded files failed");
             }
 
             if (conn.keepAlive()) {
@@ -1323,10 +1323,10 @@ namespace cserve {
                 return CLOSE;
             }
         } catch (InputFailure iofail) { // "error" is thrown, if the socket was closed from the main thread...
-            syslog(LOG_DEBUG, "Socket connection: timeout or socket closed from main");
+            Server::logger()->debug("Socket connection: timeout or socket closed from main");
             return CLOSE;
         } catch (Error &err) {
-            syslog(LOG_WARNING, "Internal server error: %s", err.to_string().c_str());
+            Server::logger()->warn("Internal server error: {}", err.to_string());
             try {
                 *os << "HTTP/1.1 500 INTERNAL_SERVER_ERROR\r\n";
                 *os << "Content-Type: text/plain\r\n";
@@ -1335,7 +1335,7 @@ namespace cserve {
                 *os << "Content-Length: " << ss.str().length() << "\r\n\r\n";
                 *os << ss.str();
             } catch (InputFailure iofail) {
-                syslog(LOG_DEBUG, "Possibly socket closed by peer");
+                Server::logger()->debug("Possibly socket closed by peer");
             }
             return CLOSE;
         }

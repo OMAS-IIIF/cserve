@@ -20,8 +20,8 @@
  * You should have received a copy of the GNU Affero General Public
  * License along with Sipi.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef __shttps_parsing_h
-#define __shttps_parsing_h
+#ifndef __cserve_parsing_h
+#define __cserve_parsing_h
 
 #include <string>
 #include <regex>
@@ -91,4 +91,4 @@ namespace cserve {
     }
 }
 
-#endif //__shttps_parsing_h
+#endif //__cserve_parsing_h

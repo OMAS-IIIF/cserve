@@ -35,7 +35,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 include(FindOpenSSL)
 if(OPENSSL_FOUND)
     message(STATUS "Found OpenSSL at ${OPENSSL_ROOT_DIR}")
-    add_definitions(${CMAKE_CXX_FLAGS} " -DSHTTPS_ENABLE_SSL")
+    add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
     add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
     message(STATUS "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
     message(STATUS "OPENSSL_VERSION=${OPENSSL_VERSION}")
@@ -54,7 +54,7 @@ include_directories(
         /usr/local/include
 )
 
-
+configure_file(CserveVersion.h.in CserveVersion.h)
 
 add_library(cserve
         Global.h
@@ -70,7 +70,8 @@ add_library(cserve
         LuaSqlite.cpp LuaSqlite.h
         SocketControl.cpp SocketControl.h
         ThreadControl.cpp ThreadControl.h
-        Cserve.cpp Cserve.h)
+        Cserve.cpp Cserve.h
+        CserveVersion.h)
 
 target_include_directories(cserve
         INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}

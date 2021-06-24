@@ -36,3 +36,4 @@
 /cmake-build-debug
 /lib/CMakeFiles
 /local
+/lib/CserveVersion.h

@@ -10,13 +10,12 @@
 #include <queue>
 #include <mutex>
 #include <unistd.h>
-#include <syslog.h>
 #include <poll.h>
 
 #include <atomic>
 
-#ifndef SIPI_THREADCONTROL_H
-#define SIPI_THREADCONTROL_H
+#ifndef CSERVE_THREADCONTROL_H
+#define CSERVE_THREADCONTROL_H
 
 namespace cserve {
 

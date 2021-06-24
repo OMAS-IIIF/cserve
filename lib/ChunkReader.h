@@ -56,7 +56,7 @@ namespace cserve {
          *
          * \param[in] ins_p Input stream (e.g. socket stream of HTTP connection)
          * \param[in] maxisze_p Maximal total size the chunk reader is allowed to read.
-         *            If the chunk or total data is bigger, an shttps::Error is thrown!
+         *            If the chunk or total data is bigger, an cserve::Error is thrown!
          *            IF post_maxsize_p is 0 (default), there is no limit.
          */
         ChunkReader(std::istream *ins_p, size_t post_maxsize_p = 0);

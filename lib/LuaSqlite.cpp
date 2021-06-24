@@ -35,16 +35,16 @@
 namespace cserve {
 
 
-    char shttpsserver[] = "__shttps";
+    char cserveserver[] = "__cserve";
 
-    static const char LUASQLITE[] = "ShttpsSqlite";
+    static const char LUASQLITE[] = "CserveSqlite";
 
     typedef struct {
         sqlite3 *sqlite_handle;
         std::string *dbname;
     } Sqlite;
 
-    static const char LUASQLSTMT[] = "ShttsSqliteStmt";
+    static const char LUASQLSTMT[] = "CserveSqliteStmt";
 
     typedef struct {
         sqlite3 *sqlite_handle;

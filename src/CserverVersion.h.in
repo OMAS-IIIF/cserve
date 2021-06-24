@@ -1,2 +1,0 @@
-#define Cserver_VERSION_MAJOR @Cserver_VERSION_MAJOR@
-#define Cserver_VERSION_MINOR @Cserver_VERSION_MINOR@

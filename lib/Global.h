@@ -21,8 +21,8 @@
  * License along with Sipi.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __shttps_global_h
-#define __shttps_global_h
+#ifndef __cserve_global_h
+#define __cserve_global_h
 
 #include <string>
 #include <sstream>
@@ -30,6 +30,7 @@
 #include <utility>
 #include <string>
 #include <iostream>
+
 
 
 namespace cserve {

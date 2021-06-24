@@ -17,11 +17,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h> //inet_addr
 #include <unistd.h>
-#include <syslog.h>
 #include <poll.h>
 #include <string.h>
 
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
 
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
@@ -51,7 +50,7 @@ namespace cserve {
             ControlMessageType type;
             SocketType socket_type;
             int sid;
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
             SSL *ssl_sid;
 #endif
             char peer_ip[INET6_ADDRSTRLEN];
@@ -74,7 +73,7 @@ namespace cserve {
 
             SocketInfo(const SocketInfo &si) {
                 sid = si.sid;
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
                 ssl_sid = si.ssl_sid;
 #endif
                 for (int i = 0; i < INET6_ADDRSTRLEN; i++) peer_ip[i] = si.peer_ip[i];
@@ -84,7 +83,7 @@ namespace cserve {
 
             SocketInfo operator=(const SocketInfo &si) {
                 sid = si.sid;
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
                 ssl_sid = si.ssl_sid;
 #endif
                 for (int i = 0; i < INET6_ADDRSTRLEN; i++) peer_ip[i] = si.peer_ip[i];

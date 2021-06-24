@@ -179,7 +179,7 @@ namespace cserve {
 
     std::string urldecode(const std::string &src, bool form_encoded) {
 
-#define HEXTOI(x) (isdigit(x) ? x - '0' : x - 'W')
+#define HEXTOI(x) (isdigit(x) ? (x) - '0' : (x) - 'W')
 
         stringstream outss;
         size_t start = 0;
@@ -203,7 +203,7 @@ namespace cserve {
                     //
                     char a = (char) tolower(src[pos + 1]);
                     char b = (char) tolower(src[pos + 2]);
-                    char c = ((HEXTOI(a) << 4) | HEXTOI(b));
+                    char c = (char) ((HEXTOI(a) << 4) | HEXTOI(b));
                     outss << c;
                     start = pos + 3;
                 } else {

@@ -23,8 +23,8 @@
  * \brief Lua handling...
  *
  */
-#ifndef __shttp_lua_server_h
-#define __shttp_lua_server_h
+#ifndef __cserve_lua_server_h
+#define __cserve_lua_server_h
 
 #include <iostream>
 #include <vector>
@@ -132,7 +132,7 @@ namespace cserve {
          * Adds a value to the server tabe.
          *
          * The server table contains constants and functions which are related
-         * to the shttps HTTP server. The server table a a globally accessible
+         * to the cserve HTTP server. The server table a a globally accessible
          * table.
          *
          * \param[in] name Name of variable

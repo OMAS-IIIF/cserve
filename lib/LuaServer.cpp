@@ -37,7 +37,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <syslog.h>
+#include "spdlog/spdlog.h"
 #include <sys/types.h>
 #include <dirent.h>
 
@@ -55,7 +55,7 @@
 #include "Parsing.h"
 
 
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
 
 #include "jwt.h"
 
@@ -72,7 +72,7 @@ static const char servertablename[] = "server";
 
 namespace cserve {
 
-    char luaconnection[] = "__shttpsconnection";
+    char luaconnection[] = "__cserveconnection";
 
     /*!
      * Dumps the Lua stack to a string.
@@ -1993,7 +1993,7 @@ namespace cserve {
     /*!
      * Copy an uploaded file to another location
      *
-     * shttp saves uploaded files in a temporary location (given by the config variable "tmpdir")
+     * cserve saves uploaded files in a temporary location (given by the config variable "tmpdir")
      * and deletes it after the request has been served. This function is used to copy the file
      * to another location where it can be used/retrieved by cserve/sipi.
      *
@@ -2070,7 +2070,7 @@ namespace cserve {
     }
     //=========================================================================
 
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
 
     //
     // reserved claims (IntDate: The number of seconds from 1970-01-01T0:0:0Z):
@@ -2205,7 +2205,7 @@ namespace cserve {
      */
     static int lua_logger(lua_State *L) {
         std::string message;
-        int level = LOG_ERR;
+        int level = spdlog::level::debug;
         int top = lua_gettop(L);
 
         if (top < 1) {
@@ -2236,7 +2236,14 @@ namespace cserve {
         }
 
         if (!message.empty()) {
-            syslog(level, "%s", message.c_str());
+            switch (level) {
+                case spdlog::level::trace: cserve::Server::logger()->trace(message); break;
+                case spdlog::level::debug: cserve::Server::logger()->debug(message); break;
+                case spdlog::level::info: cserve::Server::logger()->info(message); break;
+                case spdlog::level::warn: cserve::Server::logger()->warn(message); break;
+                case spdlog::level::err: cserve::Server::logger()->error(message); break;
+                case spdlog::level::critical: cserve::Server::logger()->critical(message); break;
+            }
         }
 
         lua_pop(L, top);
@@ -2491,7 +2498,7 @@ namespace cserve {
 
         lua_rawset(L, -3); // table1
 
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
 
         lua_pushstring(L, "has_openssl"); // table1 - "index_L1"
         lua_pushboolean(L, true); // table1 - "index_L1" - "value_L1"
@@ -2728,7 +2735,7 @@ namespace cserve {
         lua_pushcfunction(L, lua_systime); // table1 - "index_L1" - function
         lua_rawset(L, -3); // table1
 
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
 
         lua_pushstring(L, "generate_jwt"); // table1 - "index_L1"
         lua_pushcfunction(L, lua_generate_jwt); // table1 - "index_L1" - function
@@ -2759,36 +2766,32 @@ namespace cserve {
         lua_pushstring(L, "loglevel"); // table1 - "index_L1"
         lua_createtable(L, 0, 9); // table1 - "index_L1" - table2
 
-        lua_pushstring(L, "LOG_EMERG"); // table1 - "index_L1" - table2 - "index_L2"
-        lua_pushinteger(L, LOG_EMERG);
-        lua_rawset(L, -3); // table1 - "index_L1" - table2
-
-        lua_pushstring(L, "LOG_ALERT"); // table1 - "index_L1" - table2 - "index_L2"
-        lua_pushinteger(L, LOG_ALERT);
-        lua_rawset(L, -3); // table1 - "index_L1" - table2
-
-        lua_pushstring(L, "LOG_CRIT"); // table1 - "index_L1" - table2 - "index_L2"
-        lua_pushinteger(L, LOG_CRIT);
-        lua_rawset(L, -3); // table1 - "index_L1" - table2
-
-        lua_pushstring(L, "LOG_ERR"); // table1 - "index_L1" - table2 - "index_L2"
-        lua_pushinteger(L, LOG_ERR);
-        lua_rawset(L, -3); // table1 - "index_L1" - table2
-
-        lua_pushstring(L, "LOG_WARNING"); // table1 - "index_L1" - table2 - "index_L2"
-        lua_pushinteger(L, LOG_WARNING);
-        lua_rawset(L, -3); // table1 - "index_L1" - table2
-
-        lua_pushstring(L, "LOG_NOTICE"); // table1 - "index_L1" - table2 - "index_L2"
-        lua_pushinteger(L, LOG_NOTICE);
-        lua_rawset(L, -3); // table1 - "index_L1" - table2
-
-        lua_pushstring(L, "LOG_INFO"); // table1 - "index_L1" - table2 - "index_L2"
-        lua_pushinteger(L, LOG_INFO);
+        lua_pushstring(L, "LOG_TRACE"); // table1 - "index_L1" - table2 - "index_L2"
+        lua_pushinteger(L, spdlog::level::trace);
         lua_rawset(L, -3); // table1 - "index_L1" - table2
 
         lua_pushstring(L, "LOG_DEBUG"); // table1 - "index_L1" - table2 - "index_L2"
-        lua_pushinteger(L, LOG_DEBUG);
+        lua_pushinteger(L, spdlog::level::debug);
+        lua_rawset(L, -3); // table1 - "index_L1" - table2
+
+        lua_pushstring(L, "LOG_INFO"); // table1 - "index_L1" - table2 - "index_L2"
+        lua_pushinteger(L, spdlog::level::info);
+        lua_rawset(L, -3); // table1 - "index_L1" - table2
+
+        lua_pushstring(L, "LOG_WARN"); // table1 - "index_L1" - table2 - "index_L2"
+        lua_pushinteger(L, spdlog::level::warn);
+        lua_rawset(L, -3); // table1 - "index_L1" - table2
+
+        lua_pushstring(L, "LOG_ERR"); // table1 - "index_L1" - table2 - "index_L2"
+        lua_pushinteger(L, spdlog::level::err);
+        lua_rawset(L, -3); // table1 - "index_L1" - table2
+
+        lua_pushstring(L, "LOG_CRITICAL"); // table1 - "index_L1" - table2 - "index_L2"
+        lua_pushinteger(L, spdlog::level::critical);
+        lua_rawset(L, -3); // table1 - "index_L1" - table2
+
+        lua_pushstring(L, "LOG_OFF"); // table1 - "index_L1" - table2 - "index_L2"
+        lua_pushinteger(L, spdlog::level::off);
         lua_rawset(L, -3); // table1 - "index_L1" - table2
 
         lua_rawset(L, -3); // table1

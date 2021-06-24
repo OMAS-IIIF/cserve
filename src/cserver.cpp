@@ -6,13 +6,16 @@
 #include <utility>
 #include <thread>
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "CLI11.hpp"
+
+#include "Global.h"
 #include "Error.h"
 #include "Cserve.h"
 #include "LuaServer.h"
 #include "LuaSqlite.h"
-#include "CLI11.hpp"
 
-#include "CserverVersion.h"
 
 cserve::Server *serverptr = nullptr;
 
@@ -22,7 +25,7 @@ static sig_t old_broken_pipe_handler;
 static void sighandler(int sig) {
     if (serverptr != nullptr) {
         int old_ll = setlogmask(LOG_MASK(LOG_INFO));
-        syslog(LOG_INFO, "Got SIGINT, stopping server");
+        //syslog(LOG_INFO, "Got SIGINT, stopping server");
         setlogmask(old_ll);
         serverptr->stop();
     } else {
@@ -90,10 +93,10 @@ void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
 
     conn.header("Content-Type", "text/html; charset=utf-8");
     conn << "<html><head>";
-    conn << "<title>SIPI TEST (chunked transfer)</title>";
+    conn << "<title>OMAS-IIIF CSERVE TEST (chunked transfer)</title>";
     conn << "</head>" << cserve::Connection::flush_data;
 
-    conn << "<body><h1>SIPI TEST (chunked transfer)</h1>";
+    conn << "<body><h1>OMAS-IIIF CSERVE TEST (chunked transfer)</h1>";
     conn << "<p>Dies ist ein kleiner Text</p>";
     conn << "</body></html>" << cserve::Connection::flush_data;
     return;
@@ -101,13 +104,20 @@ void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
 
 
 int main(int argc, char *argv[]) {
+    auto logger = cserve::Server::create_logger();
+    logger->info("CSERVE startet main");
+    /*
+     * First we define the parameters for the HTTP server with their respective default values
+     */
     std::string userid = "";
     int port = 4711;
-    int ssl_port = -1;
-#ifdef cserve_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
     std::string ssl_certificate;
     std::string ssl_key;
     std::string jwt_secret;
+    int ssl_port = 4712;
+#else
+    int ssl_port = -1;
 #endif
     int nthreads = std::thread::hardware_concurrency();
     std::string configfile;
@@ -119,6 +129,8 @@ int main(int argc, char *argv[]) {
     int keep_alive = 5;
     size_t max_post_size = 20*1024*1024; // 20MB
     std::string initscript = "./cserve.init.lua";
+    std::string logfile = "./cserve.log";
+    spdlog::level::level_enum loglevel = spdlog::level::debug;
 
     CLI::App cserverOpts("cserver is a small C++ based webserver with Lua integration.");
 
@@ -156,86 +168,61 @@ int main(int argc, char *argv[]) {
                        ->envname("CSERVER_JWTKEY");
 #endif
 
-    std::string optDocroot = "./server";
+    std::string optDocroot;
     cserverOpts.add_option("--docroot",
                            optDocroot,
                            "Path to document root for normal webserver.")
             ->envname("CSERVER_DOCROOT")
             ->check(CLI::ExistingDirectory);
 
-    std::string optTmpdir = "./tmp";
+    std::string optTmpdir;
     cserverOpts.add_option("--tmpdir",
                            optTmpdir, "Path to the temporary directory (e.g. for uploads etc.).")
             ->envname("CSERVER_TMPDIR")->check(CLI::ExistingDirectory);
 
-    std::string optScriptDir = "./scripts";
+    std::string optScriptDir;
     cserverOpts.add_option("--scriptdir",
                            optScriptDir,
                            "Path to directory containing Lua scripts to implement routes.")
             ->envname("CSERVER_SCRIPTDIR")->check(CLI::ExistingDirectory);
 
-    int optNThreads = std::thread::hardware_concurrency();
+    int optNThreads;
     cserverOpts.add_option("-t,--nthreads", optNThreads, "Number of threads for cserver")
     ->envname("CSERVER_NTHREADS");
 
-    int optKeepAlive = 5;
+    int optKeepAlive;
     cserverOpts.add_option("--keepalive",
                            optKeepAlive,
                            "Number of seconds for the keep-alive option of HTTP 1.1.")
                            ->envname("CSERVER_KEEPALIVE");
 
-    std::string optMaxPostSize = "100M";
+    std::string optMaxPostSize;
     cserverOpts.add_option("--maxpost",
                        optMaxPostSize,
                        "A string indicating the maximal size of a POST request, e.g. '100M'.")
                        ->envname("CSERVER_MAXPOSTSIZE");
 
 
-    enum class LogLevel { DEBUG, INFO, NOTICE, WARNING, ERR, CRIT, ALERT, EMERG };
-    LogLevel optLogLevel = LogLevel::DEBUG;
-    std::vector<std::pair<std::string, LogLevel>> logLevelMap{
-            {"DEBUG", LogLevel::DEBUG},
-            {"INFO", LogLevel::INFO},
-            {"NOTICE", LogLevel::NOTICE},
-            {"WARNING", LogLevel::WARNING},
-            {"ERR", LogLevel::ERR},
-            {"CRIT", LogLevel::CRIT},
-            {"ALERT", LogLevel::ALERT},
-            {"EMERG", LogLevel::EMERG}
+    std::string optLogfile;
+    cserverOpts.add_option("--logfile", optLogfile, "Name of the logfile.")->envname("CSERVE_LOGFILE");
+
+    spdlog::level::level_enum optLogLevel;
+    std::vector<std::pair<std::string, spdlog::level::level_enum>> logLevelMap {
+            {"TRACE", spdlog::level::trace},
+            {"DEBUG", spdlog::level::debug},
+            {"INFO", spdlog::level::info},
+            {"WARN", spdlog::level::warn},
+            {"ERR", spdlog::level::err},
+            {"CRITICAL", spdlog::level::critical},
+            {"OFF", spdlog::level::off}
     };
     cserverOpts.add_option("--loglevel",
                            optLogLevel,
-                           "Logging level Value can be: 'DEBUG', 'INFO', 'WARNING', 'ERR', 'CRIT', 'ALERT', 'EMERG'.")
+                           "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.")
                            ->transform(CLI::CheckedTransformer(logLevelMap, CLI::ignore_case))
                            ->envname("CSERVER_LOGLEVEL");
 
-/*
-    for (int i = 1; i < argc; i++) {
-        if ((strcmp(argv[i], "-p") == 0) || (strcmp(argv[i], "-port") == 0)) {
-            i++;
-            if (i < argc) port = atoi(argv[i]);
-        } else if ((strcmp(argv[i], "-c") == 0) || (strcmp(argv[i], "-config") == 0)) {
-            i++;
-            if (i < argc) configfile = argv[i];
-        } else if ((strcmp(argv[i], "-d") == 0) || (strcmp(argv[i], "-docroot") == 0)) {
-            i++;
-            if (i < argc) docroot = argv[i];
-        } else if ((strcmp(argv[i], "-t") == 0) || (strcmp(argv[i], "-tmpdir") == 0)) {
-            i++;
-            if (i < argc) tmpdir = argv[i];
-        } else if ((strcmp(argv[i], "-n") == 0) || (strcmp(argv[i], "-nthreads") == 0)) {
-            i++;
-            if (i < argc) nthreads = atoi(argv[i]);
-        } else if ((strcmp(argv[i], "-h") == 0) || (strcmp(argv[i], "-help") == 0) ||
-                   (strcmp(argv[i], "--help") == 0)) {
-            std::cerr << "usage:" << std::endl;
-            std::cerr
-                    << "shttp-test [-p|-port <int def=4711>] [-c|-config <filename>] [-d|-docroot <path>] [-t|-tmpdir <path>] [-n|-nthreads <int def=4>]"
-                    << std::endl << std::endl;
-            return 0;
-        }
-    }
-*/
+
     /*
      * Form if config file:
      *
@@ -264,10 +251,25 @@ int main(int argc, char *argv[]) {
             scriptdir = luacfg.configString("cserve", "scriptdir", scriptdir);
             nthreads = luacfg.configInteger("cserve", "nthreads", nthreads);
             keep_alive = luacfg.configInteger("cserve", "keep_alive", keep_alive);
-
             max_post_size = luacfg.configInteger("cserve", "max_post_size", max_post_size);
-
             initscript = luacfg.configString("cserve", "initscript", initscript);
+            logfile = luacfg.configString("cserve", "logfile", logfile);
+
+            std::string loglevelstr;
+            for (const auto ll: logLevelMap) { // convert spdlog::level::level_enum to std::string
+                if (ll.second == loglevel) {
+                    loglevelstr = ll.first;
+                    break;
+                }
+            }
+            loglevelstr = luacfg.configString("cserve", "loglevel", loglevelstr);
+            for (const auto ll: logLevelMap) { // convert std::string to spdlog::level::level_enum
+                if (ll.first == loglevelstr) {
+                    loglevel = ll.second;
+                    break;
+                }
+            }
+
             routes = luacfg.configRoute("routes");
         } catch (cserve::Error &err) {
             std::cerr << err << std::endl;
@@ -297,16 +299,17 @@ int main(int argc, char *argv[]) {
             max_post_size = stoll(optMaxPostSize);
         }
     }
+    if (!cserverOpts.get_option("--logfile")->empty()) logfile = optLogfile;
+    if (!cserverOpts.get_option("--loglevel")->empty()) loglevel = optLogLevel;
 
 
     cserve::Server server(port, nthreads, userid); // instantiate the server
-#ifdef cserve_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
     server.ssl_port(ssl_port); // set the secure connection port (-1 means no ssl socket)
     if (!ssl_certificate.empty()) server.ssl_certificate(ssl_certificate);
     if (!ssl_key.empty()) server.ssl_key(ssl_key);
     server.jwt_secret(jwt_secret);
 #endif
-    std::cerr << "3--------------->" << tmpdir << "<---------" << std::endl;
     server.tmpdir(tmpdir); // set the directory for storing temporary files during upload
     server.scriptdir(scriptdir); // set the directory where the Lua scripts are found for the "Lua"-routes
     server.max_post_size(max_post_size); // set the maximal post size
@@ -334,9 +337,8 @@ int main(int argc, char *argv[]) {
     serverptr = &server;
     old_sighandler = signal(SIGINT, sighandler);
     old_broken_pipe_handler = signal(SIGPIPE, SIG_IGN);
-
     server.run();
-    std::cerr << "SERVER HAS FINISHED ITS SERVICE" << std::endl;
+    logger->info("CSERVE has finihsed it's service");
     (void) signal(SIGINT, old_sighandler);
     (void) signal(SIGPIPE, old_broken_pipe_handler);
 }

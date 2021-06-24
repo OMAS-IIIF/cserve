@@ -23,8 +23,8 @@
  * \brief Implements a simple HTTP server.
  *
  */
-#ifndef __shttp_server_h
-#define __shttp_server_h
+#ifndef __cserve_server_h
+#define __cserve_server_h
 
 
 #include <map>
@@ -46,13 +46,16 @@
 #include <sstream>      // std::stringstream
 #include <iostream>
 
-#ifdef SHTTPS_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
 
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
 #include "openssl/err.h"
 
 #endif
+
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 #include "Global.h"
 #include "Error.h"
@@ -62,7 +65,6 @@
 
 #include "ThreadControl.h"
 #include "SocketControl.h"
-
 
 #include "lua.hpp"
 
@@ -93,7 +95,7 @@ namespace cserve {
      * request types and different paths handlers which will be called. The handler gets an Connection
      * instance which will be used to receive and send data.
      *
-     *     void MirrorHandler(shttps::Connection &conn, void *user_data)
+     *     void MirrorHandler(cserve::Connection &conn, void *user_data)
      *     {
      *         conn.setBuffer();
      *         std::vector<std::string> headers = conn.header();
@@ -101,7 +103,7 @@ namespace cserve {
      *             conn.header("Content-Type", "text/html; charset=utf-8");
      *             conn << "<html><head>";
      *             conn << "<title>Mirror, mirror – on the wall...</title>";
-     *             conn << "</head>" << shttps::Connection::flush_data;
+     *             conn << "</head>" << cserve::Connection::flush_data;
      *
      *             conn << "<body><h1>Header fields</h1>";
      *             conn << "<table>";
@@ -110,7 +112,7 @@ namespace cserve {
      *               conn << "<tr><td>" << headers[i] << "</td><td>" << conn.header(headers[i]) << "</td></tr>";
      *             }
      *             conn << "</table>"
-     *             conn << "</body></html>" << shttps::Connection::flush_data;
+     *             conn << "</body></html>" << cserve::Connection::flush_data;
      *         }
      *         else {
      *             conn.header("Content-Type", "text/plain; charset=utf-8");
@@ -120,9 +122,9 @@ namespace cserve {
      *         }
      *     }
      *
-     *     shttps::Server server(4711);
-     *     server.addRoute(shttps::Connection::GET, "/", RootHandler);
-     *     server.addRoute(shttps::Connection::GET, "/mirror", MirrorHandler);
+     *     cserve::Server server(4711);
+     *     server.addRoute(cserve::Connection::GET, "/", RootHandler);
+     *     server.addRoute(cserve::Connection::GET, "/mirror", MirrorHandler);
      *     server.run();
      *
      */
@@ -135,7 +137,7 @@ namespace cserve {
             void *func_dataptr;
         } GlobalFunc;
 
-#       ifdef SHTTPS_ENABLE_SSL
+#       ifdef CSERVE_ENABLE_SSL
 
         /*!
          * Error handling class for SSL functions
@@ -195,13 +197,16 @@ namespace cserve {
         };
         //=========================================================================
 
+        static std::string _loggername; //!< global logger name
+        static std::shared_ptr<spdlog::logger> _logger; //!< shared pointer to logger
+
     private:
         int _port; //!< listening Port for server
         int _ssl_port; //!< listening port for openssl
         int _sockfd; //!< socket id
         int _ssl_sockfd; //!< SSL socket id
 
-#       ifdef SHTTPS_ENABLE_SSL
+#       ifdef CSERVE_ENABLE_SSL
 
         std::string _ssl_certificate; //!< Path to SSL certificate
         std::string _ssl_key; //!< Path to SSL certificate
@@ -229,9 +234,6 @@ namespace cserve {
 
         SocketControl::SocketInfo accept_connection(int sock, bool ssl = false);
 
-        std::string _logfilename;
-        std::string _loglevel;
-
     public:
         /*!
         * Create a server listening on the given port with the maximal number of threads
@@ -239,12 +241,23 @@ namespace cserve {
         * \param[in] port_p Listening port of HTTP server
         * \param[in] nthreads_p Maximal number of parallel threads serving the requests
         */
-        Server(int port_p, unsigned nthreads_p = 4, const std::string userid_str = "",
-               const std::string &logfile_p = "cserve.log", const std::string &loglevel_p = "DEBUG");
+        Server(int port,
+               unsigned nthreads = 4,
+               const std::string &userid_str = "");
+
+        inline static void loggername(const std::string &loggername) { _loggername = loggername; }
+
+        inline static const std::string &loggername() { return _loggername; }
+
+        static std::shared_ptr<spdlog::logger> create_logger(spdlog::level::level_enum level = spdlog::level::debug,
+                                                             bool consolelog = true,
+                                                             const std::string &logfile = "");
+
+        static std::shared_ptr<spdlog::logger> logger();
 
         inline int port(void) { return _port; }
 
-#       ifdef SHTTPS_ENABLE_SSL
+#       ifdef CSERVE_ENABLE_SSL
 
         /*!
          * Sets the port number for the SSL socket
@@ -399,7 +412,7 @@ namespace cserve {
         /*
         void add_thread(pthread_t thread_id_p, int commpipe_write_p, int sock_id);
 
-#       ifdef SHTTPS_ENABLE_SSL
+#       ifdef CSERVE_ENABLE_SSL
 
         void thread_push(pthread_t thread_id_p, int commpipe_write_p, int sock_id, SSL *cSSL);
 
@@ -409,7 +422,7 @@ namespace cserve {
 
         int get_thread_pipe(pthread_t thread_id_p);
 
-#       ifdef SHTTPS_ENABLE_SSL
+#       ifdef CSERVE_ENABLE_SSL
 
         SSL *get_thread_ssl(pthread_t thread_id_p);
 
