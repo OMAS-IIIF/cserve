@@ -1,25 +1,4 @@
-/*
- * Copyright © 2016 Lukas Rosenthaler, Andrea Bianco, Benjamin Geer,
- * Ivan Subotic, Tobias Schweizer, André Kilchenmann, and André Fatton.
- * This file is part of Sipi.
- * Sipi is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * Sipi is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * Additional permission under GNU AGPL version 3 section 7:
- * If you modify this Program, or any covered work, by linking or combining
- * it with Kakadu (or a modified version of that library) or Adobe ICC Color
- * Profiles (or a modified version of that library) or both, containing parts
- * covered by the terms of the Kakadu Software Licence or Adobe Software Licence,
- * or both, the licensors of this Program grant you additional permission
- * to convey the resulting work.
- * See the GNU Affero General Public License for more details.
- * You should have received a copy of the GNU Affero General Public
- * License along with Sipi.  If not, see <http://www.gnu.org/licenses/>.
- *//*!
+/*!
  * \brief Implements the handling of the http server connections.
  *
  */
@@ -61,6 +40,8 @@ namespace cserve {
      *
      * \param[in] is Input stream (HTTP socket stream)
      * \param[out] t String containing the line
+     * \param[in] max_n Maximum length of line accepted. If 0, the length of the line is unlimited. The string t
+     *            is expanded as necessary.
      *
      * \returns Number of bytes read
      */
@@ -226,6 +207,7 @@ namespace cserve {
             CONTINUE = 100,
             SWITCHING_PROTOCOLS = 101,
             PROCESSING = 102,
+            EARLY_HINTS = 103,
 
             OK = 200,
             CREATED = 201,

@@ -45,7 +45,7 @@ namespace cserve {
     private:
         char *in_buf;      //!< input buffer
         int in_bufsize;    //!< size of input buffer
-        int putback_size;  //!<! since streams allow to put back a character, this is the sizee of the putback buffer. Must be at least 1
+        int putback_size;  //!<! since streams allow to put back a character, this is the size of the putback buffer. Must be at least 1
         char *out_buf;     //!< output buffer
         int out_bufsize;   //!< Size of output buffer
         int sock;          //!< Socket handle

@@ -222,6 +222,8 @@ int main(int argc, char *argv[]) {
                            ->transform(CLI::CheckedTransformer(logLevelMap, CLI::ignore_case))
                            ->envname("CSERVER_LOGLEVEL");
 
+    CLI11_PARSE(cserverOpts, argc, argv);
+
 
     /*
      * Form if config file:
@@ -235,6 +237,7 @@ int main(int argc, char *argv[]) {
      */
     if (!optConfigfile.empty()) {
         try {
+            cserve::Server::logger()->info("Reading configuration from '{}'.", optConfigfile);
             cserve::LuaServer luacfg = cserve::LuaServer(optConfigfile);
 
             userid = luacfg.configString("cserve", "userid", userid);
@@ -312,6 +315,7 @@ int main(int argc, char *argv[]) {
 #endif
     server.tmpdir(tmpdir); // set the directory for storing temporary files during upload
     server.scriptdir(scriptdir); // set the directory where the Lua scripts are found for the "Lua"-routes
+    server.initscript(initscript);
     server.max_post_size(max_post_size); // set the maximal post size
     //server.loglevel();
     server.luaRoutes(routes);
