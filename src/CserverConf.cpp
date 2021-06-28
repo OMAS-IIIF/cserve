@@ -2,6 +2,10 @@
 // Created by Lukas Rosenthaler on 28.06.21.
 //
 
+#include <thread>
+
+#include "CLI11.hpp"
+
 #include "CserverConf.h"
 
 extern size_t data_volume(const std::string volstr) {
@@ -19,4 +23,16 @@ extern size_t data_volume(const std::string volstr) {
         data_volume = stoll(volstr);
     }
     return data_volume;
+}
+
+CserverConf::CserverConf(int argc, char *argv[]) {
+    _userid = "";
+    _port = 4711;
+#ifdef CSERVE_ENABLE_SSL
+    _ssl_port = 4712
+#else
+    _ssl_port = -1;
+#endif
+    _nthreads = std::thread::hardware_concurrency();
+    _tmpdir = "/tmp"
 }

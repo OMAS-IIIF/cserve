@@ -7,7 +7,9 @@
 
 
 #include <string>
+
 #include <spdlog/common.h>
+
 #include <LuaServer.h>
 
 extern size_t data_volume(const std::string volstr);
@@ -34,6 +36,11 @@ class CserverConf {
     std::string _initscript = "./cserve.init.lua";
     std::string _logfile = "./cserve.log";
     spdlog::level::level_enum _loglevel = spdlog::level::debug;
+
+
+    CserverConf(int argc, char *argv[]);
+
+
 
     inline void userid(const std::string &userid) { _userid = userid; }
     inline std::string userid() { return _userid; }
