@@ -15,6 +15,8 @@
 extern size_t data_volume(const std::string volstr);
 
 class CserverConf {
+private:
+    int _serverconf_ok;
     std::string _userid;
     int _port;
 #ifdef CSERVE_ENABLE_SSL
@@ -29,18 +31,18 @@ class CserverConf {
     std::string _docroot;
     std::string _tmpdir;
     std::string _scriptdir;
-    std::vector <cserve::LuaRoute> routes; // ToDo: is this necessary??
-    std::pair <std::string, std::string> filehandler_info; // ToDo: is this necessary??
-    int _keep_alive = 5;
-    size_t _max_post_size = 20*1024*1024; // 20MB
-    std::string _initscript = "./cserve.init.lua";
+    std::vector <cserve::LuaRoute> _routes; // ToDo: is this necessary??
+    std::pair <std::string, std::string> _filehandler_info; // ToDo: is this necessary??
+    int _keep_alive;
+    size_t _max_post_size;
+    std::string _initscript;
     std::string _logfile = "./cserve.log";
     spdlog::level::level_enum _loglevel = spdlog::level::debug;
 
-
+public:
     CserverConf(int argc, char *argv[]);
 
-
+    inline bool serverconf_ok() { return _serverconf_ok; }
 
     inline void userid(const std::string &userid) { _userid = userid; }
     inline std::string userid() { return _userid; }
@@ -69,6 +71,17 @@ class CserverConf {
 
     inline void tmpdir(const std::string &tmpdir) { _tmpdir = tmpdir; }
     inline std::string tmpdir() { return _tmpdir; }
+
+    inline void scriptdir(const std::string &scriptdir) { _scriptdir = scriptdir; }
+    inline std::string scriptdir() { return _scriptdir; }
+
+    inline void routes(const std::vector <cserve::LuaRoute> &routes) { _routes = routes; }
+    inline std::vector <cserve::LuaRoute> routes() { return _routes; }
+
+    inline void filehandler_info(const std::pair <std::string, std::string> &filehandler_info) {
+        _filehandler_info = filehandler_info;
+    }
+    inline std::pair <std::string, std::string> filehandler_info() { return _filehandler_info; }
 
     inline void keep_alive(int keep_alive) { _keep_alive = keep_alive; }
     inline int keep_alive() { return _keep_alive; }

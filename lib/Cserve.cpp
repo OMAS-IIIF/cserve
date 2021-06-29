@@ -295,11 +295,11 @@ namespace cserve {
         std::string route;
 
         if (hd == nullptr) {
-            docroot = ".";
             route = "/";
+            docroot = ".";
         } else {
             std::pair<std::string, std::string> tmp = *((std::pair<std::string, std::string> *) hd);
-            docroot = *((std::string *) hd);
+            // docroot = *((std::string *) hd);
             route = tmp.first;
             docroot = tmp.second;
         }

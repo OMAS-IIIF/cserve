@@ -15,6 +15,7 @@
 #include "Cserve.h"
 #include "LuaServer.h"
 #include "LuaSqlite.h"
+#include "CserverConf.h"
 
 
 cserve::Server *serverptr = nullptr;
@@ -109,12 +110,10 @@ int main(int argc, char *argv[]) {
     /*
      * First we define the parameters for the HTTP server with their respective default values
      */
+    /*
     std::string userid = "";
     int port = 4711;
 #ifdef CSERVE_ENABLE_SSL
-    std::string ssl_certificate;
-    std::string ssl_key;
-    std::string jwt_secret;
     int ssl_port = 4712;
 #else
     int ssl_port = -1;
@@ -225,16 +224,6 @@ int main(int argc, char *argv[]) {
     CLI11_PARSE(cserverOpts, argc, argv);
 
 
-    /*
-     * Form if config file:
-     *
-     * cserve = {
-     *    docroot = '/Volumes/data/cserve-docroot',
-     *    tmpdir = '/tmp',
-     *    port = 8080,
-     *    nthreads = 16
-     * }
-     */
     if (!optConfigfile.empty()) {
         try {
             cserve::Server::logger()->info("Reading configuration from '{}'.", optConfigfile);
@@ -304,33 +293,34 @@ int main(int argc, char *argv[]) {
     }
     if (!cserverOpts.get_option("--logfile")->empty()) logfile = optLogfile;
     if (!cserverOpts.get_option("--loglevel")->empty()) loglevel = optLogLevel;
+*/
+    CserverConf config(argc, argv);
 
-
-    cserve::Server server(port, nthreads, userid); // instantiate the server
+    cserve::Server server(config.port(), config.nthreads(), config.userid()); // instantiate the server
 #ifdef CSERVE_ENABLE_SSL
-    server.ssl_port(ssl_port); // set the secure connection port (-1 means no ssl socket)
-    if (!ssl_certificate.empty()) server.ssl_certificate(ssl_certificate);
-    if (!ssl_key.empty()) server.ssl_key(ssl_key);
-    server.jwt_secret(jwt_secret);
+    server.ssl_port(config.ssl_port()); // set the secure connection port (-1 means no ssl socket)
+    if (!config.ssl_certificate().empty()) server.ssl_certificate(config.ssl_certificate());
+    if (!config.ssl_key().empty()) server.ssl_key(config.ssl_key());
+    server.jwt_secret(config.jwt_secret());
 #endif
-    server.tmpdir(tmpdir); // set the directory for storing temporary files during upload
-    server.scriptdir(scriptdir); // set the directory where the Lua scripts are found for the "Lua"-routes
-    server.initscript(initscript);
-    server.max_post_size(max_post_size); // set the maximal post size
+    server.tmpdir(config.tmpdir()); // set the directory for storing temporary files during upload
+    server.scriptdir(config.scriptdir()); // set the directory where the Lua scripts are found for the "Lua"-routes
+    server.initscript(config.initscript());
+    server.max_post_size(config.max_post_size()); // set the maximal post size
     //server.loglevel();
-    server.luaRoutes(routes);
-    server.keep_alive_timeout(keep_alive); // set the keep alive timeout
+    server.luaRoutes(config.routes());
+    server.keep_alive_timeout(config.keep_alive()); // set the keep alive timeout
+
     server.add_lua_globals_func(cserve::sqliteGlobals, &server);
     server.add_lua_globals_func(new_lua_func); // add new lua function "gaga"
 
     //
     // now we set the routes for the normal HTTP server file handling
     //
-    if (!docroot.empty()) {
-        filehandler_info.first = "/";
-        filehandler_info.second = docroot;
-        server.addRoute(cserve::Connection::GET, "/", cserve::FileHandler, &filehandler_info);
-        server.addRoute(cserve::Connection::POST, "/", cserve::FileHandler, &filehandler_info);
+    if (!config.docroot().empty()) {
+        std::pair <std::string, std::string> tmp = config.filehandler_info();
+        server.addRoute(cserve::Connection::GET, tmp.first, cserve::FileHandler, &tmp);
+        server.addRoute(cserve::Connection::POST, tmp.first, cserve::FileHandler, &tmp);
     }
 
     //
