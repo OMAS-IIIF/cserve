@@ -8,7 +8,6 @@
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
-#include "CLI11.hpp"
 
 #include "Global.h"
 #include "Error.h"
@@ -107,194 +106,19 @@ void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
 int main(int argc, char *argv[]) {
     auto logger = cserve::Server::create_logger();
     logger->info("CSERVE startet main");
-    /*
-     * First we define the parameters for the HTTP server with their respective default values
-     */
-    /*
-    std::string userid = "";
-    int port = 4711;
-#ifdef CSERVE_ENABLE_SSL
-    int ssl_port = 4712;
-#else
-    int ssl_port = -1;
-#endif
-    int nthreads = std::thread::hardware_concurrency();
-    std::string configfile;
-    std::string docroot = ".";
-    std::string tmpdir = "/tmp";
-    std::string scriptdir = "./scripts";
-    std::vector <cserve::LuaRoute> routes;
-    std::pair <std::string, std::string> filehandler_info;
-    int keep_alive = 5;
-    size_t max_post_size = 20*1024*1024; // 20MB
-    std::string initscript = "./cserve.init.lua";
-    std::string logfile = "./cserve.log";
-    spdlog::level::level_enum loglevel = spdlog::level::debug;
 
-    CLI::App cserverOpts("cserver is a small C++ based webserver with Lua integration.");
-
-    std::string optConfigfile;
-    cserverOpts.add_option("-c,--config",
-                           optConfigfile,
-                           "Configuration file for web server.")->envname("CSERVER_CONFIGFILE")
-                           ->check(CLI::ExistingFile);
-
-    std::string optUserid;
-    cserverOpts.add_option("--userid", optUserid, "Userid to use to run cserver.")
-            ->envname("CSERVER_USERID");
-
-    int optServerport = 80;
-    cserverOpts.add_option("--port", optServerport, "Standard HTTP port of cserver.")
-    ->envname("CSERVER_PORT");
-
-#ifdef cserve_ENABLE_SSL
-    int optSSLport = 443;
-    cserverOpts.add_option("--sslport", optSSLport, "SSL-port of cserver.")
-    ->envname("CSERVER_SSLPORT");
-
-    std::string optSSLCertificatePath = "./certificate/certificate.pem";
-    cserverOpts.add_option("--sslcert", optSSLCertificatePath, "Path to SSL certificate.")
-    ->envname("CSERVER_SSLCERTIFICATE");
-
-    std::string optSSLKeyPath = "./certificate/key.pem";
-    cserverOpts.add_option("--sslkey", optSSLKeyPath, "Path to the SSL key file.")
-    ->envname("CSERVER_SSLKEY");
-
-    std::string optJWTKey = "UP4014, the biggest steam engine";
-    cserverOpts.add_option("--jwtkey",
-                       optJWTKey,
-                       "The secret for generating JWT's (JSON Web Tokens) (exactly 42 characters).")
-                       ->envname("CSERVER_JWTKEY");
-#endif
-
-    std::string optDocroot;
-    cserverOpts.add_option("--docroot",
-                           optDocroot,
-                           "Path to document root for normal webserver.")
-            ->envname("CSERVER_DOCROOT")
-            ->check(CLI::ExistingDirectory);
-
-    std::string optTmpdir;
-    cserverOpts.add_option("--tmpdir",
-                           optTmpdir, "Path to the temporary directory (e.g. for uploads etc.).")
-            ->envname("CSERVER_TMPDIR")->check(CLI::ExistingDirectory);
-
-    std::string optScriptDir;
-    cserverOpts.add_option("--scriptdir",
-                           optScriptDir,
-                           "Path to directory containing Lua scripts to implement routes.")
-            ->envname("CSERVER_SCRIPTDIR")->check(CLI::ExistingDirectory);
-
-    int optNThreads;
-    cserverOpts.add_option("-t,--nthreads", optNThreads, "Number of threads for cserver")
-    ->envname("CSERVER_NTHREADS");
-
-    int optKeepAlive;
-    cserverOpts.add_option("--keepalive",
-                           optKeepAlive,
-                           "Number of seconds for the keep-alive option of HTTP 1.1.")
-                           ->envname("CSERVER_KEEPALIVE");
-
-    std::string optMaxPostSize;
-    cserverOpts.add_option("--maxpost",
-                       optMaxPostSize,
-                       "A string indicating the maximal size of a POST request, e.g. '100M'.")
-                       ->envname("CSERVER_MAXPOSTSIZE");
-
-
-    std::string optLogfile;
-    cserverOpts.add_option("--logfile", optLogfile, "Name of the logfile.")->envname("CSERVE_LOGFILE");
-
-    spdlog::level::level_enum optLogLevel;
-    std::vector<std::pair<std::string, spdlog::level::level_enum>> logLevelMap {
-            {"TRACE", spdlog::level::trace},
-            {"DEBUG", spdlog::level::debug},
-            {"INFO", spdlog::level::info},
-            {"WARN", spdlog::level::warn},
-            {"ERR", spdlog::level::err},
-            {"CRITICAL", spdlog::level::critical},
-            {"OFF", spdlog::level::off}
-    };
-    cserverOpts.add_option("--loglevel",
-                           optLogLevel,
-                           "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.")
-                           ->transform(CLI::CheckedTransformer(logLevelMap, CLI::ignore_case))
-                           ->envname("CSERVER_LOGLEVEL");
-
-    CLI11_PARSE(cserverOpts, argc, argv);
-
-
-    if (!optConfigfile.empty()) {
-        try {
-            cserve::Server::logger()->info("Reading configuration from '{}'.", optConfigfile);
-            cserve::LuaServer luacfg = cserve::LuaServer(optConfigfile);
-
-            userid = luacfg.configString("cserve", "userid", userid);
-            port = luacfg.configInteger("cserve", "port", port);
-
-#ifdef cserve_ENABLE_SSL
-            ssl_port = luacfg.configInteger("cserve", "ssl_port", -1);
-            ssl_certificate = luacfg.configString("cserve", "sslcert", "");
-            ssl_key = luacfg.configString("cserve", "sslkey", "");
-            jwt_secret = luacfg.configString("cserve", "jwt_secret", "0123456789ABCDEF0123456789ABCDEF");
-#endif
-            docroot = luacfg.configString("cserve", "docroot", docroot);
-            tmpdir = luacfg.configString("cserve", "tmpdir", tmpdir);
-            scriptdir = luacfg.configString("cserve", "scriptdir", scriptdir);
-            nthreads = luacfg.configInteger("cserve", "nthreads", nthreads);
-            keep_alive = luacfg.configInteger("cserve", "keep_alive", keep_alive);
-            max_post_size = luacfg.configInteger("cserve", "max_post_size", max_post_size);
-            initscript = luacfg.configString("cserve", "initscript", initscript);
-            logfile = luacfg.configString("cserve", "logfile", logfile);
-
-            std::string loglevelstr;
-            for (const auto ll: logLevelMap) { // convert spdlog::level::level_enum to std::string
-                if (ll.second == loglevel) {
-                    loglevelstr = ll.first;
-                    break;
-                }
-            }
-            loglevelstr = luacfg.configString("cserve", "loglevel", loglevelstr);
-            for (const auto ll: logLevelMap) { // convert std::string to spdlog::level::level_enum
-                if (ll.first == loglevelstr) {
-                    loglevel = ll.second;
-                    break;
-                }
-            }
-
-            routes = luacfg.configRoute("routes");
-        } catch (cserve::Error &err) {
-            std::cerr << err << std::endl;
-        }
-    }
-    if (!cserverOpts.get_option("--userid")->empty()) userid = optUserid;
-    if (!cserverOpts.get_option("--port")->empty()) port = optServerport;
-#ifdef cserve_ENABLE_SSL
-    if (!cserverOpts.get_option("--sslport")->empty()) ssl_port = optSSLport;
-    if (!cserverOpts.get_option("--sslcert")->empty()) ssl_certificate = optSSLCertificatePath;
-    if (!cserverOpts.get_option("--sslkey")->empty()) ssl_key = optSSLKeyPath;
-    if (!cserverOpts.get_option("--jwtkey")->empty()) jwt_secret = optJWTKey;
-#endif
-    if (!cserverOpts.get_option("--docroot")->empty()) docroot = optDocroot;
-    if (!cserverOpts.get_option("--tmpdir")->empty()) tmpdir = optTmpdir;
-    if (!cserverOpts.get_option("--scriptdir")->empty()) scriptdir = optScriptDir;
-    if (!cserverOpts.get_option("--nthreads")->empty()) nthreads = optNThreads;
-    if (!cserverOpts.get_option("--keepalive")->empty()) nthreads = optKeepAlive;
-    if (!cserverOpts.get_option("--maxpost")->empty()) {
-        size_t l = optMaxPostSize.length();
-        char c = optMaxPostSize[l - 1];
-        if (c == 'M') {
-            max_post_size = stoll(optMaxPostSize.substr(0, l - 1)) * 1024 * 1024;
-        } else if (c == 'G') {
-            max_post_size = stoll(optMaxPostSize.substr(0, l - 1)) * 1024 * 1024 * 1024;
-        } else {
-            max_post_size = stoll(optMaxPostSize);
-        }
-    }
-    if (!cserverOpts.get_option("--logfile")->empty()) logfile = optLogfile;
-    if (!cserverOpts.get_option("--loglevel")->empty()) loglevel = optLogLevel;
-*/
+    //
+    // read the configuration parameters. The parameters can be defined in
+    // 1) a lua configuration parameter file
+    // 2) environment variables
+    // 3) commandline parameters.
+    // The configuration file parameters (lowest priority) are superseeded by the environment variables are
+    // superseeded by the command line parameters (highest priority)
+    //
     CserverConf config(argc, argv);
+    if (config.serverconf_ok() != 0) return config.serverconf_ok();
+
+    logger->set_level(config.loglevel());
 
     cserve::Server server(config.port(), config.nthreads(), config.userid()); // instantiate the server
 #ifdef CSERVE_ENABLE_SSL
@@ -305,12 +129,15 @@ int main(int argc, char *argv[]) {
 #endif
     server.tmpdir(config.tmpdir()); // set the directory for storing temporary files during upload
     server.scriptdir(config.scriptdir()); // set the directory where the Lua scripts are found for the "Lua"-routes
-    server.initscript(config.initscript());
+    if (!config.initscript().empty()) server.initscript(config.initscript());
     server.max_post_size(config.max_post_size()); // set the maximal post size
-    //server.loglevel();
     server.luaRoutes(config.routes());
     server.keep_alive_timeout(config.keep_alive()); // set the keep alive timeout
 
+    //
+    // initialize Lua with some "extensions" and global variables
+    //
+    server.add_lua_globals_func(cserverConfGlobals, &config);
     server.add_lua_globals_func(cserve::sqliteGlobals, &server);
     server.add_lua_globals_func(new_lua_func); // add new lua function "gaga"
 
@@ -332,7 +159,7 @@ int main(int argc, char *argv[]) {
     old_sighandler = signal(SIGINT, sighandler);
     old_broken_pipe_handler = signal(SIGPIPE, SIG_IGN);
     server.run();
-    logger->info("CSERVE has finihsed it's service");
+    logger->info("CSERVE has finished it's service");
     (void) signal(SIGINT, old_sighandler);
     (void) signal(SIGPIPE, old_broken_pipe_handler);
 }

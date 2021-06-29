@@ -382,15 +382,6 @@ namespace cserve {
         inline void luaRoutes(const std::vector<cserve::LuaRoute> &lua_routes_p) { _lua_routes = lua_routes_p; }
 
         /*!
-        * Set the loglevel
-        *
-        * \param[in] loglevel_p set the loglevel
-        */
-        inline void loglevel(int loglevel_p) {
-            setlogmask(LOG_UPTO(loglevel_p));
-        }
-
-        /*!
          * Run the server handling requests in an infinite loop
          */
         virtual void run();

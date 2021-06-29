@@ -14,6 +14,10 @@
 
 extern size_t data_volume(const std::string volstr);
 
+//void cserverConfGlobals(lua_State *L, void *user_data);
+
+extern void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data);
+
 class CserverConf {
 private:
     int _serverconf_ok;
@@ -40,8 +44,25 @@ private:
     spdlog::level::level_enum _loglevel = spdlog::level::debug;
 
 public:
+    /*!
+     * Get the configuration parameters. The configuration parameters are provided by
+     * - a lua configuration script
+     * - environment variables
+     * - command line parameters when launching the cserver
+     * The parameter in the configuration scripts do have the lowest priority, the command line
+     * parameters the highest.
+     *
+     * @param argc From main() arguments
+     * @param argv From main() arguments
+     */
     CserverConf(int argc, char *argv[]);
 
+    /*!
+     * Returns the status of the configuration process. If everything is OK, a 0 is returned. Non-zero
+     * indicates an error.
+     *
+     * @return 0 on success, non-zero on failure
+     */
     inline bool serverconf_ok() { return _serverconf_ok; }
 
     inline void userid(const std::string &userid) { _userid = userid; }

@@ -71,6 +71,7 @@ add_library(cserve
         SocketControl.cpp SocketControl.h
         ThreadControl.cpp ThreadControl.h
         Cserve.cpp Cserve.h
+        FileHandler.cpp FileHandler.h
         CserveVersion.h)
 
 target_include_directories(cserve

@@ -63,7 +63,7 @@ namespace cserve {
 
     typedef std::unordered_map<std::string, LuaValstruct> LuaKeyValStore;
 
-    typedef void (*LuaSetGlobalsFunc)(lua_State *L, Connection &, void *);
+    typedef void (*LuaSetGlobalsFunc)(lua_State *L, cserve::Connection &, void *);
 
     extern char luaconnection[];
 

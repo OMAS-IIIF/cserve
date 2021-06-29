@@ -6,7 +6,10 @@
 
 #include "CLI11.hpp"
 
+#include "LuaServer.h"
 #include "CserverConf.h"
+
+static const char __file__[] = __FILE__;
 
 extern size_t data_volume(const std::string volstr) {
     size_t l = volstr.length();
@@ -34,6 +37,88 @@ extern size_t data_volume(const std::string volstr) {
     return data_volume;
 }
 
+void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data) {
+    CserverConf *conf = (CserverConf *) user_data;
+
+    lua_createtable(L, 0, 14); // table1
+
+    lua_pushstring(L, "userid"); // table1 - "index_L1"
+    lua_pushstring(L, conf->userid().c_str());
+    lua_rawset(L, -3); // table1
+
+    lua_pushstring(L, "port"); // table1 - "index_L1"
+    lua_pushinteger(L, conf->port());
+    lua_rawset(L, -3); // table1
+
+#ifdef CSERVE_ENABLE_SSL
+    lua_pushstring(L, "ssl_port"); // table1 - "index_L1"
+    lua_pushinteger(L, conf->ssl_port());
+    lua_rawset(L, -3); // table1
+
+    lua_pushstring(L, "ssl_certificate"); // table1 - "index_L1"
+    lua_pushstring(L, conf->ssl_certificate().c_str());
+    lua_rawset(L, -3); // table1
+
+    lua_pushstring(L, "ssl_key"); // table1 - "index_L1"
+    lua_pushstring(L, conf->ssl_key().c_str());
+    lua_rawset(L, -3); // table1
+#endif
+
+    lua_pushstring(L, "nthreads"); // table1 - "index_L1"
+    lua_pushinteger(L, conf->nthreads());
+    lua_rawset(L, -3); // table1
+
+    lua_pushstring(L, "docroot"); // table1 - "index_L1"
+    lua_pushstring(L, conf->docroot().c_str());
+    lua_rawset(L, -3); // table1
+
+    lua_pushstring(L, "tmpdir"); // table1 - "index_L1"
+    lua_pushstring(L, conf->tmpdir().c_str());
+    lua_rawset(L, -3); // table1
+
+    lua_pushstring(L, "scriptdir"); // table1 - "index_L1"
+    lua_pushstring(L, conf->scriptdir().c_str());
+    lua_rawset(L, -3); // table1
+
+    lua_pushstring(L, "keep_alive"); // table1 - "index_L1"
+    lua_pushinteger(L, conf->keep_alive());
+    lua_rawset(L, -3); // table1
+
+    size_t max_post_size = conf->max_post_size();
+    std::string max_post_size_str;
+    if (max_post_size / (1024ll*1024*1024ll*1024ll) > 0) {
+        max_post_size_str = fmt::format("{:.2}TB", max_post_size / (float) (1024ll*1024ll*1024ll*1024ll));
+    } else if (max_post_size / (1024ll*1024ll*1024ll) > 0) {
+        max_post_size_str = fmt::format("{:.2}GB", max_post_size / (float) (1024ll*1024ll*1024ll));
+    } else if (max_post_size / (1024ll*1024ll) > 0) {
+        max_post_size_str = fmt::format("{:.2}MB", max_post_size / (float) (1024ll*1024ll));
+    } else {
+        max_post_size_str = fmt::format("{}B", max_post_size);
+    }
+    lua_pushstring(L, "max_post_size"); // table1 - "index_L1"
+    lua_pushstring(L, max_post_size_str.c_str());
+    lua_rawset(L, -3); // table1
+
+    lua_pushstring(L, "logfile"); // table1 - "index_L1"
+    lua_pushstring(L, conf->logfile().c_str());
+    lua_rawset(L, -3); // table1
+
+    std::unordered_map<spdlog::level::level_enum, std::string> loglevelstr {
+            {spdlog::level::trace, "TRACE"},
+            {spdlog::level::debug, "DEBUG"},
+            {spdlog::level::info, "INFO"},
+            {spdlog::level::warn, "WARN"},
+            {spdlog::level::err, "ERR"},
+            {spdlog::level::critical, "CRITICAL"},
+            {spdlog::level::off, "OFF"}
+    };
+    lua_pushstring(L, "loglevel"); // table1 - "index_L1"
+    lua_pushstring(L, loglevelstr[conf->loglevel()].c_str());
+    lua_rawset(L, -3); // table1
+
+    lua_setglobal(L, "config");
+}
+
 CserverConf::CserverConf(int argc, char *argv[]) {
     //
     // first we set the hardcoded defaults that are used if nothing else has been defined
@@ -44,9 +129,9 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     _port = 80;
 #ifdef CSERVE_ENABLE_SSL
     _ssl_port = 443;
-    std::string ssl_certificate = "./certificate/certificate.pem";
-    std::string ssl_key = "./certificate/key.pem";
-    std::string jwt_secret = "UP4014, the biggest steam engine";
+    _ssl_certificate = "./certificate/certificate.pem";
+    _ssl_key = "./certificate/key.pem";
+    _jwt_secret = "UP4014, the biggest steam engine";
 #else
     _ssl_port = -1;
 #endif
@@ -58,7 +143,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     _filehandler_info = {"/", _docroot};
     _keep_alive = 5;
     _max_post_size = 20*1024*1024; // 20MB
-    _initscript = "./scripts/cserver.init.lua";
+    _initscript.clear();
     _logfile = "./cserver.log";
     _loglevel = spdlog::level::debug;
 

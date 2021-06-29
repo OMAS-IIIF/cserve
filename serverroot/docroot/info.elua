@@ -1,18 +1,18 @@
 <html>
     <head>
-        <title>SIPI Configuration Info</title>
+        <title>CSERVER Configuration Info</title>
     </head>
     <body>
-    <h1>SIPI Configuration Info</h1>
+    <h1>CSERVER Configuration Info</h1>
     <h2>Configuration variables</h2>
     <table>
-        <tr><td>docroot</td><td>:</td><td><lua>server.print(server.docroot)</lua></td></tr>
+        <tr><td>docroot</td><td>:</td><td><lua>server.print(config.docroot)</lua></td></tr>
         <tr><td>scriptdir</td><td>:</td><td><lua>server.print(config.scriptdir)</lua></td></tr>
         <tr><td>tmpdir</td><td>:</td><td><lua>server.print(config.tmpdir)</lua></td></tr>
         <tr><td>port</td><td>:</td><td><lua>server.print(config.port)</lua></td></tr>
         <lua>
             if server.has_openssl then
-                server.print('<tr><td>SSL port</td><td>:</td><td>' .. config.sslport .. '</td></tr>')
+                server.print('<tr><td>SSL port</td><td>:</td><td>' .. config.ssl_port .. '</td></tr>')
             end
         </lua>
         <tr><td>number of threads:</td><td>:</td><td><lua>server.print(config.n_threads)</lua></td></tr>
