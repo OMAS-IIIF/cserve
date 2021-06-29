@@ -72,6 +72,7 @@ add_library(cserve
         ThreadControl.cpp ThreadControl.h
         Cserve.cpp Cserve.h
         FileHandler.cpp FileHandler.h
+        ScriptHandler.cpp ScriptHandler.h
         CserveVersion.h)
 
 target_include_directories(cserve

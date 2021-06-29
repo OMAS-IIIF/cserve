@@ -59,6 +59,7 @@
 #include "LuaServer.h"
 #include "Parsing.h"
 #include "makeunique.h"
+#include "ScriptHandler.h"
 
 #include "CserveVersion.h"
 
@@ -149,8 +150,10 @@ namespace cserve {
      * @param conn Connection instance
      * @param lua Lua interpreter instance
      * @param user_data
+     * @param user_data
      * @param hd Pointer to string object containing the lua script file name
      */
+     /*
     void ScriptHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, void *hd) {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
@@ -270,12 +273,12 @@ namespace cserve {
                 return;
             }
 
-            Server::logger()->error("FileHandler: internal error: '{}'", err.to_string());
+            Server::logger()->error("ScriptHandler: internal error: '{}'", err.to_string());
             return;
         }
     }
     //=========================================================================
-
+*/
 
     /**
      * Create an instance of the simple HTTP server.
