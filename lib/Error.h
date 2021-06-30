@@ -48,14 +48,6 @@ namespace cserve {
 
     public:
 
-        inline int getLine(void) const { return line; }
-
-        inline std::string getFile(void) const { return file; }
-
-        inline std::string getMessage(void) const { return message; }
-
-        inline int getSysErrno(void) const { return sysErrno; }
-
         /*!
         * Constructor with all (char *) strings
         *
@@ -77,6 +69,14 @@ namespace cserve {
         * \param[in] syserr Retrieve and display the system error message from errno.
         */
         Error(const char *file, const int line, const std::string &msg, int errno_p = 0);
+
+        inline int getLine(void) const { return line; }
+
+        inline std::string getFile(void) const { return file; }
+
+        inline std::string getMessage(void) const { return message; }
+
+        inline int getSysErrno(void) const { return sysErrno; }
 
         /*!
          * Retuns the error as a one-line string

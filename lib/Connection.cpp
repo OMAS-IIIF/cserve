@@ -1136,6 +1136,8 @@ namespace cserve {
                 case UNKOWN_ERROR:
                     status_string = "Unkown error";
                     break;
+                default:
+                    status_string = "unkown status";
             }
         }
         else {

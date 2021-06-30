@@ -283,14 +283,14 @@ CserverConf::CserverConf(int argc, char *argv[]) {
             _logfile = luacfg.configString("cserve", "logfile", _logfile);
 
             std::string loglevelstr;
-            for (const auto ll: logLevelMap) { // convert spdlog::level::level_enum to std::string
+            for (const auto &ll: logLevelMap) { // convert spdlog::level::level_enum to std::string
                 if (ll.second == _loglevel) {
                     loglevelstr = ll.first;
                     break;
                 }
             }
             loglevelstr = luacfg.configString("cserve", "loglevel", loglevelstr);
-            for (const auto ll: logLevelMap) { // convert std::string to spdlog::level::level_enum
+            for (const auto &ll: logLevelMap) { // convert std::string to spdlog::level::level_enum
                 if (ll.first == loglevelstr) {
                     _loglevel = ll.second;
                     break;
