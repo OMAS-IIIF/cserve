@@ -9,6 +9,7 @@ include_directories(
 target_link_libraries(tests_00
         cserve
         spdlog
+        magic
         Catch2 Catch2Main)
 
 

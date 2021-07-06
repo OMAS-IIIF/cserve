@@ -13,6 +13,7 @@
 #include "Error.h"
 #include "SockStream.h"
 #include "Hash.h"
+#include "Parsing.h"
 
 TEST_CASE("Testing Error class", "[Error]") {
     std::string msg("test message");
@@ -48,7 +49,7 @@ TEST_CASE("Testing socket stream", "[SockStream]") {
     }
 }
 
-TEST_CASE("Testing hasing", "[Hash]") {
+TEST_CASE("Testing hashing", "[Hash]") {
     std::string teststr("abcdefghijklmnopqrstuvwxyzöäüABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+!");
 
     SECTION("md5 testing") {
@@ -99,6 +100,56 @@ TEST_CASE("Testing hasing", "[Hash]") {
         cserve::Hash h2(cserve::HashType::sha512);
         REQUIRE(h2.hash_of_file("./testdata/Kleist.txt"));
         REQUIRE(h2.hash() == "16c4a4e609bda4d34a0706e89dd61663604e3c2c331fcdf940c5f0e474c7a49e65cc2affe8f52cb60c5af6bb4d91a92aee0e0460df572ea484fbf932632540b6");
+    }
+}
+
+TEST_CASE("Testing parsing of Mime types", "[Parsing]") {
+    SECTION("Standard") {
+        std::pair<std::string, std::string> t = cserve::Parsing::parseMimetype("text/html; charset=UTF-8");
+        REQUIRE(t.first == "text/html");
+        REQUIRE(t.second == "utf-8");
+    }
+    SECTION("parseMimetype (1)") {
+        std::pair<std::string, std::string> t = cserve::Parsing::parseMimetype("text/html");
+        REQUIRE(t.first == "text/html");
+        REQUIRE(t.second.empty());
+    }
+
+    SECTION("parseMimetype (2)") {
+        REQUIRE_THROWS_AS(cserve::Parsing::parseMimetype("gaga/gugus; boundary=XXX"), cserve::Error);
+    }
+
+    SECTION("getFileMimetype textfile") {
+        std::pair<std::string, std::string> t = cserve::Parsing::getFileMimetype("./testdata/Kleist.txt");
+        REQUIRE(t.first == "text/plain");
+        REQUIRE(t.second == "utf-8");
+    }
+
+    SECTION("getFileMimetype JPEG-file") {
+        std::pair<std::string, std::string> t = cserve::Parsing::getFileMimetype("./testdata/petersdom.jpg");
+        REQUIRE(t.first == "image/jpeg");
+        REQUIRE(t.second == "binary");
+    }
+
+    SECTION("getFileMimetype CSV-file") {
+        std::pair<std::string, std::string> t = cserve::Parsing::getFileMimetype("./testdata/test.csv");
+        REQUIRE(t.first == "text/plain");
+        REQUIRE(t.second == "us-ascii");
+    }
+
+    SECTION("getBestFileMimetype") {
+        REQUIRE(cserve::Parsing::getBestFileMimetype("./testdata/Kleist.txt") == "text/plain");
+        REQUIRE(cserve::Parsing::getBestFileMimetype("./testdata/petersdom.jpg") == "image/jpeg");
+        REQUIRE(cserve::Parsing::getBestFileMimetype("./testdata/test.csv") == "text/csv");
+    }
+
+    SECTION("checkMimeTypeConsistency") {
+        REQUIRE(cserve::Parsing::checkMimeTypeConsistency("./testdata/Kleist.txt", "Kleist.txt", "text/plain"));
+        REQUIRE_FALSE(cserve::Parsing::checkMimeTypeConsistency("./testdata/Kleist.txt", "Kleist.txt", "text/csv"));
+        REQUIRE(cserve::Parsing::checkMimeTypeConsistency("./testdata/test.csv", "test.csv", "text/csv"));
+        REQUIRE(cserve::Parsing::checkMimeTypeConsistency("./testdata/test.csv", "test.csv", "text/plain"));
+        REQUIRE(cserve::Parsing::checkMimeTypeConsistency("./testdata/test.csv", "test.csv", "text/comma-separated-values"));
+        REQUIRE(cserve::Parsing::checkMimeTypeConsistency("./testdata/petersdom.jpg", "petersdom.jpg", "image/jpeg"));
     }
 
 }
