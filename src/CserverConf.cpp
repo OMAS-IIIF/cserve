@@ -6,8 +6,10 @@
 
 #include "CLI11.hpp"
 
+#include "Global.h"
 #include "LuaServer.h"
 #include "CserverConf.h"
+#include "Connection.h"
 
 static const char __file__[] = __FILE__;
 
@@ -165,7 +167,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     cserverOpts.add_option("--port", optServerport, "Standard HTTP port of cserver.")
             ->envname("CSERVER_PORT");
 
-#ifdef cserve_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
     int optSSLport;
     cserverOpts.add_option("--sslport", optSSLport, "SSL-port of cserver.")
     ->envname("CSERVER_SSLPORT");
@@ -267,7 +269,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
             _userid = luacfg.configString("cserve", "userid", _userid);
             _port = luacfg.configInteger("cserve", "port", _port);
 
-#ifdef cserve_ENABLE_SSL
+#ifdef CSERVE_ENABLE_SSL
             _ssl_port = luacfg.configInteger("cserve", "ssl_port", _ssl_port);
             _ssl_certificate = luacfg.configString("cserve", "sslcert", _ssl_certificate);
             _ssl_key = luacfg.configString("cserve", "sslkey", _ssl_key);
@@ -309,11 +311,11 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     //
     if (!cserverOpts.get_option("--userid")->empty()) _userid = optUserid;
     if (!cserverOpts.get_option("--port")->empty()) _port = optServerport;
-#ifdef cserve_ENABLE_SSL
-    if (!cserverOpts.get_option("--sslport")->empty()) ssl_port = optSSLport;
-    if (!cserverOpts.get_option("--sslcert")->empty()) ssl_certificate = optSSLCertificatePath;
-    if (!cserverOpts.get_option("--sslkey")->empty()) ssl_key = optSSLKeyPath;
-    if (!cserverOpts.get_option("--jwtkey")->empty()) jwt_secret = optJWTKey;
+#ifdef CSERVE_ENABLE_SSL
+    if (!cserverOpts.get_option("--sslport")->empty()) _ssl_port = optSSLport;
+    if (!cserverOpts.get_option("--sslcert")->empty()) _ssl_certificate = optSSLCertificatePath;
+    if (!cserverOpts.get_option("--sslkey")->empty()) _ssl_key = optSSLKeyPath;
+    if (!cserverOpts.get_option("--jwtkey")->empty()) _jwt_secret = optJWTKey;
 #endif
     if (!cserverOpts.get_option("--docroot")->empty()) _docroot = optDocroot;
     if (!cserverOpts.get_option("--tmpdir")->empty()) _tmpdir = optTmpdir;
@@ -325,6 +327,31 @@ CserverConf::CserverConf(int argc, char *argv[]) {
 
     if (!cserverOpts.get_option("--logfile")->empty()) _logfile = optLogfile;
     if (!cserverOpts.get_option("--loglevel")->empty()) _loglevel = optLogLevel;
-
-
+    if (!cserverOpts.get_option("--routes")->empty()) {
+        std::vector<std::string> rinfos = cserve::split(optRoutes, ';');
+        for (const std::string rinfostr: rinfos) {
+            std::vector<std::string> rinfo = cserve::split(rinfostr, ':');
+            if (rinfo.size() < 3) {
+                std::cerr << fmt::format("Route spcification invalid: {}\n", rinfostr);
+                continue;
+            }
+            if (cserve::strtoupper(rinfo[0]) == "GET") {
+                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::GET, rinfo[1], rinfo[2]});
+            } else if (cserve::strtoupper(rinfo[0]) == "PUT") {
+                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::PUT, rinfo[1], rinfo[2]});
+            } else if (cserve::strtoupper(rinfo[0]) == "POST") {
+                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::POST, rinfo[1], rinfo[2]});
+            } else if (cserve::strtoupper(rinfo[0]) == "DELETE") {
+                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::DELETE, rinfo[1], rinfo[2]});
+            } else if (cserve::strtoupper(rinfo[0]) == "OPTIONS") {
+                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::OPTIONS, rinfo[1], rinfo[2]});
+            } else if (cserve::strtoupper(rinfo[0]) == "CONNECT") {
+                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::CONNECT, rinfo[1], rinfo[2]});
+            } else if (cserve::strtoupper(rinfo[0]) == "HEAD") {
+                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::HEAD, rinfo[1], rinfo[2]});
+            } else if (cserve::strtoupper(rinfo[0]) == "OTHER") {
+                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::OTHER, rinfo[1], rinfo[2]});
+            }
+        }
+    }
 }

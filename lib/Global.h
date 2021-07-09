@@ -30,6 +30,8 @@
 #include <utility>
 #include <string>
 #include <iostream>
+#include <vector>
+#include <algorithm>
 
 
 
@@ -51,6 +53,22 @@ namespace cserve {
         } else {
             return s;
         }
+    }
+
+    inline std::vector<std::string> split(const std::string &str, char delim) {
+        std::stringstream test{str};
+        std::string segment;
+        std::vector<std::string> seglist;
+        while(std::getline(test, segment, delim)) {
+            seglist.push_back(segment);
+        }
+        return seglist;
+    }
+
+    inline std::string  strtoupper(const std::string &str) {
+        std::string  lstr{str};
+        std::transform(lstr.begin(), lstr.end(),lstr.begin(), ::toupper);
+        return lstr;
     }
 }
 

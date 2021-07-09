@@ -38,3 +38,4 @@
 /local
 /lib/CserveVersion.h
 cmake-build-release
+__pycache__

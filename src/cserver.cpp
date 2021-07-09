@@ -102,6 +102,12 @@ void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
     return;
 }
 
+void PingHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, void *dummy) {
+    conn.setBuffer();
+    conn << "PONG" << cserve::Connection::flush_data;
+    return;
+}
+
 
 int main(int argc, char *argv[]) {
     auto logger = cserve::Server::create_logger();
@@ -154,6 +160,7 @@ int main(int argc, char *argv[]) {
     // Test handler (should be removed for production system)
     //
     server.addRoute(cserve::Connection::GET, "/test", TestHandler, nullptr);
+    server.addRoute(cserve::Connection::GET, "/ping", PingHandler, nullptr);
 
     serverptr = &server;
     old_sighandler = signal(SIGINT, sighandler);

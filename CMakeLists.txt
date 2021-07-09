@@ -20,6 +20,8 @@ set(COMMON_SRCS ${CMAKE_BINARY_DIR}/extsrcs)
 set(CONFIGURE_LIBDIR ${COMMON_LOCAL}/lib)
 set(CONFIGURE_INCDIR ${COMMON_LOCAL}/include)
 
+set(CSERVER_EXE ${CMAKE_CURRENT_BINARY_DIR}/cserver)
+
 # set cmake default install location
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "${COMMON_LOCAL}" CACHE PATH "default install path" FORCE)

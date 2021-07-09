@@ -27,7 +27,7 @@ private:
     std::string _ssl_certificate;
     std::string _ssl_key;
     std::string _jwt_secret;
-    int _ssl_port = 4712;
+    int _ssl_port;
 #else
     int _ssl_port = -1;
 #endif

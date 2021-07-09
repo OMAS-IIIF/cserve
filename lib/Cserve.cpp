@@ -759,6 +759,7 @@ namespace cserve {
         }
 
         running = true;
+        Server::logger()->info("Cserver ready");
         while (running) {
             //
             // blocking poll on input sockets waiting for *new* connections
