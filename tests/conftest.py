@@ -36,6 +36,7 @@ class CserverProcessManager:
             "CSERVER_SSLKEY": './testserver/certificate/key.pem',
             "CSERVER_JWTKEY": 'UP4014, the biggest steam engine',
             "CSERVER_DOCROOT": "./testserver/docroot",
+            "CSERVER_FILEHANDLER_ROUTE": '/',
             "CSERVER_TMPDIR": "./testserver/tmp",
             "CSERVER_SCRIPTDIR": "./testserver/scripts",
             "CSERVER_NTHREADS": "4",
@@ -74,7 +75,7 @@ class CserverProcessManager:
             :return: None
             """
             while True:
-                line = self.cserver_process.stdout.readline()
+                line = self.cserver_process.stdout.readline().strip(" \n\r")
                 if line:
                     print(line)
                     if "Cserver ready" in line:
@@ -111,50 +112,59 @@ class CserverProcessManager:
     def get_server_output(self):
         return "".join(self.inlines)
 
-    def get_text(self, path, use_ssl = False):
-        if use_ssl:
-            cserver_url = 'https://localhost:8443/' + path
-        else:
-            cserver_url = 'http://localhost:8080/' + path
-
-        try:
-            response = requests.get(cserver_url)
-            response.raise_for_status()
-        except:
-            pprint(response)
-            #raise CserverTestError("post request to {} failed: {}".format(cserver_url, response.json()["message"]))
-        return response.text
-
-    def get_json(self, path, params = None, cookies = None, use_ssl = False):
-        if use_ssl:
-            cserver_url = 'https://localhost:8443/' + path
-        else:
-            cserver_url = 'http://localhost:8080/' + path
+    def get_text(self, *args, **kwargs):
+        largs = list(args)
+        largs[0] = 'http://localhost:8080/' + largs[0]
+        nargs = tuple(largs)
 
         response = ""
         try:
-            if params is None and cookies is None:
-                print('=====================>')
-                response = requests.get(cserver_url, verify=False)
-            elif params and cookies is None:
-                response = requests.get(cserver_url, params=params, verify=False)
-            elif params is None and cookies:
-                response = requests.get(cserver_url, cookies=cookies, verify=False)
-            elif params and cookies:
-                response = requests.get(cserver_url, params=params, cookies=cookies, verify=False)
+            response = requests.get(*nargs, **kwargs)
             response.raise_for_status()
         except:
-            print("----------------------SHIT-------------------------------------")
-            print(response)
-            #raise CserverTestError("post request to {} failed: {}".format(cserver_url, response.json()["message"]))
-        print(response.text)
+            raise CserverTestError("GET request to {} failed: {}".format(nargs[0], response.json()["message"]))
+        return response.text
+
+    def sget_text(self, *args, **kwargs):
+        largs = list(args)
+        largs[0] = 'https://localhost:8443/' + largs[0]
+        nargs = tuple(largs)
+
+        response = ""
+        try:
+            response = requests.get(*nargs, **kwargs, verify=False)
+            response.raise_for_status()
+        except:
+            raise CserverTestError("GET request to {} failed: {}".format(nargs[0], response.json()["message"]))
+        return response.text
+
+    def get_json(self, *args, **kwargs):
+        largs = list(args)
+        largs[0] = 'http://localhost:8080/' + largs[0]
+        nargs = tuple(largs)
+        try:
+            response = requests.get(*nargs, **kwargs)
+            response.raise_for_status()
+        except:
+            raise CserverTestError("GET request to {} failed: {}".format(nargs[0], response.json()["message"]))
         return response.json()
 
-
+    def sget_json(self, *args, **kwargs):
+        largs = list(args)
+        largs[0] = 'https://localhost:8443/' + largs[0]
+        nargs = tuple(largs)
+        try:
+            response = requests.get(*nargs, **kwargs, verify=False)
+            response.raise_for_status()
+        except:
+            raise CserverTestError("GET request to {} failed: {}".format(nargs[0], response.json()["message"]))
+        return response.json()
 
     def get_output(self):
         return "".join(self.inlines)
 
 class CserverTestError(Exception):
     """Indicates an error in a Sipi test."""
+    def __init__(self, *args):
+        super(CserverTestError, self).__init__(args)
 

@@ -1,15 +1,64 @@
 import pytest
 import os
-from pprint import pprint
 
 
 def test_ping(manager):
     data = manager.get_text('ping')
     assert data == 'PONG'
 
+def test_get_html(manager):
+    with open('./testserver/docroot/test.html') as inf:
+        str = inf.read()
+
+    resource = manager.get_text('/test.html')
+    assert resource == str
+
+def test_get_not_found(manager):
+    with pytest.raises(Exception) as e_info:
+        resource = manager.get_text('/gaga.html')
+
+def test_sget_html(manager):
+    with open('./testserver/docroot/test.html') as inf:
+        str = inf.read()
+
+    resource = manager.sget_text('/test.html')
+    assert resource == str
+
+def test_get_csv(manager):
+    with open('./testserver/docroot/test.csv') as inf:
+        str = inf.read()
+
+    resource = manager.get_text('/test.csv')
+    assert resource == str
+
+def test_sget_csv(manager):
+    with open('./testserver/docroot/test.csv') as inf:
+        str = inf.read()
+
+    resource = manager.sget_text('/test.csv')
+    assert resource == str
+
+def test_get_range(manager):
+    range = manager.get_text('/range.dat', headers={"Range": "bytes=5-14"})
+    assert len(range) == 10
+    assert range == '456789B012'
+
+def test_elua(manager):
+    str = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LuaTest</title>
+</head>
+<body>
+Hello from Lua!
+</body>
+</html>"""
+    resource = manager.get_text('/luatest.elua')
+    assert resource == str
 
 def test_servervariables(manager):
-    variables = manager.get_json('servervariables', {'param': 'all'})
+    variables = manager.get_json('servervariables', params={'param': 'all'})
     assert variables.get('status') == 'OK'
     assert variables.get('config') is not None
     assert variables['config'].get('port') == 8080
@@ -31,9 +80,14 @@ def test_servervariables(manager):
     assert variables['server'].get('has_openssl') is not None
     if variables['server']['has_openssl']:
         assert variables['config'].get('ssl_port') == 8443
+    assert variables['server'].get('header') is not None
+    assert variables['server']['header'].get('accept') == '*/*'
+    assert variables['server']['header'].get('connection') == 'keep-alive'
+    assert variables['server']['header'].get('host') == 'localhost:8080'
+
 
 def test_servervariables_secure(manager):
-    variables = manager.get_json('servervariables', use_ssl=True)
+    variables = manager.sget_json('servervariables')
     assert variables.get('status') == 'OK'
     assert variables['server'].get('secure') is True
 

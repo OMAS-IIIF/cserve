@@ -33,6 +33,7 @@ private:
 #endif
     int _nthreads;
     std::string _docroot;
+    std::string  _filehandler_route;
     std::string _tmpdir;
     std::string _scriptdir;
     std::vector <cserve::LuaRoute> _routes; // ToDo: is this necessary??

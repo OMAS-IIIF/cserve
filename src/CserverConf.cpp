@@ -139,10 +139,11 @@ CserverConf::CserverConf(int argc, char *argv[]) {
 #endif
     _nthreads = std::thread::hardware_concurrency();
     _docroot = "./docroot";
+    _filehandler_route = "/";
+    _filehandler_info = {_filehandler_route, _docroot}; // no initialization needed. Depends on _docroot and _filehandler_route
     _tmpdir = "./tmp";
     _scriptdir = "./scripts";
     _routes = {};
-    _filehandler_info = {"/", _docroot};
     _keep_alive = 5;
     _max_post_size = 20*1024*1024; // 20MB
     _initscript.clear();
@@ -193,6 +194,12 @@ CserverConf::CserverConf(int argc, char *argv[]) {
                            "Path to document root for normal webserver.")
             ->envname("CSERVER_DOCROOT")
             ->check(CLI::ExistingDirectory);
+
+    std::string optFilehandlerRoute;
+    cserverOpts.add_option("--filehandler_route",
+                           optFilehandlerRoute,
+                           "Route root for normal webserver.")
+        ->envname("CSERVER_FILEHANDLER_ROUTE");
 
     std::string optTmpdir;
     cserverOpts.add_option("--tmpdir",
@@ -276,6 +283,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
             _jwt_secret = luacfg.configString("cserve", "jwt_secret", _jwt_secret);
 #endif
             _docroot = luacfg.configString("cserve", "docroot", _docroot);
+            _filehandler_route = luacfg.configString("cserve", "filehandler_route", _filehandler_route);
             _tmpdir = luacfg.configString("cserve", "tmpdir", _tmpdir);
             _scriptdir = luacfg.configString("cserve", "scriptdir", _scriptdir);
             _nthreads = luacfg.configInteger("cserve", "nthreads", _nthreads);
@@ -306,7 +314,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     }
 
     //
-    // now merge config file, commandline and environment varliabler parameters
+    // now merge config file, commandline and environment variable parameters
     // config file is overwritten by environment variable is overwritten by command line param
     //
     if (!cserverOpts.get_option("--userid")->empty()) _userid = optUserid;
@@ -318,6 +326,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     if (!cserverOpts.get_option("--jwtkey")->empty()) _jwt_secret = optJWTKey;
 #endif
     if (!cserverOpts.get_option("--docroot")->empty()) _docroot = optDocroot;
+    if (!cserverOpts.get_option("--filehandler_route")->empty()) _filehandler_route = optFilehandlerRoute;
     if (!cserverOpts.get_option("--tmpdir")->empty()) _tmpdir = optTmpdir;
     if (!cserverOpts.get_option("--scriptdir")->empty()) _scriptdir = optScriptDir;
     if (!cserverOpts.get_option("--nthreads")->empty()) _nthreads = optNThreads;
@@ -354,4 +363,5 @@ CserverConf::CserverConf(int argc, char *argv[]) {
             }
         }
     }
+    _filehandler_info = {_filehandler_route, _docroot};
 }
