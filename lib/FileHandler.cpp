@@ -171,11 +171,12 @@ namespace cserve {
                     }
                 }
 
+                conn.header("Content-Type", "text/html; charset=utf-8");
                 std::string htmlcode = eluacode.substr(end);
                 conn << htmlcode;
                 conn.flush();
             } else {
-                std::string actual_mimetype = cserve::Parsing::getFileMimetype(infile).first;
+                std::string actual_mimetype = cserve::Parsing::getBestFileMimetype(infile);
                 //
                 // first we get the filesize and time using fstat
                 //

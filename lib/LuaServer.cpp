@@ -403,7 +403,7 @@ namespace cserve {
 
     /*!
      * Checks the filetype of a given filepath
-     * LUA: server.fs.ftype("path")
+     * LUA: success, ftype = server.fs.ftype("path")
      * @return "FILE", "DIRECTORY", "CHARDEV", "BLOCKDEV", "LINK", "SOCKET" or "UNKNOWN"
      */
     static int lua_fs_ftype(lua_State *L) {
@@ -460,7 +460,7 @@ namespace cserve {
 
     /*!
     * Returns the modification time of a given filepath (in s since epoch)
-    * LUA: server.fs.modtime("path")
+    * LUA: success, modtime = server.fs.modtime("path")
     * @return integer with seconds since epoch of last modification
     */
     static int lua_fs_modtime(lua_State *L) {
@@ -801,7 +801,7 @@ namespace cserve {
 
     /*!
      * gets the current working directory
-     * LUA: curdir = server.fs.getcwd()
+     * LUA: success, curdir = server.fs.getcwd()
      */
     static int lua_fs_getcwd(lua_State *L) {
         char *dirname = getcwd(nullptr, 0);
@@ -820,9 +820,10 @@ namespace cserve {
     }
     //=========================================================================
 
+
     /*!
      * Change working directory
-     * LUA: oldir = server.fs.chdir(newdir)
+     * LUA: error, oldir = server.fs.chdir(newdir)
      */
     static int lua_fs_chdir(lua_State *L) {
         int top = lua_gettop(L);

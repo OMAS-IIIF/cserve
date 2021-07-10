@@ -43,7 +43,7 @@ class CserverProcessManager:
             "CSERVER_KEEPALIVE": "5",
             "CSERVER_MAXPOSTSIZE": "1M",
             "CSERVER_LOGLEVEL": "TRACE",
-            "CSERVER_ROUTES": "GET:/servervariables:servervariables.lua"
+            "CSERVER_ROUTES": "GET:/servervariables:servervariables.lua;GET:/filefunctions:filefunctions.lua"
         }
         self.cserver_ready = False
         self.inlines = []
@@ -112,7 +112,7 @@ class CserverProcessManager:
     def get_server_output(self):
         return "".join(self.inlines)
 
-    def get_text(self, *args, **kwargs):
+    def get(self, *args, **kwargs):
         largs = list(args)
         largs[0] = 'http://localhost:8080/' + largs[0]
         nargs = tuple(largs)
@@ -123,9 +123,9 @@ class CserverProcessManager:
             response.raise_for_status()
         except:
             raise CserverTestError("GET request to {} failed: {}".format(nargs[0], response.json()["message"]))
-        return response.text
+        return response
 
-    def sget_text(self, *args, **kwargs):
+    def sget(self, *args, **kwargs):
         largs = list(args)
         largs[0] = 'https://localhost:8443/' + largs[0]
         nargs = tuple(largs)
@@ -136,7 +136,7 @@ class CserverProcessManager:
             response.raise_for_status()
         except:
             raise CserverTestError("GET request to {} failed: {}".format(nargs[0], response.json()["message"]))
-        return response.text
+        return response
 
     def get_json(self, *args, **kwargs):
         largs = list(args)

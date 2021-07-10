@@ -1,49 +1,96 @@
 import pytest
 import os
 
-
 def test_ping(manager):
-    data = manager.get_text('ping')
-    assert data == 'PONG'
+    """
+    Test the ping route (which is programmed in C++)
+    :param manager: defined in conftest.py
+    :return: None
+    """
+    response = manager.get('ping')
+    assert response.text == 'PONG'
+    assert response.headers['Content-Length'] ==  '4'
+
 
 def test_get_html(manager):
+    """
+    Test getting an ordinary HTML file
+
+    :param manager: defined in conftest.py
+    :return: None
+    """
     with open('./testserver/docroot/test.html') as inf:
         str = inf.read()
 
-    resource = manager.get_text('/test.html')
-    assert resource == str
+    response = manager.get('/test.html')
+    assert response.text == str
+    assert response.headers['Content-Type'] ==  'text/html; charset=utf-8'
 
 def test_get_not_found(manager):
+    """
+    Testing for requesting non-existing file
+    :param manager: defined in conftest.py
+    :return: None
+    """
     with pytest.raises(Exception) as e_info:
-        resource = manager.get_text('/gaga.html')
+        resource = manager.get('/gaga.html')
 
 def test_sget_html(manager):
+    """
+    testing https access
+    :param manager: defined in conftest.py
+    :return: None
+    """
     with open('./testserver/docroot/test.html') as inf:
         str = inf.read()
 
-    resource = manager.sget_text('/test.html')
-    assert resource == str
+    response = manager.sget('/test.html')
+    assert response.text == str
+    assert response.headers['Content-Type'] ==  'text/html; charset=utf-8'
 
 def test_get_csv(manager):
+    """
+    Testing access to CSV file
+    :param manager: defined in conftest.py
+    :return: None
+    """
     with open('./testserver/docroot/test.csv') as inf:
         str = inf.read()
 
-    resource = manager.get_text('/test.csv')
-    assert resource == str
+    response = manager.get('/test.csv')
+    assert response.text == str
+    assert response.headers['Content-Type'] == 'text/csv'
 
 def test_sget_csv(manager):
+    """
+    Getting CSV file with https
+    :param manager: defined in conftest.py
+    :return: None
+    """
     with open('./testserver/docroot/test.csv') as inf:
         str = inf.read()
 
-    resource = manager.sget_text('/test.csv')
-    assert resource == str
+    response = manager.sget('/test.csv')
+    assert response.text == str
+    assert response.headers['Content-Type'] == 'text/csv'
 
 def test_get_range(manager):
-    range = manager.get_text('/range.dat', headers={"Range": "bytes=5-14"})
-    assert len(range) == 10
-    assert range == '456789B012'
+    """
+    Testing the range header to get part of a file
+    :param manager: defined in conftest.py
+    :return: defined in conftest.py
+    """
+    response = manager.get('/range.dat', headers={"Range": "bytes=5-14"})
+    assert len(response.text) == 10
+    assert response.text == '456789B012'
+    assert response.headers['Content-Type'] == 'text/plain'
 
 def test_elua(manager):
+    """
+    Testing proper elua processing (embedded Lua)
+    :param manager: defined in conftest.py
+    :return: None
+    """
     str = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,10 +101,17 @@ def test_elua(manager):
 Hello from Lua!
 </body>
 </html>"""
-    resource = manager.get_text('/luatest.elua')
-    assert resource == str
+    response = manager.get('/luatest.elua')
+    assert response.text == str
+    assert response.headers['Content-Type'] ==  'text/html; charset=utf-8'
+
 
 def test_servervariables(manager):
+    """
+    Testing all config and server variables provided from the server to Lua
+    :param manager: defined in conftest.py
+    :return: None
+    """
     variables = manager.get_json('servervariables', params={'param': 'all'})
     assert variables.get('status') == 'OK'
     assert variables.get('config') is not None
