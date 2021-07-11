@@ -44,7 +44,7 @@ class CserverProcessManager:
             "CSERVER_KEEPALIVE": "5",
             "CSERVER_MAXPOSTSIZE": "1M",
             "CSERVER_LOGLEVEL": "TRACE",
-            "CSERVER_ROUTES": "GET:/servervariables:servervariables.lua;GET:/filefunctions:filefunctions.lua"
+            "CSERVER_ROUTES": "GET:/servervariables:servervariables.lua;GET:/filefunctions:filefunctions.lua;GET:/misc:misc.lua"
         }
         self.cserver_ready = False
         self.inlines = []

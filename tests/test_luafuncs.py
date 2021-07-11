@@ -2,7 +2,6 @@ import pytest
 
 def test_fs_funcs(manager):
     response = manager.get_json('filefunctions')
-    # {'fs': {'cwd': '/Users/rosenth/ProgDev/cserve/tests'}, 'status': 'OK'}
     assert response.get('status') == 'OK'
     assert response.get('fs')
     assert response['fs'].get('cwd')
@@ -28,6 +27,7 @@ def test_fs_funcs(manager):
     assert response['fs'].get('unlink_exists') is False
     assert response['fs'].get('movefile_exists') is True
     assert 'testserver/tmp' in response['fs'].get('after_chdir')
+
 
 
 
