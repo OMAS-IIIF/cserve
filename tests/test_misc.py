@@ -19,4 +19,3 @@ def test_misc(manager):
     assert token.get('jti') == '1234567890'
     assert token.get('key') == 'abcdefghijk'
     assert token.get('prn') == 'https://test.org/gaga'
-    print(response['token'])

@@ -18,12 +18,12 @@ local success, uuid62 = server.uuid62()
 
 local success, uuid62_2 = server.uuid_to_base62(uuid)
 if not success then
-    send_error(uuid62_2)
+    return send_error(uuid62_2)
 end
 
 success, uuid_2 = server.base62_to_uuid(uuid62)
 if not success then
-    send_error(uuid_2)
+    return send_error(uuid_2)
 end
 
 local jwt = '!!!! NO JWT!!!!!'

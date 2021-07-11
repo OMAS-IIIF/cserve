@@ -44,7 +44,7 @@ class CserverProcessManager:
             "CSERVER_KEEPALIVE": "5",
             "CSERVER_MAXPOSTSIZE": "1M",
             "CSERVER_LOGLEVEL": "TRACE",
-            "CSERVER_ROUTES": "GET:/servervariables:servervariables.lua;GET:/filefunctions:filefunctions.lua;GET:/misc:misc.lua"
+            "CSERVER_ROUTES": "GET:/servervariables:servervariables.lua;GET:/filefunctions:filefunctions.lua;GET:/misc:misc.lua;POST:/upload:upload.lua"
         }
         self.cserver_ready = False
         self.inlines = []
@@ -171,6 +171,18 @@ class CserverProcessManager:
 
     def get_output(self):
         return "".join(self.inlines)
+
+    def upload(self, route, filepath, mimetype):
+        response = ""
+        basename = os.path.basename(filepath)
+        files = {'file': (basename, open(filepath, 'rb'), mimetype)}
+        route = 'http://localhost:8080/' + route
+        try:
+            response = requests.post(route, files=files)
+            response.raise_for_status()
+        except:
+            raise CserverTestError("POST request to {} failed: {}".format(route, response.json()["message"]))
+        return response.json()
 
 class CserverTestError(Exception):
     """Indicates an error in a Sipi test."""

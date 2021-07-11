@@ -1998,7 +1998,7 @@ namespace cserve {
      * and deletes it after the request has been served. This function is used to copy the file
      * to another location where it can be used/retrieved by cserve/sipi.
      *
-     * LUA: server.copyTmpfile(from, target)
+     * LUA: success, errmsg = server.copyTmpfile(from, target)
      * from:    an index (integer value) of array server.uploads.
      * target:  an absolute path
      */
@@ -2089,6 +2089,18 @@ namespace cserve {
     //
     // The following SIPI/Knora claims are supported
     //
+    /*!
+     * Generate a JSON webtoken using the configured secret
+     *
+     * jwtinfo = {
+     *   iss = 'http://cserver.org',
+     *   aud = 'http://test.org',
+     *   prn = 'https://test.org/gaga',
+     *   jti = '1234567890',
+     *   key = 'abcdefghijk'
+     * }
+     * success, jwt = server.generate_jwt(jwtinfo)
+     */
     static int lua_generate_jwt(lua_State *L) {
         lua_getglobal(L, luaconnection);
         Connection *conn = (Connection *) lua_touserdata(L, -1);
@@ -2134,6 +2146,11 @@ namespace cserve {
     }
     //=========================================================================
 
+    /*!
+     * Decode a JWT webtoken encodied with the configured secret
+     *
+     * local success, token = server.decode_jwt(server.get.jwt)
+     */
     static int lua_decode_jwt(lua_State *L) {
         lua_getglobal(L, luaconnection);
         Connection *conn = (Connection *) lua_touserdata(L, -1);
@@ -2370,8 +2387,8 @@ namespace cserve {
     //=========================================================================
 
     /*!
-     * LUA: success, mimetype = server.file_mimeconsistency(path)
-     *      success, mimetype = server.file_mimconsistency(index)
+     * LUA: success, consistent = server.file_mimeconsistency(path)
+     *      success, consistent = server.file_mimeconsistency(index)
      */
     static int lua_file_mimeconsistency(lua_State *L) {
         lua_getglobal(L, luaconnection);
