@@ -565,7 +565,7 @@ namespace cserve {
 
     /*!
      * check if a file is readable
-     * LUA: server.fs.is_readable(filepath)
+     * LUA: success, readable = server.fs.is_readable(filepath)
      */
     static int lua_fs_is_readable(lua_State *L) {
         int top = lua_gettop(L);
@@ -594,7 +594,7 @@ namespace cserve {
 
     /*!
      * check if a file is writeable
-     * LUA: server.fs.is_writeable(filepath)
+     * LUA: success, writeable = server.fs.is_writeable(filepath)
      */
     static int lua_fs_is_writeable(lua_State *L) {
         int top = lua_gettop(L);
@@ -623,7 +623,7 @@ namespace cserve {
 
     /*!
      * check if a file is executable
-     * LUA: server.fs.is_executable(filepath)
+     * LUA: success, executable = server.fs.is_executable(filepath)
      */
     static int lua_fs_is_executable(lua_State *L) {
         int top = lua_gettop(L);
@@ -652,7 +652,7 @@ namespace cserve {
 
     /*!
      * check if a file exists
-     * LUA: server.fs.exists(filepath)
+     * LUA: success, exists = server.fs.exists(filepath)
      */
     static int lua_fs_exists(lua_State *L) {
         int top = lua_gettop(L);
@@ -683,7 +683,7 @@ namespace cserve {
     /*!
      * deletes a file from the file system. The file must exist and the user must have write
      * access
-     * LUA: server.fs.unlink(filename)
+     * LUA: success, errormsg, server.fs.unlink(filename)
      */
     static int lua_fs_unlink(lua_State *L) {
         int top = lua_gettop(L);
@@ -721,7 +721,7 @@ namespace cserve {
 
     /*!
      * Creates a new directory
-     * LUA: server.fs.mkdir(dirname, tonumber('0755', 8))
+     * LUA: success, errmsg = server.fs.mkdir(dirname, tonumber('0755', 8))
      */
     static int lua_fs_mkdir(lua_State *L) {
         int top = lua_gettop(L);
@@ -765,7 +765,7 @@ namespace cserve {
 
     /*!
      * Deletes a directory
-     * LUA: server.fs.rmdir(dirname)
+     * LUA: success, errormsg = server.fs.rmdir(dirname)
      */
     static int lua_fs_rmdir(lua_State *L) {
         int top = lua_gettop(L);
@@ -823,7 +823,7 @@ namespace cserve {
 
     /*!
      * Change working directory
-     * LUA: error, oldir = server.fs.chdir(newdir)
+     * LUA: success, oldir = server.fs.chdir(newdir)
      */
     static int lua_fs_chdir(lua_State *L) {
         int top = lua_gettop(L);
@@ -868,7 +868,7 @@ namespace cserve {
     /*!
      * Copy a file from one location to another.
      *
-     * LUA: server.fs.copyFile(source, target)
+     * LUA: success, errormsg = server.fs.copyFile(source, target)
      *
      */
     static int lua_fs_copyfile(lua_State *L) {
@@ -1009,7 +1009,7 @@ namespace cserve {
 
     /*!
      * Generates a random version 4 uuid string
-     * LUA: uuid = server.uuid()
+     * LUA: success, uuid = server.uuid()
      */
     static int lua_uuid(lua_State *L) {
         sole::uuid u4 = sole::uuid4();
@@ -1022,7 +1022,7 @@ namespace cserve {
 
     /*!
      * Generate a base62-uuid string
-     * LUA: uuid62 = server.uuid62()
+     * LUA: success, uuid62 = server.uuid62()
      */
     static int lua_uuid_base62(lua_State *L) {
         sole::uuid u4 = sole::uuid4();
@@ -1035,7 +1035,7 @@ namespace cserve {
 
     /*!
      * Converts a uuid-string to a base62 uuid
-     * LUA: uuid62 = server.uuid_to_base62(uuid)
+     * LUA: success, uuid62 = server.uuid_to_base62(uuid)
      */
     static int lua_uuid_to_base62(lua_State *L) {
         int top = lua_gettop(L);
@@ -1069,7 +1069,7 @@ namespace cserve {
 
     /*!
      * Converts a base62-uuid to a "normal" uuid
-     * LUA: uuid = server.base62_to_uuid(uuid62)
+     * LUA: success, uuid = server.base62_to_uuid(uuid62)
      */
     static int lua_base62_to_uuid(lua_State *L) {
         int top = lua_gettop(L);

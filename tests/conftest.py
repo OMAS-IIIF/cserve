@@ -2,6 +2,7 @@ import psutil
 import pytest
 import subprocess
 import os
+import shutil
 import sys
 import threading
 import time
@@ -47,6 +48,14 @@ class CserverProcessManager:
         }
         self.cserver_ready = False
         self.inlines = []
+        #
+        # remove all files in ./tmp
+        #
+        for root, dirs, files in os.walk('./testserver/tmp'):
+            for f in files:
+                os.unlink(os.path.join(root, f))
+            for d in dirs:
+                shutil.rmtree(os.path.join(root, d))
 
     def start_cserver(self):
         #
