@@ -20,7 +20,9 @@ function test_db()
     return result
 end
 
-
+--
+-- call function with error handling
+--
 local status, res = pcall(test_db)
 if not status then
     local resobj = {
@@ -35,5 +37,6 @@ else
         result = res
     }
     send_success(resobj)
+    return true
 end
 
