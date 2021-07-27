@@ -78,3 +78,8 @@ add_library(cserve
 target_include_directories(cserve
         INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
         )
+
+install(TARGETS cserve
+        DESTINATION lib)
+install(FILES Global.h Error.h Cserve.h Connection.h CserveVersion.h
+        DESTINATION include/cserve)
