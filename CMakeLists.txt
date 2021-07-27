@@ -64,10 +64,10 @@ endif()
 #
 find_package(LibMagic REQUIRED)
 
+add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
 add_subdirectory(${EXT_PROJECTS_DIR}/jansson)
-add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
 add_subdirectory(${EXT_PROJECTS_DIR}/catch2)
 add_subdirectory(lib)
 
