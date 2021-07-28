@@ -1,15 +1,7 @@
 cmake_minimum_required(VERSION 3.14.5)
 project(curl_builder C CXX)
 include(ExternalProject)
-
-if (OPENSSL_ROOT_DIR)
-    set(DARWIN "Darwin")
-    set(LINUX "Linux")
-    SET(OSSL  "--with-ssl=${OPENSSL_ROOT_DIR}")
-else()
-    SET(OSSL "")
-endif()
-
+include(FindOpenSSL)
 #
 # get libcurl
 #
@@ -21,7 +13,7 @@ ExternalProject_Add(project_curl
                     -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
                     -DBUILD_SHARED_LIBS:BOOL=OFF
                     -DHTTP_ONLY:BOOL=ON
-#                    -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1
+                    -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl
         )
 ExternalProject_Get_Property(project_curl install_dir)
 if(MAKE_SHARED_SIPI)

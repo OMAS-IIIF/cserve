@@ -44,7 +44,27 @@ set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+#
+# OpenSSL ??
+#
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+endif()
 
+include(FindOpenSSL REQUIRED)
+if(OPENSSL_FOUND)
+    set(USE_SSL ON)
+    add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
+    add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
+    message(STATUS "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
+    message(STATUS "OPENSSL_VERSION=${OPENSSL_VERSION}")
+else()
+    message(STATUS "No SSL support found!")
+endif()
+
+#
+# this is needed for curl...
+#
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     find_library(COREFOUNDATION_FRAMEWORK "CoreFoundation")
     if(NOT COREFOUNDATION_FRAMEWORK)
@@ -71,19 +91,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 
-#
-# OpenSSL ??
-#
-include(FindOpenSSL)
-if(OPENSSL_FOUND)
-    message(STATUS "Found OpenSSL at ${OPENSSL_ROOT_DIR}")
-    add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
-    add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
-    message(STATUS "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
-    message(STATUS "OPENSSL_VERSION=${OPENSSL_VERSION}")
-else()
-    message(STATUS "No SSL support found!")
-endif()
 
 #
 # libmagic
@@ -126,12 +133,16 @@ target_link_libraries(cserver
         sqlite3
         curl
         zlib
-        spdlog ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
+        spdlog
+        ssh2)
 
 if(OPENSSL_FOUND)
     target_link_libraries(cserver ${OPENSSL_LIBRARIES})
 endif()
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(cserver ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
+endif()
 
 target_include_directories(
         cserver PUBLIC

@@ -22,32 +22,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
     MESSAGE(STATUS "Distro: " ${CMAKE_DISTRO_NAME})
 endif()
 
-
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    find_library(COREFOUNDATION_FRAMEWORK "CoreFoundation")
-    if(NOT COREFOUNDATION_FRAMEWORK)
-        message(FATAL_ERROR "CoreFoundation framework not found")
-    endif()
-
-    find_library(SYSTEMCONFIGURATION_FRAMEWORK "SystemConfiguration")
-    if(NOT SYSTEMCONFIGURATION_FRAMEWORK)
-        message(FATAL_ERROR "SystemConfiguration framework not found")
-    endif()
-
-    list(APPEND CURL_LIBS "-framework CoreFoundation" "-framework SystemConfiguration")
-
-    if(CMAKE_USE_SECTRANSP)
-        find_library(SECURITY_FRAMEWORK "Security")
-        if(NOT SECURITY_FRAMEWORK)
-            message(FATAL_ERROR "Security framework not found")
-        endif()
-
-        set(SSL_ENABLED ON)
-        set(USE_SECTRANSP ON)
-        list(APPEND CURL_LIBS "-framework Security")
-    endif()
-endif()
-
 #
 # set path to special find_package() code
 #
@@ -57,16 +31,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 #
 # OpenSSL ??
 #
-include(FindOpenSSL)
-if(OPENSSL_FOUND)
-    message(STATUS "Found OpenSSL at ${OPENSSL_ROOT_DIR}")
+if (USE_SSL)
     add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
     add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
-    message(STATUS "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
-    message(STATUS "OPENSSL_VERSION=${OPENSSL_VERSION}")
-else()
-    message(STATUS "No SSL support found!")
-endif()
+endif ()
 
 #
 # libmagic
