@@ -44,14 +44,41 @@ set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    find_library(COREFOUNDATION_FRAMEWORK "CoreFoundation")
+    if(NOT COREFOUNDATION_FRAMEWORK)
+        message(FATAL_ERROR "CoreFoundation framework not found")
+    endif()
+
+    find_library(SYSTEMCONFIGURATION_FRAMEWORK "SystemConfiguration")
+    if(NOT SYSTEMCONFIGURATION_FRAMEWORK)
+        message(FATAL_ERROR "SystemConfiguration framework not found")
+    endif()
+
+    list(APPEND CURL_LIBS "-framework CoreFoundation" "-framework SystemConfiguration")
+
+    if(CMAKE_USE_SECTRANSP)
+        find_library(SECURITY_FRAMEWORK "Security")
+        if(NOT SECURITY_FRAMEWORK)
+            message(FATAL_ERROR "Security framework not found")
+        endif()
+
+        set(SSL_ENABLED ON)
+        set(USE_SECTRANSP ON)
+        list(APPEND CURL_LIBS "-framework Security")
+    endif()
+endif()
+
+
 #
 # OpenSSL ??
 #
 include(FindOpenSSL)
 if(OPENSSL_FOUND)
     message(STATUS "Found OpenSSL at ${OPENSSL_ROOT_DIR}")
-    add_definitions(${CMAKE_C_FLAGS} " -DCSERVE_ENABLE_SSL")
-    add_definitions(${CMAKE_C_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
+    add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
+    add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
     message(STATUS "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
     message(STATUS "OPENSSL_VERSION=${OPENSSL_VERSION}")
 else()
@@ -64,10 +91,15 @@ endif()
 #
 find_package(LibMagic REQUIRED)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
+add_subdirectory(${EXT_PROJECTS_DIR}/curl)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
 add_subdirectory(${EXT_PROJECTS_DIR}/jansson)
+add_subdirectory(${EXT_PROJECTS_DIR}/zlib)
 add_subdirectory(${EXT_PROJECTS_DIR}/catch2)
 add_subdirectory(lib)
 
@@ -93,7 +125,8 @@ target_link_libraries(cserver
         jansson
         sqlite3
         curl
-        spdlog)
+        zlib
+        spdlog ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
 
 if(OPENSSL_FOUND)
     target_link_libraries(cserver ${OPENSSL_LIBRARIES})

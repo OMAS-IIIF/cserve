@@ -10,7 +10,6 @@ set(LINUX "Linux")
 if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
     message(STATUS "Compiling for Darwin...")
     message(STATUS ${CMAKE_SYSTEM_NAME})
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
     SET(CMAKE_MACOSX_RPATH 1)
     SET(LUA_ARCH "macosx")
     # ToDo: shouldn't this be also set on the mac through FindOpenSSL?
@@ -21,6 +20,32 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
     message(STATUS ${CMAKE_SYSTEM_NAME})
     execute_process(COMMAND /usr/bin/lsb_release -si COMMAND tr -d '\n' OUTPUT_VARIABLE CMAKE_DISTRO_NAME)
     MESSAGE(STATUS "Distro: " ${CMAKE_DISTRO_NAME})
+endif()
+
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    find_library(COREFOUNDATION_FRAMEWORK "CoreFoundation")
+    if(NOT COREFOUNDATION_FRAMEWORK)
+        message(FATAL_ERROR "CoreFoundation framework not found")
+    endif()
+
+    find_library(SYSTEMCONFIGURATION_FRAMEWORK "SystemConfiguration")
+    if(NOT SYSTEMCONFIGURATION_FRAMEWORK)
+        message(FATAL_ERROR "SystemConfiguration framework not found")
+    endif()
+
+    list(APPEND CURL_LIBS "-framework CoreFoundation" "-framework SystemConfiguration")
+
+    if(CMAKE_USE_SECTRANSP)
+        find_library(SECURITY_FRAMEWORK "Security")
+        if(NOT SECURITY_FRAMEWORK)
+            message(FATAL_ERROR "Security framework not found")
+        endif()
+
+        set(SSL_ENABLED ON)
+        set(USE_SECTRANSP ON)
+        list(APPEND CURL_LIBS "-framework Security")
+    endif()
 endif()
 
 #
@@ -74,6 +99,13 @@ add_library(cserve
         FileHandler.cpp FileHandler.h
         ScriptHandler.cpp ScriptHandler.h
         CserveVersion.h)
+
+add_dependencies(cserve
+        spdlog
+        lua
+        sqlite3
+        jansson
+        curl)
 
 target_include_directories(cserve
         INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}

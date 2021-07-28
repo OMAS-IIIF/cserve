@@ -15,17 +15,13 @@ endif()
 #
 ExternalProject_Add(project_curl
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://curl.haxx.se/download/curl-7.70.0.tar.gz
-        SOURCE_DIR ${COMMON_SRCS}/curl-7.70.0
-        CONFIGURE_COMMAND ${COMMON_SRCS}/curl-7.70.0/configure
-            --prefix=${COMMON_LOCAL}
-            --enable-shared
-            --enable-static
-            --libdir=${CONFIGURE_LIBDIR} ${OSSL}
-            --disable-ldap
-            --without-libidn2
-        BUILD_COMMAND make
-        BUILD_IN_SOURCE 1
+        URL https://curl.haxx.se/download/curl-7.78.0.tar.gz
+        SOURCE_DIR ${COMMON_SRCS}/curl-7.78.0
+        CMAKE_ARGS  -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
+                    -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
+                    -DBUILD_SHARED_LIBS:BOOL=OFF
+                    -DHTTP_ONLY:BOOL=ON
+#                    -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1
         )
 ExternalProject_Get_Property(project_curl install_dir)
 if(MAKE_SHARED_SIPI)

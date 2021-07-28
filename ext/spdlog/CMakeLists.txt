@@ -3,7 +3,7 @@ project(libspdlog_builder C CXX)
 include(ExternalProject)
 
 #
-# get fmt
+# get spdlog
 #
 ExternalProject_Add(
         project_spdlog
@@ -15,7 +15,7 @@ ExternalProject_Add(
 
 ExternalProject_Get_Property(project_spdlog install_dir)
 
-if(MAKE_SHARED_SIPI)
+if(MAKE_SHARED_CSERVE)
     add_library(spdlog SHARED IMPORTED GLOBAL)
     set_property(TARGET spdlog PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libspdlog${CMAKE_SHARED_LIBRARY_SUFFIX})
 else()
