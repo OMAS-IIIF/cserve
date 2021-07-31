@@ -46,6 +46,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+endif()
+add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
+add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
+
 #
 # this is needed for curl...
 #
@@ -74,7 +80,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     endif()
 endif()
 
-
+include(FindOpenSSL REQUIRED)
 
 #
 # libmagic
@@ -86,7 +92,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
-add_subdirectory(${EXT_PROJECTS_DIR}/openssl)
+#add_subdirectory(${EXT_PROJECTS_DIR}/openssl)
 add_subdirectory(${EXT_PROJECTS_DIR}/curl)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
@@ -119,15 +125,13 @@ target_link_libraries(cserver
         zlib
         spdlog
         curl
-#        crypto
-        openssl)
+        ${OPENSSL_LIBRARIES})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(cserver ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
 endif()
 
-target_include_directories(
-        cserver PUBLIC
+target_include_directories(cserver PUBLIC
         "${PROJECT_BINARY_DIR}"
         "${PROJECT_SOURCE_DIR}/lib"
 )

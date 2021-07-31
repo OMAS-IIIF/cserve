@@ -13,8 +13,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
     SET(CMAKE_MACOSX_RPATH 1)
     SET(LUA_ARCH "macosx")
     # ToDo: shouldn't this be also set on the mac through FindOpenSSL?
-    SET(OPENSSL_ROOT_DIR "/usr/local/opt/openssl" CACHE FILEPATH "openssl")
-    SET(OPENSSL_USE_STATIC_LIBS ON)
+    #SET(OPENSSL_ROOT_DIR "/usr/local/opt/openssl" CACHE FILEPATH "openssl")
+    #SET(OPENSSL_USE_STATIC_LIBS ON)
 elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
     message(STATUS "Compiling for Linux64...")
     message(STATUS ${CMAKE_SYSTEM_NAME})
@@ -28,13 +28,19 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+endif()
+
+include(FindOpenSSL REQUIRED)
+
 #
 # OpenSSL ??
 #
-if (USE_SSL)
+#if (USE_SSL)
     add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
     add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
-endif ()
+#endif ()
 
 #
 # libmagic
@@ -73,9 +79,7 @@ add_dependencies(cserve
         lua
         sqlite3
         jansson
-        curl
-#        crypto
-        openssl)
+        curl)
 
 target_include_directories(cserve
         INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}

@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.14.5)
-project(openssl_builder C CXX)
+cmake_minimum_required(VERSION 3.19)
+project(project_openssl C CXX)
 include(ExternalProject)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -12,15 +12,16 @@ ExternalProject_Add(project_openssl
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://www.openssl.org/source/openssl-1.1.1k.tar.gz
         SOURCE_DIR ${COMMON_SRCS}/openssl
-        CONFIGURE_COMMAND ${COMMON_SRCS}/openssl/${CONFIGURE_COMMAND}
+        CONFIGURE_COMMAND ${COMMON_SRCS}/openssl/Configure darwin64-x86_64-cc
         --prefix=${COMMON_LOCAL}
         --libdir=${CONFIGURE_LIBDIR}
         BUILD_COMMAND make
         INSTALL_COMMAND make INSTALL_LIB=${CONFIGURE_LIBDIR} install INSTALL_TOP=${COMMON_LOCAL}
-        BUILD_IN_SOURCE 1
-        )
+        BUILD_IN_SOURCE 1)
 
-if(MAKE_SHARED_SIPI)
+ExternalProject_Get_Property(project_openssl install_dir)
+
+if(MAKE_SHARED_CSERVE)
     add_library(openssl SHARED IMPORTED GLOBAL)
     set_property(TARGET openssl PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libsll${CMAKE_SHARED_LIBRARY_SUFFIX})
 else()
@@ -29,4 +30,3 @@ else()
 endif()
 
 add_dependencies(openssl project_openssl)
-target_link_libraries(openssl ${install_dir}/sll.lib)
