@@ -44,23 +44,7 @@ set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-#
-# OpenSSL ??
-#
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
-endif()
-
-include(FindOpenSSL REQUIRED)
-if(OPENSSL_FOUND)
-    set(USE_SSL ON)
-    add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
-    add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
-    message(STATUS "OPENSSL_INCLUDE_DIR=${OPENSSL_INCLUDE_DIR}")
-    message(STATUS "OPENSSL_VERSION=${OPENSSL_VERSION}")
-else()
-    message(STATUS "No SSL support found!")
-endif()
+add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
 
 #
 # this is needed for curl...
@@ -102,6 +86,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
+add_subdirectory(${EXT_PROJECTS_DIR}/openssl)
 add_subdirectory(${EXT_PROJECTS_DIR}/curl)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
@@ -131,14 +116,11 @@ target_link_libraries(cserver
         lua
         jansson
         sqlite3
-        curl
         zlib
         spdlog
-        ssh2)
-
-if(OPENSSL_FOUND)
-    target_link_libraries(cserver ${OPENSSL_LIBRARIES})
-endif()
+        curl
+#        crypto
+        openssl)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(cserver ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})

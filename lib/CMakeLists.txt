@@ -73,7 +73,9 @@ add_dependencies(cserve
         lua
         sqlite3
         jansson
-        curl)
+        curl
+#        crypto
+        openssl)
 
 target_include_directories(cserve
         INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}

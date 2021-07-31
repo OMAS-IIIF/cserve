@@ -6,6 +6,8 @@ include(FindOpenSSL)
 # get libcurl
 #
 ExternalProject_Add(project_curl
+        DEPENDS openssl
+#        DEPENDS crypto
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://curl.haxx.se/download/curl-7.78.0.tar.gz
         SOURCE_DIR ${COMMON_SRCS}/curl-7.78.0
@@ -13,7 +15,7 @@ ExternalProject_Add(project_curl
                     -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
                     -DBUILD_SHARED_LIBS:BOOL=OFF
                     -DHTTP_ONLY:BOOL=ON
-                    -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl
+                    -DOPENSSL_ROOT_DIR=${COMMON_LOCAL}
         )
 ExternalProject_Get_Property(project_curl install_dir)
 if(MAKE_SHARED_SIPI)
