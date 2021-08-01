@@ -2,11 +2,17 @@ cmake_minimum_required(VERSION 3.14.5)
 project(curl_builder C CXX)
 include(ExternalProject)
 
+#
+# Setting up openssl - things...
+#
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+    set(OS_X_SPECIAL_FLAG -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl)
+else()
+    set(OS_X_SPECIAL_FLAG "")
 endif()
-
 include(FindOpenSSL REQUIRED)
+
 #
 # get libcurl
 #
@@ -17,8 +23,11 @@ ExternalProject_Add(project_curl
         CMAKE_ARGS  -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
                     -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
                     -DBUILD_SHARED_LIBS:BOOL=OFF
+                    -DCMAKE_USE_LIBSSH2:BOOL=OFF
                     -DHTTP_ONLY:BOOL=ON
+                    ${OS_X_SPECIAL_FLAG}
         )
+
 ExternalProject_Get_Property(project_curl install_dir)
 if(MAKE_SHARED_SIPI)
     add_library(curl SHARED IMPORTED GLOBAL)
