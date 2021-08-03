@@ -86,6 +86,6 @@ target_include_directories(cserve
         )
 
 install(TARGETS cserve
-        DESTINATION lib)
+        DESTINATION lib/cserve)
 install(FILES Global.h Error.h Cserve.h Connection.h CserveVersion.h
         DESTINATION include/cserve)

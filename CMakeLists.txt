@@ -135,6 +135,7 @@ target_include_directories(cserver PUBLIC
         "${PROJECT_SOURCE_DIR}/lib"
 )
 
+
 install(TARGETS cserver RUNTIME ARCHIVE)
 install(FILES src/CserverConf.cpp
         DESTINATION include/cserve)
