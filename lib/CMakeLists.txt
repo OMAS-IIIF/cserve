@@ -60,7 +60,7 @@ add_library(cserve
         makeunique.h
         jwt.c jwt.h
         Error.cpp Error.h
-        SockStream.cpp Sockstream.h
+        SockStream.cpp SockStream.h
         Connection.cpp Connection.h
         ChunkReader.cpp ChunkReader.h
         Hash.cpp Hash.h

@@ -124,7 +124,8 @@ target_link_libraries(cserver
         zlib
         spdlog
         curl
-        ${OPENSSL_LIBRARIES})
+        ${OPENSSL_LIBRARIES} Threads::Threads ${CMAKE_DL_LIBS})
+
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(cserver ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
