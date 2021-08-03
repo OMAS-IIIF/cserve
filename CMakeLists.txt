@@ -9,7 +9,6 @@ project(cserver VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-#set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
@@ -23,10 +22,10 @@ set(CONFIGURE_INCDIR ${COMMON_LOCAL}/include)
 set(CSERVER_EXE ${CMAKE_CURRENT_BINARY_DIR}/cserver)
 
 # set cmake default install location
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set (CMAKE_INSTALL_PREFIX "${COMMON_LOCAL}" CACHE PATH "default install path" FORCE)
-    message(STATUS CMAKE_INSTALL_DIR: ${CMAKE_INSTALL_PREFIX})
-endif()
+#if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+#    set (CMAKE_INSTALL_PREFIX "${COMMON_LOCAL}" CACHE PATH "default install path" FORCE)
+#    message(STATUS CMAKE_INSTALL_DIR: ${CMAKE_INSTALL_PREFIX})
+#endif()
 
 set(COMMON_SOURCE_FILES_DIR ${PROJECT_SOURCE_DIR}/src)
 set(COMMON_LIBRARY_FILES_DIR ${PROJECT_SOURCE_DIR}/lib)
@@ -93,7 +92,6 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
-#add_subdirectory(${EXT_PROJECTS_DIR}/openssl)
 add_subdirectory(${EXT_PROJECTS_DIR}/curl)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
@@ -137,6 +135,9 @@ target_include_directories(cserver PUBLIC
         "${PROJECT_SOURCE_DIR}/lib"
 )
 
+install(TARGETS cserver RUNTIME ARCHIVE)
+install(FILES src/CserverConf.cpp
+        DESTINATION include/cserve)
 include(CTest)
 
 add_subdirectory(tests)
