@@ -198,6 +198,7 @@ namespace cserve {
             CONNECT = 7, //!< For use with a proxy that can dynamically switch to being a tunnel
             OTHER = 8    //!< Fallback....
         } HttpMethod;
+        static const int NumHttpMethods = 9;
 
         /*!
          * \typedef StatusCodes

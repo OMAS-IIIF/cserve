@@ -151,10 +151,10 @@ int main(int argc, char *argv[]) {
     // now we set the routes for the normal HTTP server file handling
     //
     if (!config.docroot().empty()) {
-        std::pair <std::string, std::string> tmp = config.filehandler_info();
-        server.debugmsg(__LINE__, fmt::format("FILEHANDLER first='{}' second='{}'", tmp.first, tmp.second));
-        server.addRoute(cserve::Connection::GET, tmp.first, cserve::FileHandler, &tmp);
-        server.addRoute(cserve::Connection::POST, tmp.first, cserve::FileHandler, &tmp);
+        std::pair <std::string, std::string> *tmp = new std::pair <std::string, std::string>(config.filehandler_info());
+        server.debugmsg(__LINE__, fmt::format("FILEHANDLER first='{}' second='{}'", tmp->first, tmp->second));
+        server.addRoute(cserve::Connection::GET, tmp->first, cserve::FileHandler, tmp);
+        server.addRoute(cserve::Connection::POST, tmp->first, cserve::FileHandler, tmp);
     }
 
     //

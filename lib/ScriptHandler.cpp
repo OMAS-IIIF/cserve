@@ -21,7 +21,6 @@ namespace cserve {
      * @param conn Connection instance
      * @param lua Lua interpreter instance
      * @param user_data
-     * @param user_data
      * @param hd Pointer to string object containing the lua script file name
      */
     void ScriptHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, void *hd) {

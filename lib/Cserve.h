@@ -19,7 +19,9 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public
  * License along with Sipi.  If not, see <http://www.gnu.org/licenses/>.
- *//*!
+ */
+
+ /*!
  * \brief Implements a simple HTTP server.
  *
  */
@@ -86,7 +88,6 @@ namespace cserve {
     typedef enum {
         CONTINUE, CLOSE
     } ThreadStatus;
-
 
     /*!
      * \brief Implements a simple, even primitive HTTP server with routes and handlers
@@ -222,8 +223,8 @@ namespace cserve {
         std::map<pthread_t, SocketControl::SocketInfo> thread_ids; //!< Map of active worker threads
         int _keep_alive_timeout;
         bool running; //!< Main runloop should keep on going
-        std::map<std::string, RequestHandler> handler[9]; // request handlers for the different 9 request methods
-        std::map<std::string, void *> handler_data[9]; // request handlers for the different 9 request methods
+        std::map<std::string, RequestHandler> handler[Connection::NumHttpMethods]; // request handlers for the different 9 request methods
+        std::map<std::string, void *> handler_data[Connection::NumHttpMethods]; // request handlers for the different 9 request methods
         void *_user_data; //!< Some opaque user data that can be given to the Connection (for use within the handler)
         std::string _initscript;
         std::vector<cserve::LuaRoute> _lua_routes; //!< This vector holds the routes that are served by lua scripts
