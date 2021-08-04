@@ -128,9 +128,9 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     _serverconf_ok = 0;
 
     _userid = "";
-    _port = 80;
+    _port = 8080;
 #ifdef CSERVE_ENABLE_SSL
-    _ssl_port = 443;
+    _ssl_port = 8443;
     _ssl_certificate = "./certificate/certificate.pem";
     _ssl_key = "./certificate/key.pem";
     _jwt_secret = "UP4014, the biggest steam engine";

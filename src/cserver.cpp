@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
     //
     if (!config.docroot().empty()) {
         std::pair <std::string, std::string> tmp = config.filehandler_info();
-        std::cerr << "--------------------------->'" << tmp.first << "'<------------------" << std::endl;
+        server.debugmsg(__LINE__, fmt::format("FILEHANDLER first='{}' second='{}'", tmp.first, tmp.second));
         server.addRoute(cserve::Connection::GET, tmp.first, cserve::FileHandler, &tmp);
         server.addRoute(cserve::Connection::POST, tmp.first, cserve::FileHandler, &tmp);
     }
