@@ -82,15 +82,6 @@ void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
     conn.setBuffer();
     conn.setChunkedTransfer();
 
-    std::vector <std::string> headers = conn.header();
-    for (unsigned i = 0; i < headers.size(); i++) {
-        std::cerr << headers[i] << " : " << conn.header(headers[i]) << std::endl;
-    }
-
-    if (!conn.getParams("gaga").empty()) {
-        std::cerr << "====> gaga = " << conn.getParams("gaga") << std::endl;
-    }
-
     conn.header("Content-Type", "text/html; charset=utf-8");
     conn << "<html><head>";
     conn << "<title>OMAS-IIIF CSERVE TEST (chunked transfer)</title>";
@@ -152,7 +143,6 @@ int main(int argc, char *argv[]) {
     //
     if (!config.docroot().empty()) {
         std::pair <std::string, std::string> *tmp = new std::pair <std::string, std::string>(config.filehandler_info());
-        server.debugmsg(__LINE__, fmt::format("FILEHANDLER first='{}' second='{}'", tmp->first, tmp->second));
         server.addRoute(cserve::Connection::GET, tmp->first, cserve::FileHandler, tmp);
         server.addRoute(cserve::Connection::POST, tmp->first, cserve::FileHandler, tmp);
     }
