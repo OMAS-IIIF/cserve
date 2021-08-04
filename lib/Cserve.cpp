@@ -392,6 +392,7 @@ namespace cserve {
         for (item = handler[conn.method()].rbegin(); item != handler[conn.method()].rend(); ++item) {
           //TODO:: Selects wrong handler if the URI starts with the substring
             size_t len = conn.uri().length() < item->first.length() ? conn.uri().length() : item->first.length();
+            std::cerr << "**************>URI='" << conn.uri() << "' item='" << item->first << "' len=" << conn.uri().length() << std::endl;
 
             if (item->first == conn.uri().substr(0, len)) {
                 if (len > max_match_len) {

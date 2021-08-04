@@ -11,7 +11,8 @@ target_link_libraries(tests_00
         cserve
         spdlog
         magic
-        Catch2 Catch2Main)
+        Catch2Main
+        Catch2)
 
 
 if(OPENSSL_FOUND)
