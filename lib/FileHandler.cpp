@@ -26,6 +26,7 @@ namespace cserve {
      * @param hd nullptr or pair (docroot, route)
      */
     void FileHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, void *hd) {
+        Server::debugmsg(__LINE__, fmt::format("=====>{}", hd));
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
 
@@ -36,9 +37,9 @@ namespace cserve {
             route = "/";
             docroot = ".";
         } else {
-            std::pair<std::string, std::string> tmp = *((std::pair<std::string, std::string> *) hd);
-            route = tmp.first;
-            docroot = tmp.second;
+            std::pair<std::string, std::string> *tmp = (std::pair<std::string, std::string> *) hd;
+            route = tmp->first;
+            docroot = tmp->second;
         }
         Server::debugmsg(__LINE__, fmt::format("IN FILEHANDLER: route='{}' docroot='{}'", route, docroot));
 

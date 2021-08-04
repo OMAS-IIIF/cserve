@@ -389,6 +389,14 @@ namespace cserve {
         std::string matching_path;
         RequestHandler matching_handler = nullptr;
 
+        for (auto const & [key, ptr]: handler_data[conn.method()]) {
+            Server::debugmsg(__LINE__, fmt::format(">> handler_data[{}]...{}", key, ptr));
+            if (key == "/") {
+                std::pair<std::string, std::string> *tmp = (std::pair<std::string, std::string> *) ptr;
+                Server::debugmsg(__LINE__, fmt::format(">>> first={} second={}", tmp->first, tmp->second));
+            }
+        }
+
         for (item = handler[conn.method()].rbegin(); item != handler[conn.method()].rend(); ++item) {
           //TODO:: Selects wrong handler if the URI starts with the substring
             size_t len = conn.uri().length() < item->first.length() ? conn.uri().length() : item->first.length();
@@ -399,6 +407,7 @@ namespace cserve {
                     max_match_len = len;
                     matching_path = item->first;
                     matching_handler = item->second;
+                    Server::debugmsg(__LINE__, fmt::format("-MATCH: URI='{}' matching_path='{}'", conn.uri(), matching_path));
                 }
             }
         }
@@ -1014,6 +1023,14 @@ namespace cserve {
                           void *handler_data_p) {
         handler[method_p][path_p] = handler_p;
         handler_data[method_p][path_p] = handler_data_p;
+
+        for (auto const & [key, ptr]: handler_data[method_p]) {
+            Server::debugmsg(__LINE__, fmt::format("** handler_data[{}]...{}", key, ptr));
+            if (key == "/") {
+                std::pair<std::string, std::string> *tmp = (std::pair<std::string, std::string> *) ptr;
+                Server::debugmsg(__LINE__, fmt::format("*** first={} second={}", tmp->first, tmp->second));
+            }
+        }
     }
     //=========================================================================
 
@@ -1063,6 +1080,7 @@ namespace cserve {
 
             try {
                 RequestHandler handler = getHandler(conn, &hd);
+                Server::debugmsg(__LINE__, fmt::format("----->{}", hd));
                 handler(conn, luaserver, _user_data, hd);
             } catch (InputFailure iofail) {
                 Server::logger()->error("Possibly socket closed by peer");
