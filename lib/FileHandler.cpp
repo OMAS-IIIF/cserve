@@ -25,21 +25,23 @@ namespace cserve {
      * @param user_data Hook to user data
      * @param hd nullptr or pair (docroot, route)
      */
-    void FileHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, void *hd) {
+    void FileHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, std::shared_ptr<RequestHandlerData> request_data) {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
 
-        std::string docroot;
-        std::string route;
-
-        if (hd == nullptr) {
-            route = "/";
-            docroot = ".";
-        } else {
-            std::pair<std::string, std::string> *tmp = (std::pair<std::string, std::string> *) hd;
-            route = tmp->first;
-            docroot = tmp->second;
+        std::shared_ptr<FileHandlerData> data = std::dynamic_pointer_cast<FileHandlerData>(request_data);
+        if (data == nullptr) {
+            conn.setBuffer();
+            conn.status(Connection::INTERNAL_SERVER_ERROR);
+            conn.header("Content-Type", "text/text; charset=utf-8");
+            conn << "Error in FileHandler: FileHandler request data missing.\r\n";
+            conn.flush();
+            Server::logger()->error("Error in FileHandler: FileHandler request data missing.");
+            return;
         }
+
+        std::string docroot = data->docroot();
+        std::string route = data->route();
 
         lua.add_servertableentry("docroot", docroot);
         if (uri.find(route) == 0) {

@@ -23,11 +23,21 @@ namespace cserve {
      * @param user_data
      * @param hd Pointer to string object containing the lua script file name
      */
-    void ScriptHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, void *hd) {
+    void ScriptHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, std::shared_ptr<RequestHandlerData> request_data) {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
+        std::shared_ptr<ScriptHandlerData> data = std::dynamic_pointer_cast<ScriptHandlerData>(request_data);
 
-        std::string script = *((std::string *) hd);
+        if (data == nullptr) {
+            conn.setBuffer();
+            conn.status(Connection::INTERNAL_SERVER_ERROR);
+            conn.header("Content-Type", "text/text; charset=utf-8");
+            conn << "Error in ScriptHandler: No script path defined.\r\n";
+            conn.flush();
+            Server::logger()->error("Error in ScriptHandler: No script path defined.");
+            return;
+        }
+        std::string script = data->scriptpath();
 
         if (access(script.c_str(), R_OK) != 0) { // test, if file exists
             conn.status(Connection::NOT_FOUND);

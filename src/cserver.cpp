@@ -15,6 +15,7 @@
 #include "LuaServer.h"
 #include "LuaSqlite.h"
 #include "CserverConf.h"
+#include "RequestHandlerData.h"
 
 
 cserve::Server *serverptr = nullptr;
@@ -66,7 +67,7 @@ static void new_lua_func(lua_State *L, cserve::Connection &conn, void *user_data
 /*LUA TEST****************************************************************************/
 
 
-void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, void *dummy) {
+void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, std::shared_ptr<cserve::RequestHandlerData> request_data) {
     conn.setBuffer();
     std::vector <std::string> headers = conn.header();
     for (unsigned i = 0; i < headers.size(); i++) {
@@ -78,7 +79,7 @@ void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
 }
 
 
-void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, void *dummy) {
+void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, std::shared_ptr<cserve::RequestHandlerData> request_data) {
     conn.setBuffer();
     conn.setChunkedTransfer();
 
@@ -93,7 +94,7 @@ void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
     return;
 }
 
-void PingHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, void *dummy) {
+void PingHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, std::shared_ptr<cserve::RequestHandlerData> request_data) {
     conn.setBuffer();
     conn << "PONG" << cserve::Connection::flush_data;
     return;
@@ -142,16 +143,17 @@ int main(int argc, char *argv[]) {
     // now we set the routes for the normal HTTP server file handling
     //
     if (!config.docroot().empty()) {
-        std::pair <std::string, std::string> *tmp = new std::pair <std::string, std::string>(config.filehandler_info());
-        server.addRoute(cserve::Connection::GET, tmp->first, cserve::FileHandler, tmp);
-        server.addRoute(cserve::Connection::POST, tmp->first, cserve::FileHandler, tmp);
+        std::pair <std::string, std::string> tmp = config.filehandler_info();
+        std::shared_ptr<cserve::FileHandlerData> data = std::make_shared<cserve::FileHandlerData>(tmp.first, tmp.second);
+        server.addRoute(cserve::Connection::GET, tmp.first, cserve::FileHandler, data);
+        server.addRoute(cserve::Connection::POST, tmp.first, cserve::FileHandler, data);
     }
 
     //
     // Test handler (should be removed for production system)
     //
-    server.addRoute(cserve::Connection::GET, "/test", TestHandler, nullptr);
-    server.addRoute(cserve::Connection::GET, "/ping", PingHandler, nullptr);
+    server.addRoute(cserve::Connection::GET, "/test", TestHandler);
+    server.addRoute(cserve::Connection::GET, "/ping", PingHandler);
 
     serverptr = &server;
     old_sighandler = signal(SIGINT, sighandler);

@@ -5,12 +5,17 @@
 #ifndef CSERVER_LIB_REQUESTHANDLERDATA_H_
 #define CSERVER_LIB_REQUESTHANDLERDATA_H_
 
-class RequestHandlerData {
- public:
-  inline RequestHandlerData() = default;
+#include <string>
 
-  inline virtual ~RequestHandlerData(){}
+namespace cserve {
+    class RequestHandlerData {
+    public:
+        inline RequestHandlerData() = default;
 
-};
+        inline virtual ~RequestHandlerData(){}
+
+    };
+
+}
 
 #endif //CSERVER_LIB_REQUESTHANDLERDATA_H_

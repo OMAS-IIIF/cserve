@@ -7,10 +7,23 @@
 
 
 #include "LuaServer.h"
+#include "RequestHandlerData.h"
 
 namespace cserve {
 
-    extern void FileHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, void *hd);
+    class FileHandlerData: public RequestHandlerData {
+    private:
+        std::string _route;
+        std::string _docroot;
+    public:
+        FileHandlerData(const std::string &route, const std::string docroot) : RequestHandlerData(), _route(route), _docroot(docroot) {}
+
+        std::string route() { return _route; }
+
+        std::string docroot() { return _docroot; }
+    };
+
+    extern void FileHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, std::shared_ptr<RequestHandlerData> request_data);
 }
 
 #endif //CSERVER_FILEHANDLER_H

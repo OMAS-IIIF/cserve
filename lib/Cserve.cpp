@@ -124,7 +124,7 @@ namespace cserve {
      * @param user_data Hook to user data
      * @param hd not used
      */
-    static void default_handler(Connection &conn, LuaServer &lua, void *user_data, void *hd) {
+    static void default_handler(Connection &conn, LuaServer &lua, void *user_data, std::shared_ptr<RequestHandlerData> request_data) {
         conn.status(Connection::NOT_FOUND);
         conn.header("Content-Type", "text/text");
         conn.setBuffer();
@@ -257,7 +257,7 @@ namespace cserve {
      * @param handler_data_p Returns the pointer to the handler data
      * @return The appropriate handler for this request.
      */
-    RequestHandler Server::getHandler(Connection &conn, void **handler_data_p) {
+    std::tuple<RequestHandler, std::shared_ptr<RequestHandlerData>> Server::getHandler(Connection &conn) {
         std::map<std::string, RequestHandler>::reverse_iterator item;
 
         size_t max_match_len = 0;
@@ -278,10 +278,10 @@ namespace cserve {
         }
 
         if (max_match_len > 0) {
-            *handler_data_p = handler_data[conn.method()][matching_path];
-            return matching_handler;
+            //handler_data = handler_data[conn.method()][matching_path];
+            return std::make_tuple(matching_handler, handler_data[conn.method()][matching_path]);
         }
-        return default_handler;
+        return std::make_tuple(default_handler, nullptr);
     }
     //=============================================================================
 
@@ -603,7 +603,8 @@ namespace cserve {
         //
         for (auto &route : _lua_routes) {
             route.script = _scriptdir + "/" + route.script;
-            addRoute(route.method, route.route, ScriptHandler, &(route.script));
+            std::shared_ptr<ScriptHandlerData> data = std::make_shared<ScriptHandlerData>(route.script);
+            addRoute(route.method, route.route, ScriptHandler, data);
 
             old_ll = setlogmask(LOG_MASK(LOG_INFO));
             Server::logger()->info("Added route '{}' with script '{}'", route.route.c_str(), route.script.c_str());
@@ -884,12 +885,11 @@ namespace cserve {
 
 
     void Server::addRoute(Connection::HttpMethod method_p, const std::string &path_p, RequestHandler handler_p,
-                          void *handler_data_p) {
+                          std::shared_ptr<RequestHandlerData> handler_data_p) {
         handler[method_p][path_p] = handler_p;
         handler_data[method_p][path_p] = handler_data_p;
     }
     //=========================================================================
-
 
     cserve::ThreadStatus
     Server::processRequest(std::istream *ins, std::ostream *os, std::string &peer_ip, int peer_port, bool secure,
@@ -935,8 +935,8 @@ namespace cserve {
             void *hd = nullptr;
 
             try {
-                RequestHandler handler = getHandler(conn, &hd);
-                handler(conn, luaserver, _user_data, hd);
+                std::tuple<RequestHandler, std::shared_ptr<RequestHandlerData>> handler_info = getHandler(conn);
+                std::get<0>(handler_info)(conn, luaserver, _user_data, std::get<1>(handler_info));
             } catch (InputFailure iofail) {
                 Server::logger()->error("Possibly socket closed by peer");
                 return CLOSE; // or CLOSE ??

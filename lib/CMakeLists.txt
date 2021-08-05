@@ -69,7 +69,7 @@ add_library(cserve
         LuaSqlite.cpp LuaSqlite.h
         SocketControl.cpp SocketControl.h
         ThreadControl.cpp ThreadControl.h
-        RequestHandlerData.cpp RequestHandlerData.h
+        RequestHandlerData.h
         Cserve.cpp Cserve.h
         FileHandler.cpp FileHandler.h
         ScriptHandler.cpp ScriptHandler.h
