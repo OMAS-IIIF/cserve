@@ -10,12 +10,15 @@ ExternalProject_Add(
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://github.com/fmtlib/fmt/archive/refs/heads/master.zip
         SOURCE_DIR ${COMMON_SRCS}/fmt-master
-        CMAKE_ARGS -DFMT_DOC=OFF -DCMAKE_PREFIX_PATH=${COMMON_LOCAL} -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL} -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}
+        CMAKE_ARGS -DFMT_DOC=OFF
+        -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
+        -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
+        -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}
 )
 
 ExternalProject_Get_Property(project_fmt install_dir)
 
-if(MAKE_SHARED_SIPI)
+if(MAKE_SHARED_CSERVE)
     add_library(fmt SHARED IMPORTED GLOBAL)
     set_property(TARGET fmt PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libfmt${CMAKE_SHARED_LIBRARY_SUFFIX})
 else()

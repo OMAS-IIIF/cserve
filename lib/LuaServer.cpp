@@ -62,6 +62,7 @@
 #endif
 
 #include <jansson.h>
+#include <nlohmann/json.hpp>
 
 using ms = std::chrono::milliseconds;
 using get_time = std::chrono::steady_clock;
