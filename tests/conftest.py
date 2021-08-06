@@ -115,7 +115,6 @@ class CserverProcessManager:
         Stop the cserver
         :return: None
         """
-        print("===> stop_cserver")
         self.cserver_process.terminate()
 
     def get_server_output(self):

@@ -80,6 +80,7 @@ add_dependencies(cserve
         lua
         sqlite3
         jansson
+        nlohmann
         curl)
 
 target_include_directories(cserve

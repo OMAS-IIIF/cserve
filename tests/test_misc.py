@@ -7,6 +7,7 @@ def test_misc(manager):
     }
     newjwt = jwt.encode(payload, 'UP4014, the biggest steam engine', algorithm="HS256")
     response = manager.get_json('misc', params={'jwt': newjwt})
+
     assert response.get('status') == 'OK'
     assert response.get('uuid')
     assert response.get('uuid62')
@@ -19,3 +20,4 @@ def test_misc(manager):
     assert token.get('jti') == '1234567890'
     assert token.get('key') == 'abcdefghijk'
     assert token.get('prn') == 'https://test.org/gaga'
+

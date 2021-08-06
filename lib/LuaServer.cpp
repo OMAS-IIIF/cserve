@@ -61,7 +61,6 @@
 
 #endif
 
-#include <jansson.h>
 #include <nlohmann/json.hpp>
 
 using ms = std::chrono::milliseconds;
@@ -1504,12 +1503,12 @@ namespace cserve {
     //=========================================================================
 
 
-    static json_t *subtable(lua_State *L, int index) {
+    static nlohmann::json subtable(lua_State *L, int index) {
         std::string table_error("server.table_to_json(table): datatype inconsistency");
-        json_t *tableobj = nullptr;
-        json_t *arrayobj = nullptr;
-        json_t *tmp_luanumber = nullptr;
-        const char *skey;
+        bool is_table = false;
+        bool is_array = false;
+        nlohmann::json json_obj;
+        std::string skey;
         lua_pushnil(L);  /* first key */
 
         while (lua_next(L, index) != 0) {
@@ -1517,25 +1516,26 @@ namespace cserve {
             // value is at index -1 // index + 2
 
             if (lua_type(L, index + 1) == LUA_TSTRING) {
-                // we have a string as key
-                skey = lua_tostring(L, index + 1);
+                // we have a string as key -> it's an object
+                skey = std::string(lua_tostring(L, index + 1));
 
-                if (arrayobj != nullptr) {
+                if (is_array) {
                     throw std::string("'server.table_to_json(table)': Cannot mix int and strings as key");
                 }
-
-                if (tableobj == nullptr) {
-                    tableobj = json_object();
+                if (!is_table) {
+                    json_obj = nlohmann::json::object();
+                    is_table = true;
                 }
             } else if (lua_type(L, index + 1) == LUA_TNUMBER) {
+                // we have a numerical index -> it's an array
                 (void) lua_tointeger(L, index + 1);
 
-                if (tableobj != nullptr) {
+                if (is_table) {
                     throw std::string("'server.table_to_json(table)': Cannot mix int and strings as key");
                 }
-
-                if (arrayobj == nullptr) {
-                    arrayobj = json_array();
+                if (!is_array) {
+                    json_obj = nlohmann::json::array();
+                    is_array = true;
                 }
             } else {
                 // something else as key....
@@ -1550,31 +1550,36 @@ namespace cserve {
             //
             if (lua_type(L, index + 2) == LUA_TNUMBER) {
                 // a number value
-                double val = lua_tonumber(L, index + 2);
+                double dval = lua_tonumber(L, index + 2);
 
-                if (floor(val) == val) {
+                if (floor(dval) == dval) {
+                    long ival = static_cast <long> (floor(dval));
                     // the lua number is actually an integer
-                    tmp_luanumber = json_integer(static_cast <long> (floor(val)));
+                    if (is_table) {
+                        json_obj[skey] = ival;
+                     } else if (is_array) {
+                        json_obj += ival;
+                    } else {
+                        throw table_error;
+                    }
                 } else {
                     // the lua number is a double
-                    tmp_luanumber = json_real(val);
-                }
-
-                if (tableobj != nullptr) {
-                    json_object_set_new(tableobj, skey, tmp_luanumber);
-                } else if (arrayobj != nullptr) {
-                    json_array_append_new(arrayobj, tmp_luanumber);
-                } else {
-                    throw table_error;
+                    if (is_table) {
+                        json_obj[skey] = dval;
+                    } else if (is_array) {
+                        json_obj += dval;
+                    } else {
+                        throw table_error;
+                    }
                 }
             } else if (lua_type(L, index + 2) == LUA_TSTRING) {
                 // a string value
-                const char *val = lua_tostring(L, index + 2);
+                const std::string val(lua_tostring(L, index + 2));
 
-                if (tableobj != nullptr) {
-                    json_object_set_new(tableobj, skey, json_string(val));
-                } else if (arrayobj != nullptr) {
-                    json_array_append_new(arrayobj, json_string(val));
+                if (is_table) {
+                    json_obj[skey] = val;
+                } else if (is_array) {
+                    json_obj += val;
                 } else {
                     throw table_error;
                 }
@@ -1582,18 +1587,18 @@ namespace cserve {
                 // a boolean value
                 bool val = lua_toboolean(L, index + 2);
 
-                if (tableobj != nullptr) {
-                    json_object_set_new(tableobj, skey, json_boolean(val));
-                } else if (arrayobj != nullptr) {
-                    json_array_append_new(arrayobj, json_boolean(val));
+                if (is_table) {
+                    json_obj[skey] = val;
+                } else if (is_array) {
+                    json_obj += val;
                 } else {
                     throw table_error;
                 }
             } else if (lua_type(L, index + 2) == LUA_TTABLE) {
-                if (tableobj != nullptr) {
-                    json_object_set_new(tableobj, skey, subtable(L, index + 2));
-                } else if (arrayobj != nullptr) {
-                    json_array_append_new(arrayobj, subtable(L, index + 2));
+                if (is_table) {
+                    json_obj[skey] = subtable(L, index + 2);
+                } else if (is_array) {
+                    json_obj += subtable(L, index + 2);
                 } else {
                     throw table_error;
                 }
@@ -1602,7 +1607,7 @@ namespace cserve {
             }
             lua_pop(L, 1);
         }
-        return tableobj != nullptr ? tableobj : (arrayobj != nullptr ? arrayobj : nullptr);
+        return json_obj;
     }
     //=========================================================================
 
@@ -1626,8 +1631,7 @@ namespace cserve {
             return 2;
         }
 
-        json_t *root = nullptr;
-
+        nlohmann::json root;
         try {
             root = subtable(L, 1);
         } catch (std::string &errmsg) {
@@ -1637,10 +1641,9 @@ namespace cserve {
         }
 
         lua_pushboolean(L, true); // we are successful...
-        char *jsonstr = json_dumps(root, JSON_INDENT(3));
-        lua_pushstring(L, jsonstr);
-        free(jsonstr);
-        json_decref(root);
+        std::string jsonstr = root.dump(3);
+        lua_pushstring(L, jsonstr.c_str());
+
         return 2;
     }
     //=========================================================================
@@ -1648,107 +1651,110 @@ namespace cserve {
     //
     // forward declaration is needed here
     //
-    static void lua_jsonarr(lua_State *L, json_t *obj);
+    static void lua_jsonarr(lua_State *L, const nlohmann::json &obj);
 
-    static void lua_jsonobj(lua_State *L, json_t *obj) {
-        if (!json_is_object(obj)) {
+    static void lua_jsonobj(lua_State *L, const nlohmann::json &obj) {
+        if (obj.type() != nlohmann::json::value_t::object) {
             throw std::string("'lua_jsonobj expects object");
         }
 
         lua_createtable(L, 0, 0);
-        const char *key;
-        json_t *value;
 
-        json_object_foreach(obj, key, value) {
-            lua_pushstring(L, key); // index
-            switch (json_typeof(value)) {
-                case JSON_NULL: {
+        for (auto& [key, val] : obj.items()) {
+            lua_pushstring(L, key.c_str()); // index
+            switch (val.type()) {
+                case nlohmann::json::value_t::null: {
                     lua_pushnil(L); // ToDo: we should create a custom Lua object named NULL!
                     break;
                 }
-                case JSON_FALSE: {
-                    lua_pushboolean(L, false);
+                case nlohmann::json::value_t::boolean: {
+                    bool bvalue = val.get<bool>();
+                    lua_pushboolean(L, bvalue);
                     break;
                 }
-                case JSON_TRUE: {
-                    lua_pushboolean(L, true);
+                case nlohmann::json::value_t::number_float: {
+                    double dvalue = val.get<double>();
+                    lua_pushnumber(L, dvalue);
                     break;
                 }
-                case JSON_REAL: {
-                    lua_pushnumber(L, json_real_value(value));
+                case nlohmann::json::value_t::number_unsigned:
+                case nlohmann::json::value_t::number_integer: {
+                    int ivalue = val.get<int>();
+                    lua_pushinteger(L, ivalue);
                     break;
                 }
-                case JSON_INTEGER: {
-                    lua_pushinteger(L, json_integer_value(value));
+                case nlohmann::json::value_t::string: {
+                    std::string svalue = val.get<std::string>();
+                    lua_pushstring(L, svalue.c_str());
                     break;
                 }
-                case JSON_STRING: {
-                    lua_pushstring(L, json_string_value(value));
+                case nlohmann::json::value_t::array: {
+                    lua_jsonarr(L, val);
                     break;
                 }
-                case JSON_ARRAY: {
-                    lua_jsonarr(L, value);
+                case nlohmann::json::value_t::object: {
+                    lua_jsonobj(L, val);
                     break;
                 }
-                case JSON_OBJECT: {
-                    lua_jsonobj(L, value);
-                    break;
+                default: {
+                    lua_pushnil(L); // ToDo: we should create a custom Lua object named NULL!
                 }
             }
-
             lua_rawset(L, -3);
         }
     }
     //=========================================================================
 
 
-    static void lua_jsonarr(lua_State *L, json_t *arr) {
-        if (!json_is_array(arr)) {
+    static void lua_jsonarr(lua_State *L, const nlohmann::json &obj) {
+        if (obj.type() != nlohmann::json::value_t::array) {
             throw std::string("'lua_jsonarr expects array");
         }
 
         lua_createtable(L, 0, 0);
-        size_t index;
-        json_t *value;
-
-        json_array_foreach(arr, index, value) {
+        size_t index = 0;
+        for (auto val : obj) {
             lua_pushinteger(L, index);
-            switch (json_typeof(value)) {
-                case JSON_NULL: {
+            switch (val.type()) {
+                case nlohmann::json::value_t::null: {
                     lua_pushnil(L); // ToDo: we should create a custom Lua object named NULL!
                     break;
                 }
-                case JSON_FALSE: {
-                    lua_pushboolean(L, false);
+                case nlohmann::json::value_t::boolean: {
+                    bool bvalue = val.get<bool>();
+                    lua_pushboolean(L, bvalue);
                     break;
                 }
-                case JSON_TRUE: {
-                    lua_pushboolean(L, true);
+                case nlohmann::json::value_t::number_float: {
+                    double dvalue = val.get<double>();
+                    lua_pushnumber(L, dvalue);
                     break;
                 }
-                case JSON_REAL: {
-                    lua_pushnumber(L, json_real_value(value));
+                case nlohmann::json::value_t::number_unsigned:
+                case nlohmann::json::value_t::number_integer: {
+                    int ivalue = val.get<int>();
+                    lua_pushinteger(L, ivalue);
                     break;
                 }
-                case JSON_INTEGER: {
-                    lua_pushinteger(L, json_integer_value(value));
+                case nlohmann::json::value_t::string: {
+                    std::string svalue = val.get<std::string>();
+                    lua_pushstring(L, svalue.c_str());
                     break;
                 }
-                case JSON_STRING: {
-                    lua_pushstring(L, json_string_value(value));
+                case nlohmann::json::value_t::array: {
+                    lua_jsonarr(L, val);
                     break;
                 }
-                case JSON_ARRAY: {
-                    lua_jsonarr(L, value);
+                case nlohmann::json::value_t::object: {
+                    lua_jsonobj(L, val);
                     break;
                 }
-                case JSON_OBJECT: {
-                    lua_jsonobj(L, value);
-                    break;
+                default: {
+                    lua_pushnil(L); // ToDo: we should create a custom Lua object named NULL!
                 }
             }
-
             lua_rawset(L, -3);
+            ++index;
         }
     }
     //=========================================================================
@@ -1775,18 +1781,16 @@ namespace cserve {
             return 2;
         }
 
-        const char *jsonstr = lua_tostring(L, 1);
+        std::string jsonstr = std::string(lua_tostring(L, 1));
+        nlohmann::json json_obj;
         lua_pop(L, top);
-        json_error_t jsonerror;
-        json_t *jsonobj = json_loads(jsonstr, JSON_REJECT_DUPLICATES, &jsonerror);
-
-        if (jsonobj == nullptr) {
+        try {
+            json_obj = nlohmann::json::parse(jsonstr);
+        }
+        catch (nlohmann::json::parse_error& err) {
             lua_pushboolean(L, false);
             std::stringstream ss;
-            ss << "'server.json_to_table(jsonstr)': Error parsing JSON: " << jsonerror.text << std::endl;
-            ss << "JSON-source: " << jsonerror.source << std::endl;
-            ss << "Line: " << jsonerror.line << " Column: " << jsonerror.column << " Pos: " << jsonerror.position
-               << std::endl;
+            ss << "'server.json_to_table(jsonstr)': Error parsing JSON: " << err.what() << " at: " << err.byte << std::endl;
             lua_pushstring(L, ss.str().c_str());
             return 2;
         }
@@ -1794,10 +1798,10 @@ namespace cserve {
         lua_pushboolean(L, true); // we assume success
 
         try {
-            if (json_is_object(jsonobj)) {
-                lua_jsonobj(L, jsonobj);
-            } else if (json_is_array(jsonobj)) {
-                lua_jsonarr(L, jsonobj);
+            if (json_obj.type() == nlohmann::json::value_t::object) {
+                lua_jsonobj(L, json_obj);
+            } else if (json_obj.type() == nlohmann::json::value_t::array) {
+                lua_jsonarr(L, json_obj);
             } else {
                 lua_settop(L, 0); // clear stack
                 lua_pushboolean(L, false);
@@ -1809,8 +1813,6 @@ namespace cserve {
             lua_pushboolean(L, false);
             lua_pushstring(L, errmsg.c_str());
         }
-
-        json_decref(jsonobj);
 
         return 2;
     }
@@ -2124,8 +2126,8 @@ namespace cserve {
             return 2;
         }
 
-        json_t *root = subtable(L, 1);
-        char *jsonstr = json_dumps(root, JSON_INDENT(3));
+        nlohmann::json root = subtable(L, 1);
+        std::string jsonstr = root.dump(3);
 
         if (jwt_new(&jwt) != 0) {
             lua_settop(L, 0); // clear stack
@@ -2136,7 +2138,7 @@ namespace cserve {
 
         jwt_set_alg(jwt, JWT_ALG_HS256, (unsigned char *) conn->server()->jwt_secret().c_str(),
                     conn->server()->jwt_secret().size());
-        jwt_add_grants_json(jwt, jsonstr);
+        jwt_add_grants_json(jwt, jsonstr.c_str());
 
         char *token = jwt_encode_str(jwt);
 
@@ -2197,9 +2199,18 @@ namespace cserve {
         free(tokendata);
         size_t pos = tokenstr.find(".");
         std::string jsonstr = tokenstr.substr(pos + 1);
-        json_error_t jsonerror;
-        json_t *jsonobj = json_loads(jsonstr.c_str(), JSON_REJECT_DUPLICATES, &jsonerror);
-        lua_pushboolean(L, true);
+        nlohmann::json jsonobj;
+        try {
+            jsonobj = nlohmann::json::parse(jsonstr);
+        }
+        catch (nlohmann::json::parse_error& err) {
+            lua_settop(L, 0); // clear stack
+            lua_pushboolean(L, false);
+            std::stringstream ss;
+            ss << "'lua_decode_jwt': Error parsing JSON: " << err.what() << " at: " << err.byte << std::endl;
+            lua_pushstring(L, ss.str().c_str());
+            return 2;
+        }
 
         try {
             lua_jsonobj(L, jsonobj);
@@ -2210,8 +2221,6 @@ namespace cserve {
             lua_pushstring(L, tmpstr.c_str());
             return 2;
         }
-
-        json_decref(jsonobj);
 
         return 2;
     }
