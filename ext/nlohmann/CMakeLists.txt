@@ -13,12 +13,6 @@ ExternalProject_Add(project_nlohmann
 )
 ExternalProject_Get_Property(project_nlohmann install_dir)
 
-if(MAKE_SHARED_CSERVE)
-    add_library(nlohmann SHARED IMPORTED GLOBAL)
-    set_property(TARGET nlohmann PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libnlohmann${CMAKE_SHARED_LIBRARY_SUFFIX})
-else()
-    add_library(nlohmann STATIC IMPORTED GLOBAL)
-    set_property(TARGET nlohmann PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libnlohmann${CMAKE_STATIC_LIBRARY_SUFFIX})
-endif()
+add_library(nlohmann INTERFACE)
 
 add_dependencies(nlohmann project_nlohmann)
