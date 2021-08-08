@@ -15,7 +15,7 @@ ExternalProject_Add(
 
 ExternalProject_Get_Property(project_catch2 install_dir)
 
-if(MAKE_SHARED_SIPI)
+if(MAKE_SHARED_CSERVE)
     add_library(Catch2 SHARED IMPORTED GLOBAL)
     set_property(TARGET Catch2 PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libCatch2${CMAKE_SHARED_LIBRARY_SUFFIX})
     add_library(Catch2Main SHARED IMPORTED GLOBAL)
