@@ -43,9 +43,7 @@ SockStream::SockStream(int sock_p,
                        putback_size(putback_size_p),
                        out_bufsize(out_bufsize_p),
                        sock(sock_p) {
-#ifdef CSERVE_ENABLE_SSL
     cSSL = nullptr;
-#endif
 
     in_buf = new char[in_bufsize + putback_size];
     char *end = in_buf + in_bufsize + putback_size;
@@ -55,7 +53,6 @@ SockStream::SockStream(int sock_p,
     setp(out_buf, out_buf + out_bufsize);
 }
 
-#ifdef CSERVE_ENABLE_SSL
 
 SockStream::SockStream(SSL *cSSL_p,
                        int in_bufsize_p,
@@ -73,8 +70,6 @@ SockStream::SockStream(SSL *cSSL_p,
     out_buf = new char[out_bufsize];
     setp(out_buf, out_buf + out_bufsize);
 }
-
-#endif
 
 
 SockStream::~SockStream() {
@@ -95,7 +90,6 @@ streambuf::int_type SockStream::underflow(void) {
     }
 
     ssize_t n;
-#ifdef CSERVE_ENABLE_SSL
     if (cSSL == nullptr) {
         n = read(sock, start, in_bufsize);
     } else {
@@ -105,9 +99,6 @@ streambuf::int_type SockStream::underflow(void) {
             n = 0;
         }
     }
-#else
-    n = read(sock, start, in_bufsize);
-#endif
     if (n <= 0) {
         return traits_type::eof();
     }
@@ -127,7 +118,6 @@ streambuf::int_type SockStream::overflow(streambuf::int_type ch) {
         size_t nn = 0;
         while (n > 0) {
             ssize_t tmp_n;
-#ifdef CSERVE_ENABLE_SSL
             if (cSSL == nullptr) {
                 tmp_n = send(sock, out_buf + nn, n - nn, MSG_NOSIGNAL);
             } else {
@@ -137,9 +127,6 @@ streambuf::int_type SockStream::overflow(streambuf::int_type ch) {
                     tmp_n = 0;
                 }
             }
-#else
-            tmp_n = send(sock, out_buf + nn, n - nn, MSG_NOSIGNAL);
-#endif
             if (tmp_n <= 0) {
                 return traits_type::eof();
                 // we have a problem.... Possibly a broken pipe
@@ -165,7 +152,6 @@ int SockStream::sync(void) {
 
     while (n > 0) {
         ssize_t tmp_n;
-#ifdef CSERVE_ENABLE_SSL
         if (cSSL == nullptr) {
             tmp_n = send(sock, out_buf + nn, n - nn, MSG_NOSIGNAL);
         } else {
@@ -175,9 +161,6 @@ int SockStream::sync(void) {
                 tmp_n = 0;
             }
         }
-#else
-        tmp_n = send(sock, out_buf + nn, n - nn, MSG_NOSIGNAL);
-#endif
         if (tmp_n <= 0) {
             return -1;
         }

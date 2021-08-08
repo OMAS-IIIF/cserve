@@ -52,7 +52,6 @@ void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data)
     lua_pushinteger(L, conf->port());
     lua_rawset(L, -3); // table1
 
-#ifdef CSERVE_ENABLE_SSL
     lua_pushstring(L, "ssl_port"); // table1 - "index_L1"
     lua_pushinteger(L, conf->ssl_port());
     lua_rawset(L, -3); // table1
@@ -64,7 +63,6 @@ void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data)
     lua_pushstring(L, "ssl_key"); // table1 - "index_L1"
     lua_pushstring(L, conf->ssl_key().c_str());
     lua_rawset(L, -3); // table1
-#endif
 
     lua_pushstring(L, "nthreads"); // table1 - "index_L1"
     lua_pushinteger(L, conf->nthreads());
@@ -129,14 +127,10 @@ CserverConf::CserverConf(int argc, char *argv[]) {
 
     _userid = "";
     _port = 8080;
-#ifdef CSERVE_ENABLE_SSL
     _ssl_port = 8443;
     _ssl_certificate = "./certificate/certificate.pem";
     _ssl_key = "./certificate/key.pem";
     _jwt_secret = "UP4014, the biggest steam engine";
-#else
-    _ssl_port = -1;
-#endif
     _nthreads = std::thread::hardware_concurrency();
     _docroot = "./docroot";
     _filehandler_route = "/";
@@ -168,7 +162,6 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     cserverOpts.add_option("--port", optServerport, "Standard HTTP port of cserver.")
             ->envname("CSERVER_PORT");
 
-#ifdef CSERVE_ENABLE_SSL
     int optSSLport;
     cserverOpts.add_option("--sslport", optSSLport, "SSL-port of cserver.")
     ->envname("CSERVER_SSLPORT");
@@ -186,7 +179,6 @@ CserverConf::CserverConf(int argc, char *argv[]) {
                        optJWTKey,
                        "The secret for generating JWT's (JSON Web Tokens) (exactly 42 characters).")
                        ->envname("CSERVER_JWTKEY");
-#endif
 
     std::string optDocroot;
     cserverOpts.add_option("--docroot",
@@ -276,12 +268,10 @@ CserverConf::CserverConf(int argc, char *argv[]) {
             _userid = luacfg.configString("cserve", "userid", _userid);
             _port = luacfg.configInteger("cserve", "port", _port);
 
-#ifdef CSERVE_ENABLE_SSL
             _ssl_port = luacfg.configInteger("cserve", "ssl_port", _ssl_port);
             _ssl_certificate = luacfg.configString("cserve", "sslcert", _ssl_certificate);
             _ssl_key = luacfg.configString("cserve", "sslkey", _ssl_key);
             _jwt_secret = luacfg.configString("cserve", "jwt_secret", _jwt_secret);
-#endif
             _docroot = luacfg.configString("cserve", "docroot", _docroot);
             _filehandler_route = luacfg.configString("cserve", "filehandler_route", _filehandler_route);
             _tmpdir = luacfg.configString("cserve", "tmpdir", _tmpdir);
@@ -319,12 +309,10 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     //
     if (!cserverOpts.get_option("--userid")->empty()) _userid = optUserid;
     if (!cserverOpts.get_option("--port")->empty()) _port = optServerport;
-#ifdef CSERVE_ENABLE_SSL
     if (!cserverOpts.get_option("--sslport")->empty()) _ssl_port = optSSLport;
     if (!cserverOpts.get_option("--sslcert")->empty()) _ssl_certificate = optSSLCertificatePath;
     if (!cserverOpts.get_option("--sslkey")->empty()) _ssl_key = optSSLKeyPath;
     if (!cserverOpts.get_option("--jwtkey")->empty()) _jwt_secret = optJWTKey;
-#endif
     if (!cserverOpts.get_option("--docroot")->empty()) _docroot = optDocroot;
     if (!cserverOpts.get_option("--filehandler_route")->empty()) _filehandler_route = optFilehandlerRoute;
     if (!cserverOpts.get_option("--tmpdir")->empty()) _tmpdir = optTmpdir;

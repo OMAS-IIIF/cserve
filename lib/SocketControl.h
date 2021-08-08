@@ -20,13 +20,9 @@
 #include <poll.h>
 #include <string.h>
 
-#ifdef CSERVE_ENABLE_SSL
-
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
 #include "openssl/err.h"
-
-#endif
 
 #include "Error.h"
 #include "ThreadControl.h"
@@ -50,26 +46,16 @@ namespace cserve {
             ControlMessageType type;
             SocketType socket_type;
             int sid;
-#ifdef CSERVE_ENABLE_SSL
             SSL *ssl_sid;
-#endif
             char peer_ip[INET6_ADDRSTRLEN];
             int peer_port;
 
-#ifdef CSERVE_ENABLE_SSL
             SocketInfo(ControlMessageType type = NOOP,
                        SocketType socket_type = CONTROL_SOCKET,
                        int sid = -1,
                        SSL * ssl_sid = nullptr,
                        char *_peer_ip = nullptr,
                        int peer_port = -1) : type(type), socket_type(socket_type), sid(sid), ssl_sid(ssl_sid), peer_port(peer_port)
-#else
-            SocketInfo(ControlMessageType type = NOOP,
-                       SocketType socket_type = CONTROL_SOCKET,
-                       int sid = -1,
-                       char *_peer_ip = nullptr,
-                       int peer_port = -1) : type(type), socket_type(socket_type), sid(sid), peer_port(peer_port)
-#endif
             {
                 if (_peer_ip == nullptr) {
                     for (int i = 0; i < INET6_ADDRSTRLEN; i++) peer_ip[i] = '\0';
@@ -81,9 +67,7 @@ namespace cserve {
 
             SocketInfo(const SocketInfo &si) {
                 sid = si.sid;
-#ifdef CSERVE_ENABLE_SSL
                 ssl_sid = si.ssl_sid;
-#endif
                 for (int i = 0; i < INET6_ADDRSTRLEN; i++) peer_ip[i] = si.peer_ip[i];
                 peer_port = si.peer_port;
             }
@@ -91,9 +75,7 @@ namespace cserve {
 
             SocketInfo operator=(const SocketInfo &si) {
                 sid = si.sid;
-#ifdef CSERVE_ENABLE_SSL
                 ssl_sid = si.ssl_sid;
-#endif
                 for (int i = 0; i < INET6_ADDRSTRLEN; i++) peer_ip[i] = si.peer_ip[i];
                 peer_port = si.peer_port;
                 return *this;

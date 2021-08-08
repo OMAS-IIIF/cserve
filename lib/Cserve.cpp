@@ -74,9 +74,7 @@ namespace cserve {
 
     typedef struct {
         int sock;
-#ifdef CSERVE_ENABLE_SSL
         SSL *cSSL;
-#endif
         std::string peer_ip;
         int peer_port;
         int commpipe_read;
@@ -219,17 +217,14 @@ namespace cserve {
                 Server::logger()->error("Could not get uid of user {}: you must start Sipi as root.", userid_str);
             }
         }
-#ifdef CSERVE_ENABLE_SSL
         SSL_load_error_strings();
         SSL_library_init();
         OpenSSL_add_all_algorithms();
-#endif
 
     }
 
 
 
-#ifdef CSERVE_ENABLE_SSL
     /**
      * Set the Jason Web Token (jwt) secret that the server will use
      *
@@ -246,7 +241,6 @@ namespace cserve {
         }
     }
     //=========================================================================
-#endif
 
     /**
      * Get the correct handler to handle an incoming request. It seaches all
@@ -351,7 +345,6 @@ namespace cserve {
      * @return
      */
     static int close_socket(const SocketControl::SocketInfo &sockid) {
-#ifdef CSERVE_ENABLE_SSL
         if (sockid.ssl_sid != nullptr) {
             int sstat;
             while ((sstat = SSL_shutdown(sockid.ssl_sid)) == 0);
@@ -361,7 +354,6 @@ namespace cserve {
             }
             SSL_free(sockid.ssl_sid);
         }
-#endif
         if (shutdown(sockid.sid, SHUT_RDWR) < 0) {
             Server::logger()->debug("Debug: shutting down socket at [{}: {}]: {} failed (client terminated already?)",
                                     __file__, __LINE__, strerror(errno));
@@ -402,15 +394,11 @@ namespace cserve {
                         // here we process the request
                         //
                         std::unique_ptr<SockStream> sockstream;
-#ifdef CSERVE_ENABLE_SSL
                         if (msg.ssl_sid != nullptr) {
                             sockstream = std::make_unique<SockStream>(msg.ssl_sid);
                         } else {
                             sockstream = std::make_unique<SockStream>(msg.sid);
                         }
-#else
-                        sockstream = std::make_unique<SockStream>(receive_msg.sid);
-#endif
 
                         std::istream ins(sockstream.get());
                         std::ostream os(sockstream.get());
@@ -420,7 +408,6 @@ namespace cserve {
                         cserve::ThreadStatus tstatus;
                         int keep_alive = 1;
                         std::string tmpstr(msg.peer_ip);
-#ifdef CSERVE_ENABLE_SSL
                         if (msg.ssl_sid != nullptr) {
                             tstatus = tdata->serv->processRequest(&ins, &os, tmpstr,
                                                                   msg.peer_port, true, keep_alive);
@@ -428,10 +415,6 @@ namespace cserve {
                             tstatus = tdata->serv->processRequest(&ins, &os, tmpstr,
                                                                   msg.peer_port, false, keep_alive);
                         }
-#else
-                        tstatus = tdata->serv->processRequest(&ins, &os, tmpstr, msg.peer_port,
-                                                              false, keep_alive);
-#endif
                         //
                         // send the finished message
                         //
@@ -503,7 +486,6 @@ namespace cserve {
         } else {
             socket_id.peer_port = -1;
         }
-#ifdef CSERVE_ENABLE_SSL
         SSL *cSSL = nullptr;
 
         if (ssl) {
@@ -561,7 +543,6 @@ namespace cserve {
             }
         }
         socket_id.ssl_sid = cSSL;
-#endif
         return socket_id;
     }
 
@@ -753,9 +734,7 @@ namespace cserve {
 
                             SocketControl::SocketInfo sockid;
                             socket_control.remove(socket_control.get_http_socket_id(), sockid); // remove the HTTP socket
-#ifdef SHTTPS_ENABLE_SSL
                             socket_control.remove(socket_control.get_ssl_socket_id(), sockid); // remove the SSL socket
-#endif
                             socket_control.close_all_dynsocks(close_socket);
                             socket_control.broadcast_exit(); // broadcast EXIT to all worker threads
                             running = false;
@@ -822,7 +801,6 @@ namespace cserve {
                             //
                             SocketControl::SocketInfo sockid;
                             socket_control.remove(i, sockid); //  ==> CHANGES open_sockets!!
-#ifdef SHTTPS_ENABLE_SSL
                         } else if (i == socket_control.get_ssl_socket_id()) {
                             //
                             // The HTTP socked was being closed -> must be EXIT - do nothing!
@@ -830,9 +808,6 @@ namespace cserve {
                             SocketControl::SocketInfo sockid;
                             socket_control.remove(i, sockid); //  ==> CHANGES open_sockets!!
                         } else {
-#else
-                        } else {
-#endif
                             Server::logger()->error("We got a HANGUP from an unknown socket (socket_id = {})", i);
                         }
                     } else {

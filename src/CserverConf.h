@@ -23,14 +23,10 @@ private:
     int _serverconf_ok;
     std::string _userid;
     int _port;
-#ifdef CSERVE_ENABLE_SSL
     std::string _ssl_certificate;
     std::string _ssl_key;
     std::string _jwt_secret;
     int _ssl_port;
-#else
-    int _ssl_port = -1;
-#endif
     int _nthreads;
     std::string _docroot;
     std::string  _filehandler_route;
@@ -72,7 +68,6 @@ public:
     inline void port(int port) { _port = port; }
     inline int port() { return _port; }
 
-#ifdef CSERVE_ENABLE_SSL
     inline void ssl_certificate(const std::string &ssl_certificate) { _ssl_certificate = ssl_certificate; }
     inline std::string ssl_certificate() { return _ssl_certificate; }
 
@@ -81,7 +76,6 @@ public:
 
     inline void jwt_secret(const std::string &jwt_secret) { _jwt_secret = jwt_secret; }
     inline std::string jwt_secret() { return _jwt_secret; }
-#endif
     inline void ssl_port(int ssl_port) { _ssl_port = ssl_port; }
     inline int ssl_port() { return _ssl_port; }
 

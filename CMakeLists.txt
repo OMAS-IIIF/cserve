@@ -43,14 +43,12 @@ set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
 endif()
 include(FindOpenSSL REQUIRED)
 
-add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
 add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
 
 #

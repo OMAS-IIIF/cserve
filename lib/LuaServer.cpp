@@ -2070,7 +2070,6 @@ namespace cserve {
     }
     //=========================================================================
 
-#ifdef CSERVE_ENABLE_SSL
 using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::duration<double>>;
 
     TDsec f2(double d) {
@@ -2265,7 +2264,6 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
     }
     //=========================================================================
 
-#endif
 
     /*!
      * Lua: logger(message, level)
@@ -2565,13 +2563,9 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         lua_rawset(L, -3); // table1
 
-#ifdef CSERVE_ENABLE_SSL
-
         lua_pushstring(L, "has_openssl"); // table1 - "index_L1"
         lua_pushboolean(L, true); // table1 - "index_L1" - "value_L1"
         lua_rawset(L, -3); // table1
-
-#endif
 
         lua_pushstring(L, "client_ip"); // table1 - "index_L1"
         lua_pushstring(L, conn.peer_ip().c_str()); // table1 - "index_L1" - "value_L1"
@@ -2802,8 +2796,6 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         lua_pushcfunction(L, lua_systime); // table1 - "index_L1" - function
         lua_rawset(L, -3); // table1
 
-#ifdef CSERVE_ENABLE_SSL
-
         lua_pushstring(L, "generate_jwt"); // table1 - "index_L1"
         lua_pushcfunction(L, lua_generate_jwt); // table1 - "index_L1" - function
         lua_rawset(L, -3); // table1 lua_decode_jwt
@@ -2811,8 +2803,6 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         lua_pushstring(L, "decode_jwt"); // table1 - "index_L1"
         lua_pushcfunction(L, lua_decode_jwt); // table1 - "index_L1" - function
         lua_rawset(L, -3); // table1
-
-#endif
 
         lua_pushstring(L, "parse_mimetype"); // table1 - "index_L1"
         lua_pushcfunction(L, lua_parse_mimetype); // table1 - "index_L1" - function

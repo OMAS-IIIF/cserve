@@ -33,14 +33,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 include(FindOpenSSL REQUIRED)
-
-#
-# OpenSSL ??
-#
-#if (USE_SSL)
-    add_definitions(${CMAKE_CXX_FLAGS} " -DCSERVE_ENABLE_SSL")
-    add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
-#endif ()
+add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
 
 #
 # libmagic
