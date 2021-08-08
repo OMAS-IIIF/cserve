@@ -21,3 +21,4 @@ def test_misc(manager):
     assert token.get('key') == 'abcdefghijk'
     assert token.get('prn') == 'https://test.org/gaga'
 
+

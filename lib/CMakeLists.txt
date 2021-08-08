@@ -65,6 +65,7 @@ add_library(cserve
         ChunkReader.cpp ChunkReader.h
         Hash.cpp Hash.h
         Parsing.cpp Parsing.h
+        NlohmannTraits.h
         LuaServer.cpp LuaServer.h
         LuaSqlite.cpp LuaSqlite.h
         SocketControl.cpp SocketControl.h
@@ -80,6 +81,7 @@ add_dependencies(cserve
         lua
         sqlite3
         jansson
+        jwtcpp
         nlohmann
         curl)
 

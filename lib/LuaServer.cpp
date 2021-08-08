@@ -57,11 +57,13 @@
 
 #ifdef CSERVE_ENABLE_SSL
 
-#include "jwt.h"
+//#include "jwt.h"
 
 #endif
 
+#include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
+#include "NlohmannTraits.h"
 
 using ms = std::chrono::milliseconds;
 using get_time = std::chrono::steady_clock;
@@ -2075,6 +2077,11 @@ namespace cserve {
     //=========================================================================
 
 #ifdef CSERVE_ENABLE_SSL
+using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::duration<double>>;
+
+    TDsec f2(double d) {
+        return TDsec{TDsec::duration{d}};
+    }
 
     //
     // reserved claims (IntDate: The number of seconds from 1970-01-01T0:0:0Z):
@@ -2105,11 +2112,11 @@ namespace cserve {
      * success, jwt = server.generate_jwt(jwtinfo)
      */
     static int lua_generate_jwt(lua_State *L) {
+
         lua_getglobal(L, luaconnection);
         Connection *conn = (Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stack
 
-        jwt_t *jwt;
         int top = lua_gettop(L);
 
         if (top < 1) {
@@ -2126,24 +2133,45 @@ namespace cserve {
             return 2;
         }
 
-        nlohmann::json root = subtable(L, 1);
-        std::string jsonstr = root.dump(3);
+        auto token = jwt::create<nlohmann_traits>().set_type("JWT");
 
-        if (jwt_new(&jwt) != 0) {
-            lua_settop(L, 0); // clear stack
-            lua_pushboolean(L, false);
-            lua_pushstring(L, "'server.table_to_json(table)': Creating token failed");
-            return 2;
+        nlohmann::json root = subtable(L, 1);
+        for (const auto &[key, val]: root.items()) {
+            if (key == "iss") {
+                if (val.is_string()) {
+                    token.set_issuer(val.get<std::string>());
+                }
+            } else if (key == "sub") {
+                if (val.is_string()) {
+                    token.set_subject(val.get<std::string>());
+                }
+            } else if (key == "aud") {
+                if (val.is_string()) {
+                    token.set_audience(val.get<std::string>());
+                }
+            } else if (key == "exp") {
+                auto gaga = std::chrono::seconds(val.get<long long>());
+                const jwt::date date = std::chrono::time_point<std::chrono::system_clock>{gaga};
+                token.set_expires_at(date);
+            } else if (key == "nbf") {
+                auto gaga = std::chrono::seconds(val.get<long long>());
+                const jwt::date date = std::chrono::time_point<std::chrono::system_clock>{gaga};
+                token.set_not_before(date);
+            } else if (key == "iat") {
+                auto gaga = std::chrono::seconds(val.get<long long>());
+                const jwt::date date = std::chrono::time_point<std::chrono::system_clock>{gaga};
+                token.set_issued_at(date);
+            } else if (key == "jti") {
+                token.set_payload_claim("jti", val.get<std::string>());
+            } else {
+                token.set_payload_claim(key, val);
+            }
         }
 
-        jwt_set_alg(jwt, JWT_ALG_HS256, (unsigned char *) conn->server()->jwt_secret().c_str(),
-                    conn->server()->jwt_secret().size());
-        jwt_add_grants_json(jwt, jsonstr.c_str());
-
-        char *token = jwt_encode_str(jwt);
+        std::string tokenstr = token.sign(jwt::algorithm::hs256(conn->server()->jwt_secret()));
 
         lua_pushboolean(L, true);
-        lua_pushstring(L, token);
+        lua_pushstring(L, tokenstr.c_str());
 
         return 2;
     }
@@ -2177,31 +2205,44 @@ namespace cserve {
         std::string token = lua_tostring(L, 1);
         lua_pop(L, 1);
 
-        jwt_t *jwt;
-        int err;
 
-        if ((err = jwt_decode(&jwt, token.c_str(), (unsigned char *) conn->server()->jwt_secret().c_str(),
-                              conn->server()->jwt_secret().size())) != 0) {
-            lua_pushboolean(L, false);
-            lua_pushstring(L, "'server.decode_jwt(token)': Error in decoding token! (1)");
-            return 2;
-        }
+        auto verifier = jwt::verify()
+            .allow_algorithm(jwt::algorithm::hs256{ conn->server()->jwt_secret() });
 
-        char *tokendata;
-
-        if ((tokendata = jwt_dump_str(jwt, false)) == nullptr) {
-            lua_pushboolean(L, false);
-            lua_pushstring(L, "'server.decode_jwt(token)': Error in decoding token! (2)");
-            return 2;
-        }
-
-        std::string tokenstr = tokendata;
-        free(tokendata);
-        size_t pos = tokenstr.find(".");
-        std::string jsonstr = tokenstr.substr(pos + 1);
-        nlohmann::json jsonobj;
+        std::string tokenstr;
         try {
-            jsonobj = nlohmann::json::parse(jsonstr);
+            auto decoded = jwt::decode(token);
+            verifier.verify(decoded);
+            tokenstr = decoded.get_payload();
+        }
+        catch (const std::invalid_argument &err) {
+            lua_settop(L, 0); // clear stack
+            lua_pushboolean(L, false);
+            std::string tmpstr = std::string("'server.decode_jwt(token)': Token has not correct format: ") + err.what();
+            lua_pushstring(L, tmpstr.c_str());
+            return 2;
+        }
+        catch (const std::runtime_error &err) {
+            lua_settop(L, 0); // clear stack
+            lua_pushboolean(L, false);
+            std::string tmpstr = std::string("'server.decode_jwt(token)': Base64 decoding failed: ") + err.what();
+            lua_pushstring(L, tmpstr.c_str());
+            return 2;
+        }
+        catch (const jwt::token_verification_exception &err) {
+            lua_settop(L, 0); // clear stack
+            lua_pushboolean(L, false);
+            std::string tmpstr = std::string("'server.decode_jwt(token)': Verification of signature failed: ") + err.what();
+            lua_pushstring(L, tmpstr.c_str());
+            return 2;
+        }
+
+        nlohmann::json jsonobj;
+
+        size_t pos = tokenstr.find(".");
+        tokenstr = tokenstr.substr(pos + 1);
+        try {
+            jsonobj = nlohmann::json::parse(tokenstr);
         }
         catch (nlohmann::json::parse_error& err) {
             lua_settop(L, 0); // clear stack
@@ -2212,6 +2253,9 @@ namespace cserve {
             return 2;
         }
 
+        std::cerr << "#" << __LINE__ << " jsonobj=" << jsonobj << std::endl;
+        lua_settop(L, 0); // clear stack
+        lua_pushboolean(L, true);
         try {
             lua_jsonobj(L, jsonobj);
         } catch (std::string &errorMsg) {
@@ -2221,6 +2265,7 @@ namespace cserve {
             lua_pushstring(L, tmpstr.c_str());
             return 2;
         }
+        std::cerr << "#" << __LINE__ << std::endl;
 
         return 2;
     }
