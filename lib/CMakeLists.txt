@@ -58,7 +58,6 @@ configure_file(CserveVersion.h.in CserveVersion.h)
 add_library(cserve
         Global.h
         makeunique.h
-        jwt.c jwt.h
         Error.cpp Error.h
         SockStream.cpp SockStream.h
         Connection.cpp Connection.h

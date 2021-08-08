@@ -55,12 +55,6 @@
 #include "Parsing.h"
 
 
-#ifdef CSERVE_ENABLE_SSL
-
-//#include "jwt.h"
-
-#endif
-
 #include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
 #include "NlohmannTraits.h"
