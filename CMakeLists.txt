@@ -95,7 +95,7 @@ add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
 add_subdirectory(${EXT_PROJECTS_DIR}/curl)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
-add_subdirectory(${EXT_PROJECTS_DIR}/jansson)
+#add_subdirectory(${EXT_PROJECTS_DIR}/jansson)
 add_subdirectory(${EXT_PROJECTS_DIR}/nlohmann)
 add_subdirectory(${EXT_PROJECTS_DIR}/jwt-cpp)
 add_subdirectory(${EXT_PROJECTS_DIR}/zlib)
@@ -121,8 +121,8 @@ target_link_libraries(cserver
         cserve
         magic
         lua
-        jansson
         sqlite3
+        jwtcpp
         zlib
         spdlog
         curl

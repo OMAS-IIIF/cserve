@@ -79,7 +79,6 @@ add_dependencies(cserve
         spdlog
         lua
         sqlite3
-        jansson
         jwtcpp
         nlohmann
         curl)
