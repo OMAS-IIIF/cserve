@@ -29,7 +29,7 @@ ExternalProject_Add(project_curl
         )
 
 ExternalProject_Get_Property(project_curl install_dir)
-if(MAKE_SHARED_SIPI)
+if(MAKE_SHARED_CSERVE)
     add_library(curl SHARED IMPORTED GLOBAL)
     set_property(TARGET curl PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libcurl${CMAKE_SHARED_LIBRARY_SUFFIX})
     set(CMAKE_CREATE_SHARED "-DBUILD_SHARED_LIBS=ON")
