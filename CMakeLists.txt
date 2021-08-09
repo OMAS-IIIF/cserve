@@ -140,6 +140,9 @@ target_include_directories(cserver PUBLIC
 install(TARGETS cserver RUNTIME ARCHIVE)
 install(FILES src/CserverConf.cpp
         DESTINATION include/cserve)
+install(DIRECTORY ${COMMON_LOCAL}/lib/ TYPE LIB REGEX "/(cmake|lua|pkkconfig)/" EXCLUDE)
+install(DIRECTORY ${COMMON_LOCAL}/include/ DESTINATION include/cserve)
+
 include(CTest)
 
 add_subdirectory(tests)
