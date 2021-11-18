@@ -179,7 +179,7 @@ namespace cserve {
         if (_loggername.empty()) {
             logger = spdlog::stdout_color_mt("cserve_logger");
         }
-        else if ((logger = spdlog::get(_loggername)) == nullptr) {
+        else /*if ((logger = spdlog::(_loggername)) == nullptr)*/ {
             logger = spdlog::stdout_color_mt(_loggername);
         }
 

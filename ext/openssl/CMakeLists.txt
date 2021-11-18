@@ -10,7 +10,7 @@ endif()
 
 ExternalProject_Add(project_openssl
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://www.openssl.org/source/openssl-1.1.1k.tar.gz
+        URL https://www.openssl.org/source/openssl-3.0.0.tar.gz
         SOURCE_DIR ${COMMON_SRCS}/openssl
         CONFIGURE_COMMAND ${COMMON_SRCS}/openssl/Configure darwin64-x86_64-cc
         --prefix=${COMMON_LOCAL}

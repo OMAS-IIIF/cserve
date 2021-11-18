@@ -120,7 +120,7 @@ def test_servervariables(manager):
     assert variables['config'].get('docroot') == './testserver/docroot'
     assert variables['config'].get('keep_alive') == 5
     assert variables['config'].get('nthreads') == 4
-    assert variables['config'].get('max_post_size') == '1.0MB'
+    assert variables['config'].get('max_post_size') == '1MB'
 
     assert variables.get('server') is not None
     assert variables['server'].get('method') == 'GET'

@@ -18,8 +18,8 @@ include(FindOpenSSL REQUIRED)
 #
 ExternalProject_Add(project_curl
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://curl.haxx.se/download/curl-7.78.0.tar.gz
-        SOURCE_DIR ${COMMON_SRCS}/curl-7.78.0
+        URL https://curl.haxx.se/download/curl-7.80.0.tar.gz
+        SOURCE_DIR ${COMMON_SRCS}/curl-7.80.0
         CMAKE_ARGS  -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
                     -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
                     -DBUILD_SHARED_LIBS:BOOL=OFF
