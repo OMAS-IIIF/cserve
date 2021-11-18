@@ -39,11 +39,12 @@ add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
 # libmagic
 # (used to be build locally from source was moved to prerequisites)
 #
-find_package(LibMagic REQUIRED)
+#find_package(LibMagic REQUIRED)
 
 include_directories(
         ${COMMON_LOCAL}/include
         /usr/local/include
+        ${LIBMAGIC_INCLUDES}
 )
 
 configure_file(CserveVersion.h.in CserveVersion.h)

@@ -45,7 +45,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+    message("Architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
+        set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+    else()
+        set(OPENSSL_ROOT_DIR /opt/homebrew/opt/openssl)
+    endif()
 endif()
 include(FindOpenSSL REQUIRED)
 
@@ -84,12 +89,26 @@ endif()
 # libmagic
 # (used to be build locally from source was moved to prerequisites)
 #
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm64")
+        set(LIBMAGIC_ROOT_DIR /opt/homebrew/opt/libmagic)
+    endif()
+endif()
 find_package(LibMagic REQUIRED)
+
+message("___________________________________")
+message("0: ==--> ${LIBMAGIC_FOUND}")
+message("1: ==--> ${LIBMAGIC_INCLUDES}")
+message("2: ==--> ${LIBMAGIC_LIBRARIES}")
+message("3: ==--> ${LIBMAGIC_LFLAGS}")
+message("___________________________________")
+
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
+add_subdirectory(${EXT_PROJECTS_DIR}/openssl)
 add_subdirectory(${EXT_PROJECTS_DIR}/curl)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
@@ -102,11 +121,14 @@ add_subdirectory(lib)
 
 link_directories(
         ${CONFIGURE_LIBDIR}
-        /usr/local/lib)
+        /usr/local/lib
+)
 
 include_directories(
         ${COMMON_LOCAL}/include
-        /usr/local/include)
+        /usr/local/include
+        ${LIBMAGIC_INCLUDES}
+)
 
 add_executable(cserver
         ${COMMON_SOURCE_FILES_DIR}/cserver.cpp
@@ -117,14 +139,16 @@ configure_file(${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h.in ${COMMON_LIBRARY_F
 
 target_link_libraries(cserver
         cserve
-        magic
         lua
         sqlite3
         jwtcpp
         zlib
         spdlog
         curl
-        ${OPENSSL_LIBRARIES} Threads::Threads ${CMAKE_DL_LIBS})
+        ${OPENSSL_LIBRARIES}
+        ${LIBMAGIC_LIBRARIES}
+        Threads::Threads
+        ${CMAKE_DL_LIBS})
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -132,8 +156,9 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 target_include_directories(cserver PUBLIC
-        "${PROJECT_BINARY_DIR}"
-        "${PROJECT_SOURCE_DIR}/lib"
+        ${PROJECT_BINARY_DIR}
+        ${PROJECT_SOURCE_DIR}/lib
+        ${LIBMAGIC_INCLUDES}
 )
 
 

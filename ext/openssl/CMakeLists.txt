@@ -3,16 +3,20 @@ project(project_openssl C CXX)
 include(ExternalProject)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(CONFIGURE_COMMAND Configure darwin64-x86_64-cc)
+    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
+        set(CONF_ARCHOPT darwin64-x86_64-cc)
+    else()
+        set(CONF_ARCHOPT darwin64-arm64-cc)
+    endif()
 else()
-    set(CONFIGURE_COMMAND "config")
+    set(CONF_ARCHOPT "")
 endif()
 
 ExternalProject_Add(project_openssl
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://www.openssl.org/source/openssl-3.0.0.tar.gz
         SOURCE_DIR ${COMMON_SRCS}/openssl
-        CONFIGURE_COMMAND ${COMMON_SRCS}/openssl/Configure darwin64-x86_64-cc
+        CONFIGURE_COMMAND ${COMMON_SRCS}/openssl/Configure ${CONF_ARCHOPT}
         --prefix=${COMMON_LOCAL}
         --libdir=${CONFIGURE_LIBDIR}
         BUILD_COMMAND make
