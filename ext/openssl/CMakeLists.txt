@@ -11,6 +11,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 else()
     set(CONF_ARCHOPT "")
 endif()
+message("CONF_ARCHOPT=${CONF_ARCHOPT}")
 
 ExternalProject_Add(project_openssl
         INSTALL_DIR ${COMMON_LOCAL}

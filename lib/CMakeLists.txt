@@ -28,12 +28,12 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
-endif()
+#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+#endif()
 
-include(FindOpenSSL REQUIRED)
-add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
+#include(FindOpenSSL REQUIRED)
+#add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
 
 #
 # libmagic

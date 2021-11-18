@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.19)
 include(ExternalProject)
 include(CheckStructHasMember)
 include(CheckIncludeFiles)
+include(FindPackageHandleStandardArgs)
 
 project(cserver VERSION 1.0)
 
@@ -44,17 +45,17 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    message("Architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
-    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
-        set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
-    else()
-        set(OPENSSL_ROOT_DIR /opt/homebrew/opt/openssl)
-    endif()
-endif()
-include(FindOpenSSL REQUIRED)
+#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    message("Architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+#    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
+#        set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+#    else()
+#        set(OPENSSL_ROOT_DIR /opt/homebrew/opt/openssl)
+#    endif()
+#endif()
+#include(FindOpenSSL REQUIRED)
 
-add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
+#add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
 
 #
 # this is needed for curl...
@@ -94,7 +95,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
         set(LIBMAGIC_ROOT_DIR /opt/homebrew/opt/libmagic)
     endif()
 endif()
-find_package(LibMagic REQUIRED)
+find_package(LIBMAGIC REQUIRED)
 
 message("___________________________________")
 message("0: ==--> ${LIBMAGIC_FOUND}")
@@ -145,7 +146,7 @@ target_link_libraries(cserver
         zlib
         spdlog
         curl
-        ${OPENSSL_LIBRARIES}
+        crypto ssl
         ${LIBMAGIC_LIBRARIES}
         Threads::Threads
         ${CMAKE_DL_LIBS})
