@@ -90,20 +90,12 @@ endif()
 # libmagic
 # (used to be build locally from source was moved to prerequisites)
 #
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm64")
-        set(LIBMAGIC_ROOT_DIR /opt/homebrew/opt/libmagic)
-    endif()
-endif()
-find_package(LIBMAGIC REQUIRED)
-
-message("___________________________________")
-message("0: ==--> ${LIBMAGIC_FOUND}")
-message("1: ==--> ${LIBMAGIC_INCLUDES}")
-message("2: ==--> ${LIBMAGIC_LIBRARIES}")
-message("3: ==--> ${LIBMAGIC_LFLAGS}")
-message("___________________________________")
-
+#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm64")
+#        set(LIBMAGIC_ROOT_DIR /opt/homebrew/opt/libmagic)
+#    endif()
+#endif()
+#find_package(LIBMAGIC REQUIRED)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -117,6 +109,9 @@ add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
 add_subdirectory(${EXT_PROJECTS_DIR}/nlohmann)
 add_subdirectory(${EXT_PROJECTS_DIR}/jwt-cpp)
 add_subdirectory(${EXT_PROJECTS_DIR}/zlib)
+add_subdirectory(${EXT_PROJECTS_DIR}/xz)
+add_subdirectory(${EXT_PROJECTS_DIR}/bzip2)
+add_subdirectory(${EXT_PROJECTS_DIR}/magic)
 add_subdirectory(${EXT_PROJECTS_DIR}/catch2)
 add_subdirectory(lib)
 
@@ -128,7 +123,7 @@ link_directories(
 include_directories(
         ${COMMON_LOCAL}/include
         /usr/local/include
-        ${LIBMAGIC_INCLUDES}
+        #${LIBMAGIC_INCLUDES}
 )
 
 add_executable(cserver
@@ -140,14 +135,17 @@ configure_file(${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h.in ${COMMON_LIBRARY_F
 
 target_link_libraries(cserver
         cserve
+        magic
         lua
         sqlite3
         jwtcpp
-        zlib
         spdlog
         curl
         crypto ssl
-        ${LIBMAGIC_LIBRARIES}
+        #${LIBMAGIC_LIBRARIES}
+        zlib
+        xz
+        bzip2
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -159,7 +157,7 @@ endif()
 target_include_directories(cserver PUBLIC
         ${PROJECT_BINARY_DIR}
         ${PROJECT_SOURCE_DIR}/lib
-        ${LIBMAGIC_INCLUDES}
+        #${LIBMAGIC_INCLUDES}
 )
 
 

@@ -12,8 +12,13 @@ target_link_libraries(tests_00
         spdlog
         Catch2Main
         Catch2
+        magic
+        zlib
+        xz
+        bzip2
         crypto ssl
-        ${LIBMAGIC_LIBRARIES})
+        #${LIBMAGIC_LIBRARIES}
+        )
 
 
 #if(OPENSSL_FOUND)

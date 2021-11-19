@@ -44,7 +44,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 include_directories(
         ${COMMON_LOCAL}/include
         /usr/local/include
-        ${LIBMAGIC_INCLUDES}
+        #${LIBMAGIC_INCLUDES}
 )
 
 configure_file(CserveVersion.h.in CserveVersion.h)
@@ -74,6 +74,7 @@ add_dependencies(cserve
         lua
         sqlite3
         jwtcpp
+        magic
         nlohmann
         curl)
 
