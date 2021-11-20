@@ -39,3 +39,4 @@
 /lib/CserveVersion.h
 cmake-build-release
 __pycache__
+/build-linux
