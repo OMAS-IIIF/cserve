@@ -15,8 +15,8 @@ include(ExternalProject)
 #include(FindOpenSSL REQUIRED)
 
 ExternalProject_Add(project_jwtcpp
-        DEPENDS openssl
-        #DEPENDS crypto
+        DEPENDS ssl
+        DEPENDS crypto
         INSTALL_DIR ${COMMON_LOCAL}
         GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
         SOURCE_DIR ${COMMON_SRCS}/jwt-cpp

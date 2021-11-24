@@ -86,16 +86,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 
-#
-# libmagic
-# (used to be build locally from source was moved to prerequisites)
-#
-#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-#    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm64")
-#        set(LIBMAGIC_ROOT_DIR /opt/homebrew/opt/libmagic)
-#    endif()
-#endif()
-#find_package(LIBMAGIC REQUIRED)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -122,7 +112,6 @@ link_directories(
 include_directories(
         ${COMMON_LOCAL}/include
         /usr/local/include
-        #${LIBMAGIC_INCLUDES}
 )
 
 add_executable(cserver
@@ -140,7 +129,8 @@ target_link_libraries(cserver
         jwtcpp
         spdlog
         curl
-        openssl
+        ssl
+        crypto
         zlib
         xz
         bzip2

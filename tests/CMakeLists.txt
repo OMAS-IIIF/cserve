@@ -16,8 +16,8 @@ target_link_libraries(tests_00
         zlib
         xz
         bzip2
-        openssl
-        )
+        ssl
+        crypto)
 
 
 #if(OPENSSL_FOUND)
