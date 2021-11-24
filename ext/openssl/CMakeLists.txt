@@ -27,11 +27,16 @@ ExternalProject_Add(project_openssl
 ExternalProject_Get_Property(project_openssl install_dir)
 
 if(MAKE_SHARED_CSERVE)
+    #add_library(crypto SHARED IMPORTED GLOBAL)
+    #set_property(TARGET crypto PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libcrypto${CMAKE_SHARED_LIBRARY_SUFFIX})
     add_library(openssl SHARED IMPORTED GLOBAL)
     set_property(TARGET openssl PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libsll${CMAKE_SHARED_LIBRARY_SUFFIX})
 else()
+    #add_library(crypto STATIC IMPORTED GLOBAL)
+    #set_property(TARGET crypto PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
     add_library(openssl STATIC IMPORTED GLOBAL)
     set_property(TARGET openssl PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libsll${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
 
+#add_dependencies(crypto project_openssl)
 add_dependencies(openssl project_openssl)

@@ -16,6 +16,7 @@ include(ExternalProject)
 
 ExternalProject_Add(project_jwtcpp
         DEPENDS openssl
+        #DEPENDS crypto
         INSTALL_DIR ${COMMON_LOCAL}
         GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
         SOURCE_DIR ${COMMON_SRCS}/jwt-cpp

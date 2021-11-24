@@ -31,6 +31,7 @@ message('==================== ${OPENSSL_FOUND}')
 #
 ExternalProject_Add(project_curl
         DEPENDS openssl
+        #DEPENDS crypto
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://curl.haxx.se/download/curl-7.80.0.tar.gz
         SOURCE_DIR ${COMMON_SRCS}/curl-7.80.0

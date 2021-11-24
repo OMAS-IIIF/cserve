@@ -105,7 +105,6 @@ add_subdirectory(${EXT_PROJECTS_DIR}/openssl)
 add_subdirectory(${EXT_PROJECTS_DIR}/curl)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
-#add_subdirectory(${EXT_PROJECTS_DIR}/jansson)
 add_subdirectory(${EXT_PROJECTS_DIR}/nlohmann)
 add_subdirectory(${EXT_PROJECTS_DIR}/jwt-cpp)
 add_subdirectory(${EXT_PROJECTS_DIR}/zlib)
@@ -141,8 +140,7 @@ target_link_libraries(cserver
         jwtcpp
         spdlog
         curl
-        crypto ssl
-        #${LIBMAGIC_LIBRARIES}
+        openssl
         zlib
         xz
         bzip2
@@ -157,7 +155,6 @@ endif()
 target_include_directories(cserver PUBLIC
         ${PROJECT_BINARY_DIR}
         ${PROJECT_SOURCE_DIR}/lib
-        #${LIBMAGIC_INCLUDES}
 )
 
 
