@@ -5,15 +5,18 @@ include(ExternalProject)
 #
 # Setting up openssl - things...
 #
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
-    set(OS_X_SPECIAL_FLAG -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl)
-else()
-    set(OS_X_SPECIAL_FLAG "")
-endif()
-include(FindOpenSSL REQUIRED)
+#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+#    set(OS_X_SPECIAL_FLAG -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl)
+#else()
+#    set(OS_X_SPECIAL_FLAG "")
+#endif()
+#set(OPENSSL_ROOT_DIR ${COMMON_LOCAL})
+#include(FindOpenSSL REQUIRED)
 
 ExternalProject_Add(project_jwtcpp
+        DEPENDS ssl
+        DEPENDS crypto
         INSTALL_DIR ${COMMON_LOCAL}
         GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
         SOURCE_DIR ${COMMON_SRCS}/jwt-cpp

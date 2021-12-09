@@ -10,14 +10,19 @@ include_directories(
 target_link_libraries(tests_00
         cserve
         spdlog
-        magic
         Catch2Main
-        Catch2)
+        Catch2
+        magic
+        zlib
+        xz
+        bzip2
+        ssl
+        crypto)
 
 
-if(OPENSSL_FOUND)
-    target_link_libraries(tests_00 ${OPENSSL_LIBRARIES})
-endif()
+#if(OPENSSL_FOUND)
+#    target_link_libraries(tests_00 ${OPENSSL_LIBRARIES})
+#endif()
 
 add_test(NAME tests_00 COMMAND tests_00 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 add_test(NAME e2e COMMAND pytest -s --cserver=${CSERVER_EXE} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

@@ -6,20 +6,35 @@ include(ExternalProject)
 # Setting up openssl - things...
 #
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
-    set(OS_X_SPECIAL_FLAG -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl)
+    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
+        set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+        set(OS_X_SPECIAL_FLAG -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl)
+    else()
+        set(OPENSSL_ROOT_DIR /opt/homebrew/opt/openssl)
+        set(OS_X_SPECIAL_FLAG -DOPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl)
+    endif()
 else()
     set(OS_X_SPECIAL_FLAG "")
 endif()
+
+set(OPENSSL_ROOT_DIR ${COMMON_LOCAL})
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(OS_X_SPECIAL_FLAG -DOPENSSL_ROOT_DIR=${COMMON_SRCS}/openssl)
+endif()
 include(FindOpenSSL REQUIRED)
+
+message('==================== ${OPENSSL_FOUND}')
 
 #
 # get libcurl
 #
 ExternalProject_Add(project_curl
+        DEPENDS ssl
+        DEPENDS crypto
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://curl.haxx.se/download/curl-7.78.0.tar.gz
-        SOURCE_DIR ${COMMON_SRCS}/curl-7.78.0
+        URL https://curl.haxx.se/download/curl-7.80.0.tar.gz
+        SOURCE_DIR ${COMMON_SRCS}/curl-7.80.0
         CMAKE_ARGS  -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
                     -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
                     -DBUILD_SHARED_LIBS:BOOL=OFF

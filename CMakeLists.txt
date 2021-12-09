@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.19)
 include(ExternalProject)
 include(CheckStructHasMember)
 include(CheckIncludeFiles)
+include(FindPackageHandleStandardArgs)
 
 project(cserver VERSION 1.0)
 
@@ -44,12 +45,17 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
-endif()
-include(FindOpenSSL REQUIRED)
+#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    message("Architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+#    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
+#        set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+#    else()
+#        set(OPENSSL_ROOT_DIR /opt/homebrew/opt/openssl)
+#    endif()
+#endif()
+#include(FindOpenSSL REQUIRED)
 
-add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
+#add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
 
 #
 # this is needed for curl...
@@ -80,33 +86,33 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 
-#
-# libmagic
-# (used to be build locally from source was moved to prerequisites)
-#
-find_package(LibMagic REQUIRED)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
+add_subdirectory(${EXT_PROJECTS_DIR}/openssl)
 add_subdirectory(${EXT_PROJECTS_DIR}/curl)
 add_subdirectory(${EXT_PROJECTS_DIR}/lua)
 add_subdirectory(${EXT_PROJECTS_DIR}/sqlite3)
-#add_subdirectory(${EXT_PROJECTS_DIR}/jansson)
 add_subdirectory(${EXT_PROJECTS_DIR}/nlohmann)
 add_subdirectory(${EXT_PROJECTS_DIR}/jwt-cpp)
 add_subdirectory(${EXT_PROJECTS_DIR}/zlib)
+add_subdirectory(${EXT_PROJECTS_DIR}/xz)
+add_subdirectory(${EXT_PROJECTS_DIR}/bzip2)
+add_subdirectory(${EXT_PROJECTS_DIR}/magic)
 add_subdirectory(${EXT_PROJECTS_DIR}/catch2)
 add_subdirectory(lib)
 
 link_directories(
         ${CONFIGURE_LIBDIR}
-        /usr/local/lib)
+        /usr/local/lib
+)
 
 include_directories(
         ${COMMON_LOCAL}/include
-        /usr/local/include)
+        /usr/local/include
+)
 
 add_executable(cserver
         ${COMMON_SOURCE_FILES_DIR}/cserver.cpp
@@ -121,10 +127,15 @@ target_link_libraries(cserver
         lua
         sqlite3
         jwtcpp
-        zlib
         spdlog
         curl
-        ${OPENSSL_LIBRARIES} Threads::Threads ${CMAKE_DL_LIBS})
+        ssl
+        crypto
+        zlib
+        xz
+        bzip2
+        Threads::Threads
+        ${CMAKE_DL_LIBS})
 
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -132,8 +143,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 target_include_directories(cserver PUBLIC
-        "${PROJECT_BINARY_DIR}"
-        "${PROJECT_SOURCE_DIR}/lib"
+        ${PROJECT_BINARY_DIR}
+        ${PROJECT_SOURCE_DIR}/lib
 )
 
 
