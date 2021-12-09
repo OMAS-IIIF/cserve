@@ -6,7 +6,7 @@ A C++ based, extendable multithreaded  web server with embeded LUA scripting.
 There are two builing options:
 
 - local building. Supported are currently
-  - OS X Big Sur
+  - OS X Big Sur, Monterey
   - Ubuntu 20.04 LTE
 - building in docker
 
