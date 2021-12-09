@@ -5,7 +5,7 @@ include(CheckStructHasMember)
 include(CheckIncludeFiles)
 include(FindPackageHandleStandardArgs)
 
-project(cserver VERSION 1.0)
+project(cserver VERSION 1.1)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -148,7 +148,7 @@ target_include_directories(cserver PUBLIC
 )
 
 
-install(TARGETS cserver RUNTIME ARCHIVE)
+install(TARGETS cserver cserve RUNTIME ARCHIVE)
 install(FILES src/CserverConf.cpp
         DESTINATION include/cserve)
 install(DIRECTORY ${COMMON_LOCAL}/lib/ TYPE LIB REGEX "/(cmake|lua|pkkconfig)/" EXCLUDE)

@@ -17,7 +17,9 @@ target_link_libraries(tests_00
         xz
         bzip2
         ssl
-        crypto)
+        crypto
+        Threads::Threads
+        ${CMAKE_DL_LIBS})
 
 
 #if(OPENSSL_FOUND)
