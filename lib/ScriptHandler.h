@@ -14,7 +14,7 @@ namespace cserve {
     private:
         std::string _scriptpath;
     public:
-        ScriptHandlerData(const std::string scriptpath) : RequestHandlerData(), _scriptpath(scriptpath) {}
+        explicit ScriptHandlerData(const std::string scriptpath) : RequestHandlerData(), _scriptpath(scriptpath) {}
 
         std::string scriptpath() { return _scriptpath; }
     };

@@ -23,34 +23,26 @@
  * \file Connection.cpp
  */
 #include <algorithm>
-#include <functional>
 #include <cctype>
 #include <locale>
 #include <new>
 #include <iomanip>
-#include <sstream>
-#include <iostream>
 #include <fstream>
 #include <string>
 #include <cstring>      // Needed for memset
+#include <cstdio>
+#include <cstdlib>
 
-#include <netinet/in.h>
-#include <arpa/inet.h> //inet_addrmktemp
 #include <unistd.h>    //write
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <signal.h>
 #include <sys/stat.h>
 
-#include "Global.h"
 #include "Error.h"
 #include "Connection.h"
 #include "ChunkReader.h"
 #include "makeunique.h"
 #include "Cserve.h" // TEMPORARY !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-static const char __file__[] = __FILE__;
+static const char file_[] = __FILE__;
 
 using namespace std;
 
@@ -128,12 +120,12 @@ namespace cserve {
         unordered_map<string, string> q;
         string name;
         string value;
-        for (auto it = params.begin(); it != params.end(); it++) {
-            if ((pos = it->find('=')) != string::npos) {
-                name = urldecode(it->substr(0, pos), form_encoded);
-                value = urldecode(it->substr(pos + 1, string::npos), form_encoded);
+        for (auto & param : params) {
+            if ((pos = param.find('=')) != string::npos) {
+                name = urldecode(param.substr(0, pos), form_encoded);
+                value = urldecode(param.substr(pos + 1, string::npos), form_encoded);
             } else {
-                name = urldecode(*it, form_encoded);
+                name = urldecode(param, form_encoded);
             }
             trim(name);
             trim(value);
@@ -170,7 +162,7 @@ namespace cserve {
                     t += (char) c;
             }
             if ((max_n > 0) && (n >= max_n)) {
-                throw Error(__file__, __LINE__, "Input line too long!");
+                throw Error(file_, __LINE__, "Input line too long!");
             }
         }
     }
@@ -191,8 +183,8 @@ namespace cserve {
                     string tmpstr = src.substr(start, pos - start);
 
                     if (form_encoded) {
-                        for (int i = 0; i < tmpstr.length(); i++) {
-                            if (tmpstr[i] == '+') tmpstr[i] = ' ';
+                        for (char & i : tmpstr) {
+                            if (i == '+') i = ' ';
                         }
                     }
 
@@ -210,8 +202,8 @@ namespace cserve {
                     pos += 3;
                     string tmpstr = src.substr(start, pos - start);
                     if (form_encoded) {
-                        for (int i = 0; i < tmpstr.length(); i++) {
-                            if (tmpstr[i] == '+') tmpstr[i] = ' ';
+                        for (char & i : tmpstr) {
+                            if (i == '+') i = ' ';
                         }
                     }
                     outss << tmpstr;
@@ -230,9 +222,7 @@ namespace cserve {
         escaped.fill('0');
         escaped << hex;
 
-        for (string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
-            string::value_type c = (*i);
-
+        for (char c : value) {
             // Keep alphanumeric and other accepted characters intact
             if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
                 escaped << c;
@@ -273,15 +263,15 @@ namespace cserve {
 
         unordered_map<string, string> q;
 
-        for (auto it = params.begin(); it != params.end(); it++) {
+        for (auto & param : params) {
             string name;
             string value;
 
-            if ((pos = it->find('=')) != string::npos) {
-                name = urldecode(it->substr(0, pos), form_encoded);
-                value = urldecode(it->substr(pos + 1, string::npos), form_encoded);
+            if ((pos = param.find('=')) != string::npos) {
+                name = urldecode(param.substr(0, pos), form_encoded);
+                value = urldecode(param.substr(pos + 1, string::npos), form_encoded);
             } else {
-                name = urldecode(*it, form_encoded);
+                name = urldecode(param, form_encoded);
             }
 
             //asciitolower(name);
@@ -358,7 +348,7 @@ namespace cserve {
     //=============================================================================
 
 
-    Connection::Connection(void) {
+    Connection::Connection() {
         _server = nullptr;
         _secure = false;
         ins = nullptr;
@@ -400,7 +390,7 @@ namespace cserve {
 
         if (outbuf_size > 0) {
             if ((outbuf = (char *) malloc(outbuf_size)) == nullptr) {
-                throw Error(__file__, __LINE__, "malloc failed!", errno);
+                throw Error(file_, __LINE__, "malloc failed!", errno);
             }
 
             outbuf_nbytes = 0;
@@ -502,7 +492,7 @@ namespace cserve {
 
                         if ((bodybuf = (char *) malloc((content_length + 1) * sizeof(char))) == nullptr) {
                             free(chunk_buf);
-                            throw Error(__file__, __LINE__, "malloc failed!", errno);
+                            throw Error(file_, __LINE__, "malloc failed!", errno);
                         }
 
                         memcpy(bodybuf, chunk_buf, content_length);
@@ -510,11 +500,11 @@ namespace cserve {
                     } else {
                         if (content_length > 0) {
                             if ((_server->max_post_size() > 0) && (content_length > _server->max_post_size())) {
-                                throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                                throw Error(file_, __LINE__, "Content bigger than max_post_size");
                             }
 
                             if ((bodybuf = (char *) malloc((content_length + 1) * sizeof(char))) == nullptr) {
-                                throw Error(__file__, __LINE__, "malloc failed!", errno);
+                                throw Error(file_, __LINE__, "malloc failed!", errno);
                             }
 
                             ins->read(bodybuf, content_length);
@@ -537,7 +527,7 @@ namespace cserve {
                 } else if (content_type_opts[0] == "multipart/form-data") {
                     if ((!_chunked_transfer_in) && (_server->max_post_size() > 0) &&
                         (content_length > _server->max_post_size())) {
-                        throw Error(__file__, __LINE__, "Upload bigger than max_post_size");
+                        throw Error(file_, __LINE__, "Upload bigger than max_post_size");
                     }
 
                     string boundary;
@@ -549,7 +539,7 @@ namespace cserve {
                     }
 
                     if (boundary.empty()) {
-                        throw Error(__file__, __LINE__, "boundary header missing in multipart/form-data!");
+                        throw Error(file_, __LINE__, "boundary header missing in multipart/form-data!");
                     }
 
                     string lastboundary = boundary + "--";
@@ -567,7 +557,7 @@ namespace cserve {
                     }
 
                     if ((_server->max_post_size() > 0) && (n > _server->max_post_size())) {
-                        throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                        throw Error(file_, __LINE__, "Content bigger than max_post_size");
                     }
 
                     while (line != lastboundary) {
@@ -585,7 +575,7 @@ namespace cserve {
                             }
 
                             if ((_server->max_post_size() > 0) && (n > _server->max_post_size())) {
-                                throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                                throw Error(file_, __LINE__, "Content bigger than max_post_size");
                             }
 
                             while (!line.empty()) {
@@ -607,13 +597,13 @@ namespace cserve {
 
                                     if (opts.count("form-data") == 0) {
                                         // something is wrong!
-                                        //cerr << __file__ << " #" << __LINE__ << endl;
+                                        //cerr << this_src_file << " #" << __LINE__ << endl;
                                         //cerr << "LINE=" << line << endl;
                                     }
 
                                     if (opts.count("name") == 0) {
                                         // something wrong
-                                        //cerr << __file__ << " #" << __LINE__ << endl;
+                                        //cerr << this_src_file << " #" << __LINE__ << endl;
                                         //cerr << "LINE=" << line << endl;
                                         //cerr << "VALUE=" << value << endl;
                                     }
@@ -646,7 +636,7 @@ namespace cserve {
                                     throw INPUT_READ_FAIL;
                                 }
                                 if ((_server->max_post_size() > 0) && (n > _server->max_post_size())) {
-                                    throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                                    throw Error(file_, __LINE__, "Content bigger than max_post_size");
                                 }
                             } // while
 
@@ -660,7 +650,7 @@ namespace cserve {
                                 }
 
                                 if ((_server->max_post_size() > 0) && (n > _server->max_post_size())) {
-                                    throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                                    throw Error(file_, __LINE__, "Content bigger than max_post_size");
                                 }
 
                                 while ((line != boundary) && (line != lastboundary)) {
@@ -673,7 +663,7 @@ namespace cserve {
                                     }
 
                                     if ((_server->max_post_size() > 0) && (n > _server->max_post_size())) {
-                                        throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                                        throw Error(file_, __LINE__, "Content bigger than max_post_size");
                                     }
                                 }
 
@@ -689,7 +679,7 @@ namespace cserve {
                                 //
 
                                 if (_tmpdir.empty()) {
-                                    throw Error(__file__, __LINE__, "_tmpdir is empty");
+                                    throw Error(file_, __LINE__, "_tmpdir is empty");
                                 }
 
                                 tmpname = _tmpdir + "/sipi_XXXXXXXX";
@@ -700,7 +690,7 @@ namespace cserve {
                                 int fd = mkstemp(writable.get());
 
                                 if (fd == -1) {
-                                    throw Error(__file__, __LINE__, "Could not create temporary filename!");
+                                    throw Error(file_, __LINE__, "Could not create temporary filename!");
                                 }
 
                                 tmpname = string(writable.get());
@@ -708,7 +698,7 @@ namespace cserve {
                                 ofstream outf(tmpname, ofstream::out | ofstream::trunc | ofstream::binary);
 
                                 if (outf.fail()) {
-                                    throw Error(__file__, __LINE__, "Could not open temporary file!");
+                                    throw Error(file_, __LINE__, "Could not open temporary file!");
                                 }
 
                                 //
@@ -724,7 +714,7 @@ namespace cserve {
                                     ++n;
 
                                     if ((_server->max_post_size() > 0) && (n > _server->max_post_size())) {
-                                        throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                                        throw Error(file_, __LINE__, "Content bigger than max_post_size");
                                     }
 
                                     if ((cnt < nlboundary.length()) && (inbyte == nlboundary[cnt])) {
@@ -737,7 +727,7 @@ namespace cserve {
                                         for (int i = 0; i < cnt; i++) {
                                             outf.put(nlboundary[i]);
                                             if (!outf.good()) {
-                                                throw Error(__file__, __LINE__, "Could not write to output file!");
+                                                throw Error(file_, __LINE__, "Could not write to output file!");
                                             }
                                             ++fsize;
                                         }
@@ -750,7 +740,7 @@ namespace cserve {
                                         }
 
                                         if (!outf.good()) {
-                                            throw Error(__file__, __LINE__, "Could not write to output file!");
+                                            throw Error(file_, __LINE__, "Could not write to output file!");
                                         }
 
                                         ++fsize;
@@ -758,7 +748,7 @@ namespace cserve {
                                         outf.put((char) inbyte);
 
                                         if (!outf.good()) {
-                                            throw Error(__file__, __LINE__, "Could not write to output file!");
+                                            throw Error(file_, __LINE__, "Could not write to output file!");
                                         }
 
                                         ++fsize;
@@ -783,7 +773,7 @@ namespace cserve {
                                 ++n;
 
                                 if ((_server->max_post_size() > 0) && (n > _server->max_post_size())) {
-                                    throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                                    throw Error(file_, __LINE__, "Content bigger than max_post_size");
                                 }
 
                                 if (inbyte == '-') { // we have a last boundary!
@@ -815,7 +805,7 @@ namespace cserve {
                         }
 
                         if ((_server->max_post_size() > 0) && (n > _server->max_post_size())) {
-                            throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                            throw Error(file_, __LINE__, "Content bigger than max_post_size");
                         }
                     }
 
@@ -830,17 +820,17 @@ namespace cserve {
                         ChunkReader ckrd(ins, _server->max_post_size());
                         content_length = ckrd.readAll(&tmp);
                         if ((_content = (char *) malloc((content_length + 1) * sizeof(char))) == nullptr) {
-                            throw Error(__file__, __LINE__, "malloc failed!", errno);
+                            throw Error(file_, __LINE__, "malloc failed!", errno);
                         }
                         memcpy(_content, tmp, content_length);
                         free(tmp);
                         _content[content_length] = '\0';
                     } else if (content_length > 0) {
                         if ((_server->max_post_size() > 0) && (content_length > _server->max_post_size())) {
-                            throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                            throw Error(file_, __LINE__, "Content bigger than max_post_size");
                         }
                         if ((_content = (char *) malloc((content_length + 1) * sizeof(char))) == nullptr) {
-                            throw Error(__file__, __LINE__, "malloc failed!", errno);
+                            throw Error(file_, __LINE__, "malloc failed!", errno);
                         }
                         ins->read(_content, content_length);
                         if (ins->fail() || ins->eof()) {
@@ -851,7 +841,7 @@ namespace cserve {
                         _content[content_length] = '\0';
                     }
                 } else {
-                    throw Error(__file__, __LINE__, "Content type not supported!");
+                    throw Error(file_, __LINE__, "Content type not supported!");
                 }
             } else if (method_in == "DELETE") {
                 vector<string> content_type_opts = process_header_value(header_in["content-type"]);
@@ -861,17 +851,17 @@ namespace cserve {
                     ChunkReader ckrd(ins, _server->max_post_size());
                     content_length = ckrd.readAll(&tmp);
                     if ((_content = (char *) malloc((content_length + 1) * sizeof(char))) == nullptr) {
-                        throw Error(__file__, __LINE__, "malloc failed!", errno);
+                        throw Error(file_, __LINE__, "malloc failed!", errno);
                     }
                     memcpy(_content, tmp, content_length);
                     free(tmp);
                     _content[content_length] = '\0';
                 } else if (content_length > 0) {
                     if ((_server->max_post_size() > 0) && (content_length > _server->max_post_size())) {
-                        throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                        throw Error(file_, __LINE__, "Content bigger than max_post_size");
                     }
                     if ((_content = (char *) malloc((content_length + 1) * sizeof(char))) == nullptr) {
-                        throw Error(__file__, __LINE__, "malloc failed!", errno);
+                        throw Error(file_, __LINE__, "malloc failed!", errno);
                     }
                     ins->read(_content, content_length);
 
@@ -891,17 +881,17 @@ namespace cserve {
                     ChunkReader ckrd(ins, _server->max_post_size());
                     content_length = ckrd.readAll(&tmp);
                     if ((_content = (char *) malloc((content_length + 1) * sizeof(char))) == nullptr) {
-                        throw Error(__file__, __LINE__, "malloc failed!", errno);
+                        throw Error(file_, __LINE__, "malloc failed!", errno);
                     }
                     memcpy(_content, tmp, content_length);
                     free(tmp);
                     _content[content_length] = '\0';
                 } else if (content_length > 0) {
                     if ((_server->max_post_size() > 0) && (content_length > _server->max_post_size())) {
-                        throw Error(__file__, __LINE__, "Content bigger than max_post_size");
+                        throw Error(file_, __LINE__, "Content bigger than max_post_size");
                     }
                     if ((_content = (char *) malloc((content_length + 1) * sizeof(char))) == nullptr) {
-                        throw Error(__file__, __LINE__, "malloc failed!", errno);
+                        throw Error(file_, __LINE__, "malloc failed!", errno);
                     }
                     ins->read(_content, content_length);
 
@@ -918,18 +908,18 @@ namespace cserve {
                 _method = OTHER;
             }
         } else {
-            throw Error(__file__, __LINE__, "Invalid HTTP header!");
+            throw Error(file_, __LINE__, "Invalid HTTP header!");
         }
     }
     //=============================================================================
 
     Connection::Connection(const Connection &conn) {
-        throw Error(__file__, __LINE__, "Copy constructor not allowed!");
+        throw Error(file_, __LINE__, "Copy constructor not allowed!");
     }
     //=============================================================================
 
     Connection &Connection::operator=(const Connection &other) {
-        throw Error(__file__, __LINE__, "Assignment operator not allowed!");
+        throw Error(file_, __LINE__, "Assignment operator not allowed!");
     }
     //=============================================================================
 
@@ -976,7 +966,7 @@ namespace cserve {
     //=============================================================================
 
 
-    void Connection::status(StatusCodes status_code_p, const string status_string_p) {
+    void Connection::status(StatusCodes status_code_p, const string& status_string_p) {
         status_code = status_code_p;
         if (status_string_p.empty()) {
             switch (status_code_p) {
@@ -1157,7 +1147,7 @@ namespace cserve {
     }
     //=============================================================================
 
-    vector<string> Connection::getParams(void) {
+    vector<string> Connection::getParams() {
         vector<string> names;
 
         for (auto const &iterator : get_params) {
@@ -1179,7 +1169,7 @@ namespace cserve {
     }
     //=============================================================================
 
-    vector<string> Connection::postParams(void) {
+    vector<string> Connection::postParams() {
         vector<string> names;
 
         for (auto const &iterator : post_params) {
@@ -1200,7 +1190,7 @@ namespace cserve {
     }
     //=============================================================================
 
-    vector<string> Connection::requestParams(void) {
+    vector<string> Connection::requestParams() {
         vector<string> names;
 
         for (auto const &iterator : request_params) {
@@ -1213,12 +1203,12 @@ namespace cserve {
 
     void Connection::setBuffer(size_t buf_size, size_t buf_inc) {
         if (header_sent) {
-            throw Error(__file__, __LINE__, "Header already sent - cannot changed to buffered mode!");
+            throw Error(file_, __LINE__, "Header already sent - cannot changed to buffered mode!");
         }
 
         if (outbuf == nullptr) {
             if ((outbuf = (char *) malloc(outbuf_size)) == nullptr) {
-                throw Error(__file__, __LINE__, "malloc failed!", errno);
+                throw Error(file_, __LINE__, "malloc failed!", errno);
             }
 
             outbuf_nbytes = 0;
@@ -1229,7 +1219,7 @@ namespace cserve {
 
     void Connection::setChunkedTransfer() {
         if (header_sent) {
-            throw Error(__file__, __LINE__, "Header already sent!");
+            throw Error(file_, __LINE__, "Header already sent!");
         }
 
         header_out["Transfer-Encoding"] = "chunked";
@@ -1241,12 +1231,12 @@ namespace cserve {
         cachefile = new ofstream(cfname, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
 
         if (cachefile->fail()) {
-            throw Error(__file__, __LINE__, "Could not open cache file!");
+            throw Error(file_, __LINE__, "Could not open cache file!");
         }
     }
     //=============================================================================
 
-    void Connection::closeCacheFile(void) {
+    void Connection::closeCacheFile() {
         if (cachefile != nullptr) {
             cachefile->close();
             delete cachefile;
@@ -1255,7 +1245,7 @@ namespace cserve {
     }
     //=============================================================================
 
-    vector<string> Connection::header(void) {
+    vector<string> Connection::header() {
         vector<string> names;
 
         for (auto const &iterator : header_in) {
@@ -1267,9 +1257,9 @@ namespace cserve {
     //=============================================================================
 
 
-    void Connection::header(string name, string value) {
+    void Connection::header(const string& name, string value) {
         if (header_sent) {
-            throw Error(__file__, __LINE__, "Header already sent!");
+            throw Error(file_, __LINE__, "Header already sent!");
         }
 
         header_out[name] = value;
@@ -1320,7 +1310,7 @@ namespace cserve {
 
 
     void Connection::send(const void *buffer, size_t n) {
-        if (_finished) throw Error(__file__, __LINE__, "Sending data already terminated!");
+        if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
 
         if (outbuf != nullptr) {
             //
@@ -1376,7 +1366,7 @@ namespace cserve {
                     //
                     // houston, we have a problem. The header is already sent...
                     //
-                    throw Error(__file__, __LINE__, "Header already sent – cannot add data anymore!");
+                    throw Error(file_, __LINE__, "Header already sent – cannot add data anymore!");
                 }
             }
         }
@@ -1385,7 +1375,7 @@ namespace cserve {
 
 
     void Connection::sendAndFlush(const void *buffer, size_t n) {
-        if (_finished) throw Error(__file__, __LINE__, "Sending data already terminated!");
+        if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
 
         if (outbuf != nullptr) {
             //
@@ -1437,7 +1427,7 @@ namespace cserve {
                 // then we send the data in the buffer
                 //
                 if (header_sent) {
-                    throw Error(__file__, __LINE__, "Header already sent – cannot add Content-Length header!");
+                    throw Error(file_, __LINE__, "Header already sent – cannot add Content-Length header!");
                 } else {
                     send_header(); // sends content length if not buffer nor chunked
                 }
@@ -1450,7 +1440,7 @@ namespace cserve {
                 // we don't use a buffer (or the buffer is empty) -> send the data immediatly
                 //
                 if (header_sent) {
-                    throw Error(__file__, __LINE__, "Header already sent – cannot add Content-Length header!");
+                    throw Error(file_, __LINE__, "Header already sent – cannot add Content-Length header!");
                 } else {
                     send_header(n); // sends content length if not buffer nor chunked
                 }
@@ -1468,19 +1458,19 @@ namespace cserve {
 
 
     void Connection::sendFile(const string &path, const size_t bufsize, size_t from, size_t to) {
-        if (_finished) throw Error(__file__, __LINE__, "Sending data already terminated!");
+        if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
 
         //
         // test if we have access to the file
         //
         if (access(path.c_str(), R_OK) != 0) { // test, if file exists
-            throw Error(__file__, __LINE__, "File not readable:" + path);
+            throw Error(file_, __LINE__, "File not readable:" + path);
         }
 
-        struct stat fstatbuf;
+        struct stat fstatbuf{};
 
         if (stat(path.c_str(), &fstatbuf) != 0) {
-            throw Error(__file__, __LINE__, "Cannot fstat file: " + path);
+            throw Error(file_, __LINE__, "Cannot fstat file: " + path);
         }
 
         size_t fsize = fstatbuf.st_size;
@@ -1489,26 +1479,26 @@ namespace cserve {
         FILE *infile = fopen(path.c_str(), "rb");
 
         if (infile == nullptr) {
-            throw Error(__file__, __LINE__, "File not readable: " + path);
+            throw Error(file_, __LINE__, "File not readable: " + path);
         }
 
         if (from > 0) {
             if (from < fsize) {
                 if (fseek(infile, from, SEEK_SET) < 0) {
                     fclose(infile);
-                    throw Error(__file__, __LINE__, "Cannot seek to position!");
+                    throw Error(file_, __LINE__, "Cannot seek to position!");
                 }
                 fsize -= from;
             } else {
                 fclose(infile);
-                throw Error(__file__, __LINE__, "Seek position beyond end of file!");
+                throw Error(file_, __LINE__, "Seek position beyond end of file!");
             }
         }
 
         if (to > 0) {
             if (to > orig_fsize) {
                 fclose(infile);
-                throw Error(__file__, __LINE__, "Trying to read beyond end of file!");
+                throw Error(file_, __LINE__, "Trying to read beyond end of file!");
             }
             fsize -= (orig_fsize - to - 1);
         }
@@ -1565,14 +1555,14 @@ namespace cserve {
     //=============================================================================
 
 
-    void Connection::flush(void) {
+    void Connection::flush() {
         if (!header_sent) {
-            if (_finished) throw Error(__file__, __LINE__, "Sending data already terminated!");
+            if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
             send_header(); // sends content length if not buffer nor chunked
         }
 
         if ((outbuf != nullptr) && (outbuf_nbytes > 0)) {
-            if (_finished) throw Error(__file__, __LINE__, "Sending data already terminated!");
+            if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
             if (_chunked_transfer_out) {
                 *os << std::hex << outbuf_nbytes << "\r\n";
                 if (os->eof() || os->fail()) throw OUTPUT_WRITE_FAIL;
@@ -1630,13 +1620,13 @@ namespace cserve {
 
 
     void Connection::add_to_outbuf(char *buf, size_t n) {
-        if (_finished) throw Error(__file__, __LINE__, "Sending data already terminated!");
+        if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
 
         if (outbuf_nbytes + n > outbuf_size) {
             size_t incsize = outbuf_size + ((n + outbuf_inc - 1) / outbuf_inc) * outbuf_inc;
             char *tmpbuf;
             if ((tmpbuf = (char *) realloc(outbuf, incsize)) == nullptr) {
-                throw Error(__file__, __LINE__, "realloc failed!", errno);
+                throw Error(file_, __LINE__, "realloc failed!", errno);
             }
             outbuf = tmpbuf;
             outbuf_size = incsize;
@@ -1649,7 +1639,7 @@ namespace cserve {
 
     void Connection::send_header(size_t n) {
         if (header_sent) {
-            throw Error(__file__, __LINE__, "Header already sent!");
+            throw Error(file_, __LINE__, "Header already sent!");
         }
 
         *os << "HTTP/1.1 " << to_string(status_code) << " " << status_string << "\r\n";
@@ -1699,7 +1689,7 @@ namespace cserve {
     //=============================================================================
 
 
-    bool Connection::cleanupUploads(void) {
+    bool Connection::cleanupUploads() {
         bool filedelok = true;
 
         for (auto &i : _uploads) {

@@ -55,11 +55,11 @@ namespace cserve {
 
         ThreadMasterData &operator[](int index);
 
-        inline int nthreads() const { return thread_list.size(); }
+        [[nodiscard]] inline int nthreads() const { return thread_list.size(); }
 
         void join_all();
     };
 
 }
 
-#endif //SIPI_THREADCONTROL_H
+#endif //CSERVE_THREADCONTROL_H

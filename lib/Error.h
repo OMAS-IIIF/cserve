@@ -56,7 +56,7 @@ namespace cserve {
         * \param[in] msg The message describing the error.
         * \param[in] errno_p Retrieve and display the system error message from errno.
         */
-        Error(const char *file, const int line, const char *msg, int errno_p = 0);
+        Error(const char *file, int line, const char *msg, int errno_p = 0);
 
         /*!
         * Constructor with std::string strings for the message. The file parameter is
@@ -68,28 +68,28 @@ namespace cserve {
         * \param[in] msg The message describing the error.
         * \param[in] syserr Retrieve and display the system error message from errno.
         */
-        Error(const char *file, const int line, const std::string &msg, int errno_p = 0);
+        Error(const char *file, int line, const std::string &msg, int errno_p = 0);
 
-        inline int getLine(void) const { return line; }
+        [[nodiscard]] inline int getLine() const { return line; }
 
-        inline std::string getFile(void) const { return file; }
+        [[nodiscard]] inline std::string getFile() const { return file; }
 
-        inline std::string getMessage(void) const { return message; }
+        [[nodiscard]] inline std::string getMessage() const { return message; }
 
-        inline int getSysErrno(void) const { return sysErrno; }
+        [[nodiscard]] inline int getSysErrno() const { return sysErrno; }
 
         /*!
          * Retuns the error as a one-line string
          *
          * \returns Error string
          */
-        std::string to_string(void) const;
+        [[nodiscard]] std::string to_string() const;
 
         /*!
          * String conversion operator.
          * @return Error message a s std::string
          */
-        inline operator std::string() const {
+        inline explicit operator std::string() const {
             return to_string();
         }
 

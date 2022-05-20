@@ -47,7 +47,7 @@ namespace cserve {
         char *out_buf;     //!< output buffer
         int out_bufsize;   //!< Size of output buffer
         int sock;          //!< Socket handle
-        SSL *cSSL;         //!< SSL socket handle
+        SSL *cSSL{};         //!< SSL socket handle
 
         /*!
          * This method is called when the read buffer (in_buf) has been empties.
@@ -56,7 +56,7 @@ namespace cserve {
          *
          * \returns The next character available or traits_type::eof()
          */
-        virtual int_type underflow(void);
+        int_type underflow() override;
 
         /*!
          * Puts the gives character into the out_buf. If the outbuf is full,
@@ -66,14 +66,14 @@ namespace cserve {
          *
          * \returns Returns the next character or traits_type::eof()
          */
-        virtual int_type overflow(int_type ch);
+        int_type overflow(int_type ch) override;
 
         /*!
          * Flushes the output buffer to the socket.
          *
          * \returns 0 on success, -1 on failure.
          */
-        virtual int sync(void);
+        int sync() override;
 
     protected:
     public:
@@ -94,7 +94,7 @@ namespace cserve {
          * \param[in] out_bufsize_p Size of the output buffer (Default: 8192)
          * \param[in] putback_size_p Size of putback buffer which determines how many bytes already read can be put back
          */
-        SockStream(int sock_p, int in_bufsize_p = 8192, int out_bufsize = 8192, int putback_size_p = 32);
+        explicit SockStream(int sock_p, int in_bufsize_p = 8192, int out_bufsize = 8192, int putback_size_p = 32);
 
 
         /*!
@@ -107,13 +107,13 @@ namespace cserve {
          * \param[in] out_bufsize_p Size of the output buffer (Default: 8192)
          * \param[in] putback_size_p Size of putback buffer which determines how many bytes already read can be put back
          */
-        SockStream(SSL *cSSL_p, int in_bufsize_p = 8192, int out_bufsize = 8192, int putback_size_p = 32);
+        explicit SockStream(SSL *cSSL_p, int in_bufsize_p = 8192, int out_bufsize = 8192, int putback_size_p = 32);
 
 
         /*!
          * Destructor which frees all the resources, especially the input and output buffer
          */
-        ~SockStream();
+        ~SockStream() override;
     };
 
 }

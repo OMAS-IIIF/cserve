@@ -56,7 +56,7 @@ namespace cserve {
         *
         * \param[in] type Hash/checksum method to use (see HashType)
         */
-        Hash(HashType type);
+        explicit Hash(HashType type);
 
         /*!
         * Destructor which cleans up everything
@@ -104,7 +104,7 @@ namespace cserve {
         *
         * \returns Returns the has value as string
         */
-        std::string hash(void);
+        std::string hash();
     };
 
 }

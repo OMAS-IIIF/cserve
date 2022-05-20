@@ -38,7 +38,7 @@ static void sighandler(int sig) {
 /*LUA TEST****************************************************************************/
 static int lua_gaga(lua_State *L) {
     lua_getglobal(L, cserve::luaconnection); // push onto stack
-    cserve::Connection *conn = (cserve::Connection *) lua_touserdata(L, -1); // does not change the stack
+    auto *conn = (cserve::Connection *) lua_touserdata(L, -1); // does not change the stack
     lua_remove(L, -1); // remove from stack
 
     int top = lua_gettop(L);
@@ -70,8 +70,8 @@ static void new_lua_func(lua_State *L, cserve::Connection &conn, void *user_data
 void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, std::shared_ptr<cserve::RequestHandlerData> request_data) {
     conn.setBuffer();
     std::vector <std::string> headers = conn.header();
-    for (unsigned i = 0; i < headers.size(); i++) {
-        conn << headers[i] << " : " << conn.header(headers[i]) << "\n";
+    for (auto & header : headers) {
+        conn << header << " : " << conn.header(header) << "\n";
     }
     conn << "URI: " << conn.uri() << "\n";
     conn << "It works!" << cserve::Connection::flush_data;
@@ -91,13 +91,11 @@ void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
     conn << "<body><h1>OMAS-IIIF CSERVE TEST (chunked transfer)</h1>";
     conn << "<p>Dies ist ein kleiner Text</p>";
     conn << "</body></html>" << cserve::Connection::flush_data;
-    return;
 }
 
 void PingHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, std::shared_ptr<cserve::RequestHandlerData> request_data) {
     conn.setBuffer();
     conn << "PONG" << cserve::Connection::flush_data;
-    return;
 }
 
 

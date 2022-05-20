@@ -23,11 +23,8 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
-#include <stdio.h>
 #include <sqlite3.h>
 #include "LuaSqlite.h"
 
@@ -53,7 +50,7 @@ namespace cserve {
 
 
     static Sqlite *toSqlite(lua_State *L, int index) {
-        Sqlite *db = static_cast<Sqlite *>(lua_touserdata(L, index));
+        auto *db = static_cast<Sqlite *>(lua_touserdata(L, index));
 
         if (db == nullptr) {
             lua_pushstring(L, "Type error");
@@ -79,7 +76,7 @@ namespace cserve {
     //=========================================================================
 
     static Sqlite *pushSqlite(lua_State *L) {
-        Sqlite *db = static_cast<Sqlite *>(lua_newuserdata(L, sizeof(Sqlite)));
+        auto *db = static_cast<Sqlite *>(lua_newuserdata(L, sizeof(Sqlite)));
         luaL_getmetatable(L, LUASQLITE);
         lua_setmetatable(L, -2);
         return db;

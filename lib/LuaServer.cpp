@@ -20,12 +20,9 @@
  * You should have received a copy of the GNU Affero General Public
  * License along with Sipi.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <algorithm>
 #include <functional>
 #include <cctype>
 #include <iostream>
-#include <fstream>
-#include <sstream>
 #include <string>
 #include <cstring>      // Needed for memset
 #include <chrono>
@@ -34,17 +31,11 @@
 //#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
 #include "spdlog/spdlog.h"
-#include <sys/types.h>
 #include <dirent.h>
 
 #include "curl/curl.h"
-#include "Global.h"
 #include "Parsing.h"
-#include "SockStream.h"
 #include "LuaServer.h"
 #include "Connection.h"
 #include "Cserve.h"
@@ -57,12 +48,13 @@
 
 #include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
+#include <utility>
 #include "NlohmannTraits.h"
 
 using ms = std::chrono::milliseconds;
 using get_time = std::chrono::steady_clock;
 
-static const char __file__[] = __FILE__;
+static const char file_[] = __FILE__;
 
 static const char servertablename[] = "server";
 
@@ -112,7 +104,7 @@ namespace cserve {
      */
     static int dont_panic(lua_State *L) {
         std::string errorMsg = stackDump(L);
-        throw Error(__file__, __LINE__, errorMsg);
+        throw Error(file_, __LINE__, errorMsg);
     }
 
     /*
@@ -247,7 +239,7 @@ namespace cserve {
      */
     LuaServer::LuaServer() {
         if ((L = luaL_newstate()) == nullptr) {
-            throw Error(__file__, __LINE__, "Couldn't start lua interpreter");
+            throw Error(file_, __LINE__, "Couldn't start lua interpreter");
         }
         lua_atpanic(L, dont_panic);
         luaL_openlibs(L);
@@ -259,7 +251,7 @@ namespace cserve {
      */
     LuaServer::LuaServer(Connection &conn) {
         if ((L = luaL_newstate()) == nullptr) {
-            throw Error(__file__, __LINE__, "Couldn't start lua interpreter");
+            throw Error(file_, __LINE__, "Couldn't start lua interpreter");
         }
 
         lua_atpanic(L, dont_panic);
@@ -275,7 +267,7 @@ namespace cserve {
      */
     LuaServer::LuaServer(const std::string &luafile, bool iscode) {
         if ((L = luaL_newstate()) == nullptr) {
-            throw Error(__file__, __LINE__, "Couldn't start lua interpreter");
+            throw Error(file_, __LINE__, "Couldn't start lua interpreter");
         }
 
         lua_atpanic(L, dont_panic);
@@ -307,7 +299,7 @@ namespace cserve {
      */
     LuaServer::LuaServer(Connection &conn, const std::string &luafile, bool iscode, const std::string &lua_scriptdir) {
         if ((L = luaL_newstate()) == nullptr) {
-            throw Error(__file__, __LINE__, "Couldn't start lua interpreter");
+            throw Error(file_, __LINE__, "Couldn't start lua interpreter");
         }
 
         lua_atpanic(L, dont_panic);
@@ -379,7 +371,7 @@ namespace cserve {
 
         lua_pop(L, top);
         lua_getglobal(L, luaconnection); // push onto stack
-        Connection *conn = (Connection *) lua_touserdata(L, -1); // does not change the stack
+        auto *conn = (Connection *) lua_touserdata(L, -1); // does not change the stack
         lua_remove(L, -1); // remove from stack
 
         if ((bufsize > 0) && (incsize > 0)) {
@@ -403,7 +395,7 @@ namespace cserve {
      * @return "FILE", "DIRECTORY", "CHARDEV", "BLOCKDEV", "LINK", "SOCKET" or "UNKNOWN"
      */
     static int lua_fs_ftype(lua_State *L) {
-        struct stat s;
+        struct stat s{};
         int top = lua_gettop(L);
 
         if (top < 1) {
@@ -460,7 +452,7 @@ namespace cserve {
     * @return integer with seconds since epoch of last modification
     */
     static int lua_fs_modtime(lua_State *L) {
-        struct stat s;
+        struct stat s{};
         int top = lua_gettop(L);
 
         if (top < 1) {
@@ -545,7 +537,7 @@ namespace cserve {
 
         lua_createtable(L, 0, 0);
         int table_index = 1;
-        std::vector<std::string>::const_iterator filename_iter = filenames.begin();
+        auto filename_iter = filenames.begin();
 
         while (filename_iter != filenames.end()) {
             lua_pushinteger(L, table_index);
@@ -923,7 +915,7 @@ namespace cserve {
     */
     static int lua_fs_mvfile(lua_State *L) {
         lua_getglobal(L, cserve::luaconnection);
-        cserve::Connection *conn = (cserve::Connection *) lua_touserdata(L, -1);
+        auto *conn = (cserve::Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stacks
         int top = lua_gettop(L);
 
@@ -1102,7 +1094,7 @@ namespace cserve {
      */
     static int lua_print(lua_State *L) {
         lua_getglobal(L, luaconnection); // push onto stack
-        Connection *conn = (Connection *) lua_touserdata(L, -1); // does not change the stack
+        auto *conn = (Connection *) lua_touserdata(L, -1); // does not change the stack
         lua_remove(L, -1); // remove from stack
         int top = lua_gettop(L);
 
@@ -1136,7 +1128,7 @@ namespace cserve {
 
     static int lua_require_auth(lua_State *L) {
         lua_getglobal(L, luaconnection); // push onto stack
-        Connection *conn = (Connection *) lua_touserdata(L, -1); // does not change the stack
+        auto *conn = (Connection *) lua_touserdata(L, -1); // does not change the stack
         lua_remove(L, -1); // remove from stack
         lua_pushboolean(L, true);
 
@@ -1150,14 +1142,14 @@ namespace cserve {
         } else {
             size_t npos;
 
-            if ((npos = auth.find(" ")) != std::string::npos) {
+            if ((npos = auth.find(' ')) != std::string::npos) {
                 std::string auth_type = auth.substr(0, npos);
                 asciitolower(auth_type);
 
                 if (auth_type == "basic") {
                     std::string auth_secret = auth.substr(npos + 1);
                     std::string auth_string = base64_decode(auth_secret);
-                    npos = auth_string.find(":");
+                    npos = auth_string.find(':');
 
                     if (npos != std::string::npos) {
                         std::string username = auth_string.substr(0, npos);
@@ -1214,17 +1206,17 @@ namespace cserve {
      * Indicates an error in a client HTTP connection. Thrown and caught only
      * by lua_http_client() and CurlConnection.
      */
-    class HttpError {
+    class HttpError: public std::exception {
     private:
         int line;
         std::string errorMsg;
 
     public:
-        inline HttpError(int line_p, const std::string &errormsg_p) : line(line_p), errorMsg(errormsg_p) {};
+        inline HttpError(int line_p, std::string errormsg_p) : line(line_p), errorMsg(std::move(errormsg_p)) {};
 
         inline HttpError(int line_p, const char *errormsg_p) : line(line_p) { errorMsg = errormsg_p; };
 
-        inline std::string what(void) {
+        inline std::string what() {
             std::stringstream ss;
             ss << "Error #" << line << ": " << errorMsg;
             return ss.str();
@@ -1243,7 +1235,7 @@ namespace cserve {
                                      std::unordered_map<std::string, std::string> *responseHeaders) {
         size_t length = size * nitems;
         std::string headerStr = std::string(data, length);
-        size_t separatorPos = headerStr.find(":");
+        size_t separatorPos = headerStr.find(':');
 
         if (separatorPos != std::string::npos) {
             std::string headerName = headerStr.substr(0, separatorPos);
@@ -1823,7 +1815,7 @@ namespace cserve {
      */
     static int lua_exitserver(lua_State *L) {
         lua_getglobal(L, luaconnection); // push onto stack
-        Connection *conn = (Connection *) lua_touserdata(L, -1); // does not change the stack
+        auto *conn = (Connection *) lua_touserdata(L, -1); // does not change the stack
         lua_remove(L, -1); // remove from stack
         conn->server()->stop();
         return 0;
@@ -1836,7 +1828,7 @@ namespace cserve {
      */
     static int lua_send_header(lua_State *L) {
         lua_getglobal(L, luaconnection);
-        Connection *conn = (Connection *) lua_touserdata(L, -1);
+        auto *conn = (Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stack
         int top = lua_gettop(L);
 
@@ -1870,7 +1862,7 @@ namespace cserve {
      */
     static int lua_send_cookie(lua_State *L) {
         lua_getglobal(L, luaconnection);
-        Connection *conn = (Connection *) lua_touserdata(L, -1);
+        auto *conn = (Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stack
 
         int top = lua_gettop(L);
@@ -1972,7 +1964,7 @@ namespace cserve {
 
     static int lua_send_status(lua_State *L) {
         lua_getglobal(L, luaconnection);
-        Connection *conn = (Connection *) lua_touserdata(L, -1);
+        auto *conn = (Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stack
 
         int top = lua_gettop(L);
@@ -1983,7 +1975,7 @@ namespace cserve {
             lua_pop(L, 1);
         }
 
-        Connection::StatusCodes status = static_cast<Connection::StatusCodes>(istatus);
+        auto status = static_cast<Connection::StatusCodes>(istatus);
         conn->status(status);
         return 0;
     }
@@ -2003,7 +1995,7 @@ namespace cserve {
      */
     static int lua_copytmpfile(lua_State *L) {
         lua_getglobal(L, luaconnection);
-        Connection *conn = (Connection *) lua_touserdata(L, -1);
+        auto *conn = (Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stack
         int top = lua_gettop(L);
 
@@ -2107,7 +2099,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
     static int lua_generate_jwt(lua_State *L) {
 
         lua_getglobal(L, luaconnection);
-        Connection *conn = (Connection *) lua_touserdata(L, -1);
+        auto *conn = (Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stack
 
         int top = lua_gettop(L);
@@ -2177,7 +2169,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      */
     static int lua_decode_jwt(lua_State *L) {
         lua_getglobal(L, luaconnection);
-        Connection *conn = (Connection *) lua_touserdata(L, -1);
+        auto *conn = (Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stack
 
         int top = lua_gettop(L);
@@ -2232,7 +2224,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         nlohmann::json jsonobj;
 
-        size_t pos = tokenstr.find(".");
+        size_t pos = tokenstr.find('.');
         tokenstr = tokenstr.substr(pos + 1);
         try {
             jsonobj = nlohmann::json::parse(tokenstr);
@@ -2308,6 +2300,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                 case spdlog::level::warn: cserve::Server::logger()->warn(message); break;
                 case spdlog::level::err: cserve::Server::logger()->error(message); break;
                 case spdlog::level::critical: cserve::Server::logger()->critical(message); break;
+                default: cserve::Server::logger()->info(message);
             }
         }
 
@@ -2382,7 +2375,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      */
     static int lua_file_mimetype(lua_State *L) {
         lua_getglobal(L, luaconnection);
-        Connection *conn = (Connection *) lua_touserdata(L, -1);
+        auto *conn = (Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stack
         int top = lua_gettop(L);
 
@@ -2439,7 +2432,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      */
     static int lua_file_mimeconsistency(lua_State *L) {
         lua_getglobal(L, luaconnection);
-        Connection *conn = (Connection *) lua_touserdata(L, -1);
+        auto *conn = (Connection *) lua_touserdata(L, -1);
         lua_remove(L, -1); // remove from stack
         int top = lua_gettop(L);
 
@@ -2452,7 +2445,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         std::string path;
         std::string filename;
-        std::string expected_mimetype = "";
+        std::string expected_mimetype;
         if (lua_isinteger(L, 1)) {
             std::vector<cserve::Connection::UploadedFile> uploads = conn->uploads();
             int tmpfile_id = static_cast<int>(lua_tointeger(L, 1));
@@ -2516,8 +2509,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         lua_pop(L, 1); // get rid of the string on the stack we just pushed on line 5
         lua_pushstring(L, cur_path.c_str()); // push the new one
         lua_setfield(L, -2, "path"); // set the field "path" in table at -2 with value at top of stack
-        lua_pop(L, 1); // get rid of package table from top of stack
-        return; // all done!
+        lua_pop(L, 1); // all done!
     }
     //=========================================================================
 
@@ -2583,10 +2575,10 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         std::vector<std::string> headers = conn.header();
         lua_createtable(L, 0, headers.size()); // table1 - "index_L1" - table2
 
-        for (unsigned i = 0; i < headers.size(); i++) {
-            lua_pushstring(L, headers[i].c_str()); // table1 - "index_L1" - table2 - "index_L2"
+        for (auto & header : headers) {
+            lua_pushstring(L, header.c_str()); // table1 - "index_L1" - table2 - "index_L2"
             lua_pushstring(L,
-                           conn.header(headers[i]).c_str()); // table1 - "index_L1" - table2 - "index_L2" - "value_L2"
+                           conn.header(header).c_str()); // table1 - "index_L1" - table2 - "index_L2" - "value_L2"
             lua_rawset(L, -3); // table1 - "index_L1" - table2
         }
 
@@ -2596,7 +2588,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         lua_pushstring(L, "cookies"); // table1 - "index_L1"
         lua_createtable(L, 0, cookies.size()); // table1 - "index_L1" - table2
 
-        for (auto cookie : cookies) {
+        for (const auto& cookie : cookies) {
             lua_pushstring(L, cookie.first.c_str());
             lua_pushstring(L, cookie.second.c_str());
             lua_rawset(L, -3);
@@ -2616,13 +2608,13 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         std::vector<std::string> get_params = conn.getParams();
 
-        if (get_params.size() > 0) {
+        if (!get_params.empty()) {
             lua_pushstring(L, "get"); // table1 - "index_L1"
             lua_createtable(L, 0, get_params.size()); // table1 - "index_L1" - table2
 
-            for (unsigned i = 0; i < get_params.size(); i++) {
-                (void) lua_pushstring(L, get_params[i].c_str()); // table1 - "index_L1" - table2 - "index_L2"
-                (void) lua_pushstring(L, conn.getParams(get_params[i]).c_str()); // table1 - "index_L1" - table2 - "index_L2" - "value_L2"
+            for (auto & get_param : get_params) {
+                (void) lua_pushstring(L, get_param.c_str()); // table1 - "index_L1" - table2 - "index_L2"
+                (void) lua_pushstring(L, conn.getParams(get_param).c_str()); // table1 - "index_L1" - table2 - "index_L2" - "value_L2"
                 lua_settable(L, -3); // table1 - "index_L1" - table2
              }
 
@@ -2631,14 +2623,14 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         std::vector<std::string> post_params = conn.postParams();
 
-        if (post_params.size() > 0) {
+        if (!post_params.empty()) {
             lua_pushstring(L, "post"); // table1 - "index_L1"
             lua_createtable(L, 0, post_params.size()); // table1 - "index_L1" - table2
 
-            for (unsigned i = 0; i < post_params.size(); i++) {
-                lua_pushstring(L, post_params[i].c_str()); // table1 - "index_L1" - table2 - "index_L2"
+            for (auto & post_param : post_params) {
+                lua_pushstring(L, post_param.c_str()); // table1 - "index_L1" - table2 - "index_L2"
                 lua_pushstring(L, conn.postParams(
-                        post_params[i]).c_str()); // table1 - "index_L1" - table2 - "index_L2" - "value_L2"
+                        post_param).c_str()); // table1 - "index_L1" - table2 - "index_L2" - "value_L2"
                 lua_settable(L, -3); // table1 - "index_L1" - table2
             }
             lua_settable(L, -3); // table1
@@ -2646,7 +2638,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         std::vector<Connection::UploadedFile> uploads = conn.uploads();
 
-        if (uploads.size() > 0) {
+        if (!uploads.empty()) {
             lua_pushstring(L, "uploads"); // table1 - "index_L1"
             lua_createtable(L, 0, uploads.size());     // table1 - "index_L1" - table2
 
@@ -2692,14 +2684,14 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         std::vector<std::string> request_params = conn.requestParams();
 
-        if (request_params.size() > 0) {
+        if (!request_params.empty()) {
             lua_pushstring(L, "request"); // table1 - "index_L1"
             lua_createtable(L, 0, request_params.size()); // table1 - "index_L1" - table2
 
-            for (unsigned i = 0; i < request_params.size(); i++) {
-                lua_pushstring(L, request_params[i].c_str()); // table1 - "index_L1" - table2 - "index_L2"
+            for (auto & request_param : request_params) {
+                lua_pushstring(L, request_param.c_str()); // table1 - "index_L1" - table2 - "index_L2"
                 lua_pushstring(L, conn.requestParams(
-                        request_params[i]).c_str()); // table1 - "index_L1" - table2 - "index_L2" - "value_L2"
+                        request_param).c_str()); // table1 - "index_L1" - table2 - "index_L2" - "value_L2"
                 lua_rawset(L, -3); // table1 - "index_L1" - table2
             }
 
@@ -2880,7 +2872,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      * @param defval Default value to take if variable is not defined
      * @return Configuartion parameter value
      */
-    std::string LuaServer::configString(const std::string table, const std::string variable, const std::string defval) {
+    std::string LuaServer::configString(const std::string& table, const std::string& variable, const std::string& defval) {
         if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
             lua_pop(L, 1);
             return defval;
@@ -2894,7 +2886,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         if (!lua_isstring(L, -1)) {
-            throw Error(__file__, __LINE__, "String expected for " + table + "." + variable);
+            throw Error(file_, __LINE__, "String expected for " + table + "." + variable);
         }
 
         std::string retval = lua_tostring(L, -1);
@@ -2912,7 +2904,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      * @param defval Default value to take if variable is not defined
      * @return Configuartion parameter value
      */
-    bool LuaServer::configBoolean(const std::string table, const std::string variable, const bool defval) {
+    bool LuaServer::configBoolean(const std::string& table, const std::string& variable, const bool defval) {
         if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
             lua_pop(L, 1);
             return defval;
@@ -2926,7 +2918,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         if (!lua_isboolean(L, -1)) {
-            throw Error(__file__, __LINE__, "Integer expected for " + table + "." + variable);
+            throw Error(file_, __LINE__, "Integer expected for " + table + "." + variable);
         }
 
         bool retval = lua_toboolean(L, -1) == 1;
@@ -2944,7 +2936,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      * @param defval Default value to take if variable is not defined
      * @return Configuartion parameter value
      */
-    int LuaServer::configInteger(const std::string table, const std::string variable, const int defval) {
+    int LuaServer::configInteger(const std::string& table, const std::string& variable, const int defval) {
         if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
             lua_pop(L, 1);
             return defval;
@@ -2958,7 +2950,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         if (!lua_isinteger(L, -1)) {
-            throw Error(__file__, __LINE__, "Integer expected for " + table + "." + variable);
+            throw Error(file_, __LINE__, "Integer expected for " + table + "." + variable);
         }
 
         int retval = static_cast<int>(lua_tointeger(L, -1));
@@ -2976,7 +2968,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      * @param defval Default value to take if variable is not defined
      * @return Configuartion parameter value
      */
-    float LuaServer::configFloat(const std::string table, const std::string variable, const float defval) {
+    float LuaServer::configFloat(const std::string& table, const std::string& variable, const float defval) {
         if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
             lua_pop(L, 1);
             return defval;
@@ -2990,7 +2982,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         if (!lua_isnumber(L, -1)) {
-            throw Error(__file__, __LINE__, "Number expected for " + table + "." + variable);
+            throw Error(file_, __LINE__, "Number expected for " + table + "." + variable);
         }
 
         lua_Number num = lua_tonumber(L, -1);
@@ -3006,7 +2998,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      * @param variable Variable name (which must be a table/array)
      * @return Vector of table entries
      */
-    const std::vector<std::string> LuaServer::configStringList(const std::string table, const std::string variable) {
+    std::vector<std::string> LuaServer::configStringList(const std::string& table, const std::string& variable) {
         std::vector<std::string> strings;
         if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
             lua_pop(L, 1);
@@ -3021,7 +3013,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         if (!lua_istable(L, -1)) {
-            throw Error(__file__, __LINE__, "Value '" + variable + "' in config file must be a table");
+            throw Error(file_, __LINE__, "Value '" + variable + "' in config file must be a table");
         }
 
         for (int i = 1;; i++) {
@@ -3047,7 +3039,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      * @param variable Variable name (which must be a table with key value pairs)
      * @return Map of key-value pairs
      */
-    const std::map<std::string,std::string> LuaServer::configStringTable(
+    std::map<std::string,std::string> LuaServer::configStringTable(
             const std::string &table,
             const std::string &variable,
             const std::map<std::string,std::string> &defval) {
@@ -3073,7 +3065,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         if (!lua_istable(L, -1)) {
-            throw Error(__file__, __LINE__, "Value '" + variable + "' in config file must be a table");
+            throw Error(file_, __LINE__, "Value '" + variable + "' in config file must be a table");
         }
 
         lua_pushvalue(L, -1);
@@ -3086,13 +3078,13 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                 keystr = lua_tostring(L, -1);
             }
             else {
-                throw Error(__file__, __LINE__, "Key element of '" + variable + "' in config file must be a string");
+                throw Error(file_, __LINE__, "Key element of '" + variable + "' in config file must be a string");
             }
             if (lua_isstring(L, -2)) {
                 valstr = lua_tostring(L, -2);
             }
             else {
-                throw Error(__file__, __LINE__, "Value element of '" + variable + "' in config file must be a string");
+                throw Error(file_, __LINE__, "Value element of '" + variable + "' in config file must be a string");
             }
             lua_pop(L, 2);
             subtable[keystr] = valstr;
@@ -3108,7 +3100,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      * @param routetable A table name containing route info
      * @return Route info
      */
-    const std::vector<LuaRoute> LuaServer::configRoute(const std::string routetable) {
+    std::vector<LuaRoute> LuaServer::configRoute(const std::string& routetable) {
         static struct {
             const char *name;
             int type;
@@ -3122,7 +3114,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         lua_getglobal(L, routetable.c_str());
 
         if (!lua_istable(L, -1)) {
-            throw Error(__file__, __LINE__, "Value '" + routetable + "' in config file must be a table");
+            throw Error(file_, __LINE__, "Value '" + routetable + "' in config file must be a table");
         }
 
         for (int i = 1;; i++) {
@@ -3165,7 +3157,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                         } else if (method == "OTHER") {
                             route.method = Connection::HttpMethod::OTHER;
                         } else {
-                            throw Error(__file__, __LINE__, std::string("Unknown HTTP method") + method);
+                            throw Error(file_, __LINE__, std::string("Unknown HTTP method") + method);
                         }
                         break;
                     case 1:
@@ -3197,7 +3189,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         if (!lua_istable(L, -1)) {
             //return keyvalstores;
-            throw Error(__file__, __LINE__, "Value '" + table + "' in config file must be a table");
+            throw Error(this_src_file, __LINE__, "Value '" + table + "' in config file must be a table");
         }
 
         lua_pushnil(L);
@@ -3205,7 +3197,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             const char *profile_name = lua_tostring(L, -2);
 
             if (!lua_istable(L, -1)) {
-                throw Error(__file__, __LINE__, "Value '" + std::string(profile_name) + "' in config file must be a table");
+                throw Error(this_src_file, __LINE__, "Value '" + std::string(profile_name) + "' in config file must be a table");
             }
             LuaKeyValStore kvstore;
             lua_pushnil(L);
@@ -3229,13 +3221,13 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                     std::ostringstream errStream;
                     errStream << "Table contained returned nil";
                     std::string errorMsg = errStream.str();
-                    throw Error(__file__, __LINE__, errorMsg);
+                    throw Error(this_src_file, __LINE__, errorMsg);
                 } else {
                     std::string luaTypeName = std::string(lua_typename(L, -1));
                     std::ostringstream errMsg;
                     errMsg << "Table contained a value of type " << luaTypeName
                            << ", which is not supported";
-                    throw Error(__file__, __LINE__, errMsg.str());
+                    throw Error(this_src_file, __LINE__, errMsg.str());
                 }
                 kvstore[param_name] = tmplv;
                 lua_pop(L, 1);
@@ -3255,9 +3247,9 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             if (lua_gettop(L) > 0) {
                 errorMsg = lua_tostring(L, 1);
                 lua_pop(L, 1);
-                throw Error(__file__, __LINE__, std::string("LuaServer::executeChunk failed: ") + errorMsg + ", scriptname: " + scriptname);
+                throw Error(file_, __LINE__, std::string("LuaServer::executeChunk failed: ") + errorMsg + ", scriptname: " + scriptname);
             } else {
-                throw Error(__file__, __LINE__, "LuaServer::executeChunk failed");
+                throw Error(file_, __LINE__, "LuaServer::executeChunk failed");
             }
         }
 
@@ -3302,18 +3294,18 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             std::ostringstream errStream;
             errStream << "Lua function " << funcname << " returned nil";
             std::string errorMsg = errStream.str();
-            throw Error(__file__, __LINE__, errorMsg);
+            throw Error(file_, __LINE__, errorMsg);
         } else {
             std::string luaTypeName = std::string(lua_typename(L, index));
             std::ostringstream errMsg;
             errMsg << "Lua function " << funcname << " returned a value of type " << luaTypeName
                    << ", which is not supported";
-            throw Error(__file__, __LINE__, errMsg.str());
+            throw Error(file_, __LINE__, errMsg.str());
         }
         return tmplv;
     }
 
-    static void pushLuaValue(lua_State *L, const std::shared_ptr<LuaValstruct> lv) {
+    static void pushLuaValue(lua_State *L, const std::shared_ptr<LuaValstruct>& lv) {
         switch (lv->type) {
             case LuaValstruct::INT_TYPE: {
                 lua_pushinteger(L, lv->value.i);
@@ -3343,15 +3335,15 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
     }
 
     std::vector<std::shared_ptr<LuaValstruct>>
-    LuaServer::executeLuafunction(const std::string &funcname, std::vector<std::shared_ptr<LuaValstruct>> lvs) {
+    LuaServer::executeLuafunction(const std::string &funcname, const std::vector<std::shared_ptr<LuaValstruct>>& lvs) {
         if (lua_getglobal(L, funcname.c_str()) != LUA_TFUNCTION) {
             lua_settop(L, 0); // clear stack
             std::ostringstream errMsg;
             errMsg << "LuaServer::executeLuafunction: function " << funcname << " not found";
-            throw Error(__file__, __LINE__, errMsg.str());
+            throw Error(file_, __LINE__, errMsg.str());
         }
 
-        for (auto lv : lvs) {
+        for (const auto& lv : lvs) {
             pushLuaValue(L, lv);
         }
 
@@ -3360,7 +3352,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             lua_settop(L, 0); // clear stack
             std::ostringstream errMsg;
             errMsg << "LuaServer::executeLuafunction: function " << funcname << " failed: " << luaErrorMsg;
-            throw Error(__file__, __LINE__, errMsg.str());
+            throw Error(file_, __LINE__, errMsg.str());
         }
 
         int top = lua_gettop(L);

@@ -28,12 +28,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace cserve {
-
-    /*!
-     * \brief Parsing utilities.
-     */
-    namespace Parsing {
+namespace cserve::Parsing {
         //static std::unordered_map<std::string, std::string> mimetypes; //! format (key) to mimetype (value) conversion map
 
         /*!
@@ -89,6 +84,5 @@ namespace cserve {
          */
         float parse_float(std::string &str);
     }
-}
 
 #endif //__cserve_parsing_h

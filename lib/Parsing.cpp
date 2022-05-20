@@ -29,11 +29,9 @@
 
 #include "magic.h"
 
-static const char __file__[] = __FILE__;
+static const char file_[] = __FILE__;
 
-namespace cserve {
-
-    namespace Parsing {
+namespace cserve::Parsing {
 
         static std::unordered_map <std::string, std::vector<std::string>> mimetypes = {
                 {"jpx",     {"image/jpx", "image/jp2"}},
@@ -150,7 +148,7 @@ namespace cserve {
                 } else {
                     std::ostringstream error_msg;
                     error_msg << "Could not parse MIME type: " << mimestr;
-                    throw Error(__file__, __LINE__, error_msg.str());
+                    throw Error(file_, __LINE__, error_msg.str());
                 }
 
                 // Convert MIME type and charset to lower case
@@ -161,7 +159,7 @@ namespace cserve {
             } catch (std::regex_error &e) {
                 std::ostringstream error_msg;
                 error_msg << "Regex error: " << e.what();
-                throw Error(__file__, __LINE__, error_msg.str());
+                throw Error(file_, __LINE__, error_msg.str());
             }
         }
         //=============================================================================================================
@@ -169,21 +167,22 @@ namespace cserve {
         std::pair <std::string,std::string> getFileMimetype(const std::string &fpath) {
             magic_t handle;
             if ((handle = magic_open(MAGIC_MIME | MAGIC_PRESERVE_ATIME)) == nullptr) {
-                throw Error(__file__, __LINE__, magic_error(handle));
+                throw Error(file_, __LINE__, magic_error(handle));
             }
 
             if (magic_load(handle, nullptr) != 0) {
-                throw Error(__file__, __LINE__, magic_error(handle));
+                throw Error(file_, __LINE__, magic_error(handle));
             }
 
             std::string mimestr(magic_file(handle, fpath.c_str()));
+            magic_close(handle);
             return parseMimetype(mimestr);
         }
         //=============================================================================================================
 
         std::string getBestFileMimetype(const std::string &fpath) {
             std::string mimetype = getFileMimetype(fpath).first;
-            size_t dot_pos = fpath.find_last_of(".");
+            size_t dot_pos = fpath.find_last_of('.');
             if (dot_pos != std::string::npos) {
                 std::string extension = fpath.substr(dot_pos + 1);
                 std::vector<std::string> mimes_from_extension;
@@ -198,7 +197,7 @@ namespace cserve {
                 // wrong!)
                 //
                 bool found = false;
-                for (const auto mt: mimes_from_extension) {
+                for (const auto& mt: mimes_from_extension) {
                     if (mt == mimetype) { found = true; break; }
                 }
                 if (found) {
@@ -224,11 +223,11 @@ namespace cserve {
                 //
                 // first we get the possible mimetypes associated with the given filename extension
                 //
-                size_t dot_pos = filename.find_last_of(".");
+                size_t dot_pos = filename.find_last_of('.');
                 if (dot_pos == std::string::npos) {
                     std::stringstream ss;
                     ss << "Invalid filename without extension: \"" << filename << "\"";
-                    throw Error(__file__, __LINE__, ss.str());
+                    throw Error(file_, __LINE__, ss.str());
                 }
                 std::string extension = filename.substr(dot_pos + 1);
                 // convert file extension to lower case (uppercase letters in file extension have to be converted for
@@ -245,7 +244,7 @@ namespace cserve {
                 // now we test if the mimetype given given by the magic number corresponds to a valid mimetype for this extension
                 //
                 bool got1 = false;
-                for (const auto mt: mime_from_extension) {
+                for (const auto& mt: mime_from_extension) {
                     if (mt == actual_mimetype.first) { got1 = true; break; }
                 }
                 if (!got1) return false;
@@ -255,7 +254,7 @@ namespace cserve {
                     // now we test if the expected mimetype corresponds to a valid mimetype for this extension
                     //
                     bool got2 = false;
-                    for (const auto mt: mime_from_extension) {
+                    for (const auto& mt: mime_from_extension) {
                         if (mt == given_mimetype) { got2 = true; break; }
                     }
                     if (!got2) return false;
@@ -263,7 +262,7 @@ namespace cserve {
             } catch (std::out_of_range &e) {
                 std::stringstream ss;
                 ss << "Unsupported file type: \"" << filename << "\"";
-                throw cserve::Error(__file__, __LINE__, ss.str());
+                throw cserve::Error(file_, __LINE__, ss.str());
             }
 
             return true;
@@ -285,12 +284,12 @@ namespace cserve {
                 } else {
                     std::ostringstream error_msg;
                     error_msg << "Could not parse integer: " << str;
-                    throw Error(__file__, __LINE__, error_msg.str());
+                    throw Error(file_, __LINE__, error_msg.str());
                 }
             } catch (std::regex_error &e) {
                 std::ostringstream error_msg;
                 error_msg << "Regex error: " << e.what();
-                throw Error(__file__, __LINE__, error_msg.str());
+                throw Error(file_, __LINE__, error_msg.str());
             }
         }
         //=============================================================================================================
@@ -310,15 +309,14 @@ namespace cserve {
                 } else {
                     std::ostringstream error_msg;
                     error_msg << "Could not parse floating-point number: " << str;
-                    throw Error(__file__, __LINE__, error_msg.str());
+                    throw Error(file_, __LINE__, error_msg.str());
                 }
             } catch (std::regex_error &e) {
                 std::ostringstream error_msg;
                 error_msg << "Regex error: " << e.what();
-                throw Error(__file__, __LINE__, error_msg.str());
+                throw Error(file_, __LINE__, error_msg.str());
             }
         }
         //=============================================================================================================
 
     }
-}

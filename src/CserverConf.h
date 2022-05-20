@@ -12,7 +12,7 @@
 
 #include <LuaServer.h>
 
-extern size_t data_volume(const std::string volstr);
+extern size_t data_volume(std::string volstr);
 
 //void cserverConfGlobals(lua_State *L, void *user_data);
 
@@ -60,13 +60,13 @@ public:
      *
      * @return 0 on success, non-zero on failure
      */
-    inline bool serverconf_ok() { return _serverconf_ok; }
+    [[nodiscard]] inline bool serverconf_ok() const { return _serverconf_ok; }
 
     inline void userid(const std::string &userid) { _userid = userid; }
     inline std::string userid() { return _userid; }
 
     inline void port(int port) { _port = port; }
-    inline int port() { return _port; }
+    [[nodiscard]] inline int port() const { return _port; }
 
     inline void ssl_certificate(const std::string &ssl_certificate) { _ssl_certificate = ssl_certificate; }
     inline std::string ssl_certificate() { return _ssl_certificate; }
@@ -77,10 +77,10 @@ public:
     inline void jwt_secret(const std::string &jwt_secret) { _jwt_secret = jwt_secret; }
     inline std::string jwt_secret() { return _jwt_secret; }
     inline void ssl_port(int ssl_port) { _ssl_port = ssl_port; }
-    inline int ssl_port() { return _ssl_port; }
+    [[nodiscard]] inline int ssl_port() const { return _ssl_port; }
 
     inline void nthreads(int nthreads) { _nthreads = nthreads; }
-    inline int nthreads() { return _nthreads; }
+    [[nodiscard]] inline int nthreads() const { return _nthreads; }
 
     inline void docroot(const std::string &docroot) { _docroot = docroot; }
     inline std::string docroot() { return _docroot; }
@@ -100,11 +100,11 @@ public:
     inline std::pair <std::string, std::string> filehandler_info() { return _filehandler_info; }
 
     inline void keep_alive(int keep_alive) { _keep_alive = keep_alive; }
-    inline int keep_alive() { return _keep_alive; }
+    [[nodiscard]] inline int keep_alive() const { return _keep_alive; }
 
     inline void max_post_size(size_t max_post_size) { _max_post_size = max_post_size; }
     inline void max_post_size(const std::string &max_post_size) { _max_post_size = data_volume(max_post_size); }
-    inline size_t max_post_size() { return _max_post_size; }
+    [[nodiscard]] inline size_t max_post_size() const { return _max_post_size; }
 
     inline void initscript(const std::string &initscript) { _initscript = initscript; }
     inline std::string initscript() { return _initscript; }
