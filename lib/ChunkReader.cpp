@@ -7,22 +7,16 @@
 #include <regex>
 #include <iomanip>
 #include <sstream>
-#include <iostream>
 #include <string>
-#include <cstring>      // Needed for memset
-#include <netinet/in.h>
-#include <unistd.h>    //write
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/stat.h>
+#include <cstdio>
+#include <cstdlib>
+
 
 #include "Error.h"
 #include "Connection.h"
 #include "ChunkReader.h"
 
-static const char __file__[] = __FILE__;
+static const char file_[] = __FILE__;
 
 using namespace std;
 
@@ -34,7 +28,7 @@ namespace cserve {
     };
     //=========================================================================
 
-    size_t ChunkReader::read_chunk(istream &ins, char **buf, size_t offs) {
+    size_t ChunkReader::read_chunk(istream &ins, char **buf, size_t offs) const {
         string line;
         (void) safeGetline(ins, line, max_headerline_len); // read chunk size
 
@@ -47,7 +41,7 @@ namespace cserve {
         try {
             n = stoul(line, 0, 16);
         } catch (const std::invalid_argument &ia) {
-            throw Error(__file__, __LINE__, ia.what());
+            throw Error(file_, __LINE__, ia.what());
         }
 
         //
@@ -56,18 +50,18 @@ namespace cserve {
         if ((post_maxsize > 0) && (n > post_maxsize)) {
             stringstream ss;
             ss << "Chunksize (" << n << ") to big (maxsize=" << post_maxsize << ")";
-            throw Error(__file__, __LINE__, ss.str());
+            throw Error(file_, __LINE__, ss.str());
         }
 
         if (n == 0) return 0;
 
         if (*buf == nullptr) {
             if ((*buf = (char *) malloc((n + 1) * sizeof(char))) == nullptr) {
-                throw Error(__file__, __LINE__, "malloc failed", errno);
+                throw Error(file_, __LINE__, "malloc failed", errno);
             }
         } else {
             if ((*buf = (char *) realloc(*buf, (offs + n + 1) * sizeof(char))) == nullptr) {
-                throw Error(__file__, __LINE__, "realloc failed", errno);
+                throw Error(file_, __LINE__, "realloc failed", errno);
             }
         }
 
@@ -100,7 +94,7 @@ namespace cserve {
             if ((post_maxsize > 0) && (nbytes > post_maxsize)) {
                 stringstream ss;
                 ss << "Chunksize (" << nbytes << ") to big (maxsize=" << post_maxsize << ")";
-                throw Error(__file__, __LINE__, ss.str());
+                throw Error(file_, __LINE__, ss.str());
             }
         }
 
@@ -124,7 +118,7 @@ namespace cserve {
                 try {
                     chunk_size = stoul(line, 0, 16);
                 } catch (const std::invalid_argument &ia) {
-                    throw Error(__file__, __LINE__, ia.what());
+                    throw Error(file_, __LINE__, ia.what());
                 }
 
                 //
@@ -133,7 +127,7 @@ namespace cserve {
                 if ((post_maxsize > 0) && (chunk_size > post_maxsize)) {
                     stringstream ss;
                     ss << "Chunksize (" << chunk_size << ") to big (maxsize=" << post_maxsize << ")";
-                    throw Error(__file__, __LINE__, ss.str());
+                    throw Error(file_, __LINE__, ss.str());
                 }
 
                 if (chunk_size == 0) {
@@ -190,7 +184,7 @@ namespace cserve {
     }
     //=========================================================================
 
-    int ChunkReader::getc(void) {
+    int ChunkReader::getc() {
         if (chunk_pos >= chunk_size) {
             string line;
             (void) safeGetline(*ins, line, max_headerline_len); // read the size of the new chunk
@@ -200,9 +194,9 @@ namespace cserve {
             }
 
             try {
-                chunk_size = stoul(line, 0, 16);
+                chunk_size = stoul(line, nullptr, 16);
             } catch (const std::invalid_argument &ia) {
-                throw Error(__file__, __LINE__, ia.what() + line);
+                throw Error(file_, __LINE__, ia.what() + line);
             }
 
             //
@@ -211,7 +205,7 @@ namespace cserve {
             if ((post_maxsize > 0) && (chunk_size > post_maxsize)) {
                 stringstream ss;
                 ss << "Chunksize (" << chunk_size << ") to big (maxsize=" << post_maxsize << ")";
-                throw Error(__file__, __LINE__, ss.str());
+                throw Error(file_, __LINE__, ss.str());
             }
 
             if (chunk_size == 0) {

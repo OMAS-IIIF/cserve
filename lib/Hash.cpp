@@ -22,13 +22,9 @@
 */
 
 #include <iomanip>
-#include <iostream>
 #include <sstream>
-#include <string>
 
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/uio.h>
 #include <unistd.h>
 
 #include "Error.h"
@@ -37,21 +33,18 @@
 
 using namespace std;
 
-static const char __file__[] = __FILE__;
+static const char file_[] = __FILE__;
 
 namespace cserve {
 
     Hash::Hash(HashType type) {
         context = EVP_MD_CTX_create();
         if (context == nullptr) {
-            throw Error(__file__, __LINE__, "EVP_MD_CTX_create failed!");
+            throw Error(file_, __LINE__, "EVP_MD_CTX_create failed!");
         }
         int status;
         switch (type) {
-            case none: {
-                status = EVP_DigestInit_ex(context, EVP_md5(), nullptr);
-                break;
-            }
+            case none:
             case md5: {
                 status = EVP_DigestInit_ex(context, EVP_md5(), nullptr);
                 break;
@@ -75,7 +68,7 @@ namespace cserve {
         }
         if (status != 1) {
             EVP_MD_CTX_destroy(context);
-            throw Error(__file__, __LINE__, "EVP_DigestInit_ex failed!");
+            throw Error(file_, __LINE__, "EVP_DigestInit_ex failed!");
         }
     }
     //==========================================================================
@@ -124,7 +117,7 @@ namespace cserve {
     }
     //==========================================================================
 
-    string Hash::hash(void) {
+    string Hash::hash() {
         unsigned char hash[EVP_MAX_MD_SIZE];
         unsigned int lengthOfHash = 0;
         string hashstr;

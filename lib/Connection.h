@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <utility>
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
@@ -32,7 +33,7 @@ namespace cserve {
      *
      * \returns A pair of strings
      */
-    extern std::pair<std::string, std::string> strsplit(const std::string &str, const char c);
+    extern std::pair<std::string, std::string> strsplit(const std::string &str, char c);
 
     /*!
      * Function to read a line from the HTTP stream which is terminated by either
@@ -118,12 +119,13 @@ namespace cserve {
          * \param[in] name_p Name of the cookie
          * \param[in] value_p Value of the Cookie
          */
-        inline Cookie(const std::string &name_p, const std::string value_p) : _name(name_p), _value(value_p) {}
+        inline Cookie(std::string name_p, const std::string value_p) :
+        _name(std::move(name_p)), _value(value_p), _secure(true), _http_only(false){}
 
         /*!
          * Getter for the name
          */
-        inline std::string name(void) const { return _name; }
+        [[nodiscard]] inline std::string name() const { return _name; }
 
         /*!
          * Setter for the name
@@ -132,34 +134,34 @@ namespace cserve {
          */
         inline void name(const std::string &name_p) { _name = name_p; }
 
-        inline std::string value(void) const { return _value; }
+        [[nodiscard]] inline std::string value() const { return _value; }
 
         inline void value(const std::string &value_p) { _value = value_p; }
 
-        inline std::string path(void) const { return _path; }
+        [[nodiscard]] inline std::string path() const { return _path; }
 
         inline void path(const std::string &path_p) { _path = path_p; }
 
-        inline std::string domain(void) const { return _domain; }
+        [[nodiscard]] inline std::string domain() const { return _domain; }
 
         inline void domain(const std::string &domain_p) { _domain = domain_p; }
 
-        inline std::string expires(void) const { return _expires; }
+        [[nodiscard]] inline std::string expires() const { return _expires; }
 
         inline void expires(int seconds_from_now = 0) {
             char buf[100];
-            time_t now = time(0);
+            time_t now = time(nullptr);
             now += seconds_from_now;
             struct tm tm = *gmtime(&now);
             strftime(buf, sizeof buf, "%a, %d %b %Y %H:%M:%S %Z", &tm);
             _expires = buf;
         }
 
-        inline bool secure(void) const { return _secure; }
+        [[nodiscard]] inline bool secure() const { return _secure; }
 
         inline void secure(bool secure_p) { _secure = secure_p; }
 
-        inline bool httpOnly(void) const { return _http_only; }
+        [[nodiscard]] inline bool httpOnly() const { return _http_only; }
 
         inline void httpOnly(bool http_only_p) { _http_only = http_only_p; }
     };
@@ -286,7 +288,7 @@ namespace cserve {
     private:
         Server *_server;          //!< Pointer to the server class
         std::string _peer_ip;     //!< IP number of client (peer)
-        int _peer_port;           //!< Port of peer/client
+        int _peer_port{};           //!< Port of peer/client
         std::string http_version; //!< Holds the HTTP version of the request
         bool _secure;             //!< true if SSL used
         HttpMethod _method;       //!< request method
@@ -317,7 +319,7 @@ namespace cserve {
         char *outbuf;               //!< If not NULL, pointer to the output buffer (buffered output used)
         size_t outbuf_size;         //!< Actual size of output buffer
         size_t outbuf_inc;          //!< Increment of outbuf buffer if it has to be enlarged
-        size_t outbuf_nbytes;       //!< number of bytes used so far in output buffer
+        size_t outbuf_nbytes{};       //!< number of bytes used so far in output buffer
         bool _reset_connection;     //!< true, if connection should be reset (e.g. cors)
 
         /*!
@@ -350,7 +352,7 @@ namespace cserve {
         /*!
          * Default constructor creates empty connection that cannot be used for anything
          */
-        Connection(void);
+        Connection();
 
         /*!
          * Constructor of a connection
@@ -380,19 +382,19 @@ namespace cserve {
         ~Connection();
 
 
-        inline bool finished() { return _finished; } // TODO: Temporary for debugging!!
+        [[nodiscard]] inline bool finished() const { return _finished; } // TODO: Temporary for debugging!!
 
         /*!
          * Get the server
          */
-        inline Server *server(void) { return _server; }
+        inline Server *server() { return _server; }
 
         /*!
          * Get the ip of the peer/client
          *
          * \returns String with peer IP (either IP4 or IP6)
          */
-        inline std::string peer_ip(void) { return _peer_ip; }
+        inline std::string peer_ip() { return _peer_ip; }
 
         /*!
          * Set ip of peer
@@ -406,7 +408,7 @@ namespace cserve {
          *
          * \returns Port number of peer
          */
-        inline int peer_port(void) { return _peer_port; }
+        [[nodiscard]] inline int peer_port() const { return _peer_port; }
 
         /*!
          * Set port of peer
@@ -419,7 +421,7 @@ namespace cserve {
         /*!
          * Return true if a secure (SSL) connection is used
          */
-        inline bool secure(void) { return _secure; }
+        [[nodiscard]] inline bool secure() const { return _secure; }
 
         /*!
          * Set the secure connection status
@@ -452,7 +454,7 @@ namespace cserve {
          *
          * \returns Keep alive status as boolean
          */
-        inline bool keepAlive(void) { return _keep_alive; }
+        [[nodiscard]] inline bool keepAlive() const { return _keep_alive; }
 
         inline void keepAlive(bool keep_alive_p) { _keep_alive = keep_alive_p; }
 
@@ -477,7 +479,7 @@ namespace cserve {
          *
          * \returns keep alive timeout in seconds
          */
-        inline int keepAliveTimeout(void) { return _keep_alive_timeout; }
+        [[nodiscard]] inline int keepAliveTimeout() const { return _keep_alive_timeout; }
 
         /*!
          * Sets the response status code
@@ -485,14 +487,14 @@ namespace cserve {
          * \param[in] status_code_p Status code as defined in \typedef StatusCodes
          * \param[in] status_string_p Additional status code description that is added
          */
-        void status(StatusCodes status_code_p, const std::string status_string_p = "");
+        void status(StatusCodes status_code_p, const std::string& status_string_p = "");
 
         /*!
          * Returns a list of all header fields in the request as std::vector
          *
          * \returns List of all request header fields as std::vector
          */
-        std::vector<std::string> header(void);
+        std::vector<std::string> header();
 
         /*!
          * Returns the value of the given header field. If the field does not
@@ -514,7 +516,7 @@ namespace cserve {
          * \param name Name of the header field
          * \param Value of the header field
          */
-        void header(std::string name, std::string value);
+        void header(const std::string& name, std::string value);
 
         /*!
          * Send the CORS header with the given origin
@@ -533,7 +535,7 @@ namespace cserve {
         /*!
          * Returns a unordered_map of cookies
          */
-        inline std::unordered_map<std::string, std::string> cookies(void) { return _cookies; };
+        inline std::unordered_map<std::string, std::string> cookies() { return _cookies; };
 
         /*!
          * Set a cookie
@@ -547,7 +549,7 @@ namespace cserve {
          *
          * \returns path of temporary directory
          */
-        inline std::string tmpdir(void) { return _tmpdir; }
+        inline std::string tmpdir() { return _tmpdir; }
 
         /*!
          * setting the directory for temporary files
@@ -561,7 +563,7 @@ namespace cserve {
          *
          * \returns List of get parameter names as std::vector
          */
-        std::vector<std::string> getParams(void);
+        std::vector<std::string> getParams();
 
         /*!
          * Return the given get value. If the get parameter does not
@@ -576,7 +578,7 @@ namespace cserve {
          *
          * \returns List of post parameter names as std::vector
          */
-        std::vector<std::string> postParams(void);
+        std::vector<std::string> postParams();
 
         /*!
          * Return the given post value. If the post parameter does not
@@ -596,7 +598,7 @@ namespace cserve {
         /*!
          * Remove all files that have been uploaded from the temporary directory
          */
-        bool cleanupUploads(void);
+        bool cleanupUploads();
 
 
         /*!
@@ -606,7 +608,7 @@ namespace cserve {
          *
          * \returns List of post parameter names as std::vector
          */
-        std::vector<std::string> requestParams(void);
+        std::vector<std::string> requestParams();
 
         /*!
          * Return the given request value. Request parameters
@@ -626,28 +628,28 @@ namespace cserve {
          * \param[in] valstr String to be parsed
          * \returns Vector of options
          */
-        std::vector<std::string> process_header_value(const std::string &valstr);
+        static std::vector<std::string> process_header_value(const std::string &valstr);
 
         /*!
          * Returns the content length from PUT and DELETE requests
          *
          * \returns Content length
          */
-        inline size_t contentLength(void) { return content_length; }
+        [[nodiscard]] inline size_t contentLength() const { return content_length; }
 
         /*!
          *  Get the content from PUT and DELETE requests
          *
          *  \returns Content as pointer to char
          */
-        inline const char *content(void) const { return _content; }
+        [[nodiscard]] inline const char *content() const { return _content; }
 
         /*!
          * Get the content type for PUT and DELETE requests
          *
          * \returns Content type as string
          */
-        inline std::string contentType(void) { return _content_type; }
+        inline std::string contentType() { return _content_type; }
 
         /*!
          * Add a Content-Length header. This method is used to add the size of the
@@ -666,7 +668,7 @@ namespace cserve {
          */
         void setBuffer(size_t buf_size = 8912, size_t buf_inc = 8912);
 
-        inline bool isBuffered(void) { return (outbuf != nullptr); }
+        inline bool isBuffered() { return (outbuf != nullptr); }
 
         /*!
          * Set the transfer mode for the response to chunked
@@ -683,7 +685,7 @@ namespace cserve {
         /*!
          * close cache file
          */
-        void closeCacheFile(void);
+        void closeCacheFile();
 
         /*!
          * test if a cachefile is open for writing...
@@ -730,7 +732,7 @@ namespace cserve {
          *
          * \param[in] path Path to the file
          */
-        void sendFile(const std::string &path, const size_t bufsize = 8192, size_t from = 0, size_t to = 0);
+        void sendFile(const std::string &path, size_t bufsize = 8192, size_t from = 0, size_t to = 0);
 
         /*!
         * Send the given string to the output. Uses \method send
@@ -763,12 +765,12 @@ namespace cserve {
         /*!
          * Sends the header and all data available.
          */
-        void flush(void);
+        void flush();
 
         /*!
          * Flags the connection to be reset
          */
-        inline bool resetConnection(void) { return _reset_connection; }
+        [[nodiscard]] inline bool resetConnection() const { return _reset_connection; }
     };
 
 }

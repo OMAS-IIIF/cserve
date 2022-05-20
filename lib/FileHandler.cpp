@@ -60,7 +60,7 @@ namespace cserve {
             return;
         }
 
-        struct stat s;
+        struct stat s{};
 
         if (stat(infile.c_str(), &s) == 0) {
             if (!(s.st_mode & S_IFREG)) { // we have not a regular file, do nothing!
@@ -182,7 +182,7 @@ namespace cserve {
                 //
                 // first we get the filesize and time using fstat
                 //
-                struct stat fstatbuf;
+                struct stat fstatbuf{};
 
                 if (stat(infile.c_str(), &fstatbuf) != 0) {
                     throw Error(__file__, __LINE__, "Cannot fstat file!");
@@ -210,7 +210,7 @@ namespace cserve {
                     //
                     // now we parse the range
                     //
-                    std::regex re("bytes=\\s*(\\d+)-(\\d*)[\\D.*]?");
+                    std::regex re(R"(bytes=\s*(\d+)-(\d*)[\D.*]?)");
                     std::cmatch m;
                     int start = 0; // lets assume beginning of file
                     int end = fsize - 1; // lets assume whole file

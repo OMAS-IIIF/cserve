@@ -152,7 +152,7 @@ namespace cserve {
             inline SSLError(const char *file, const int line, const std::string &msg, SSL *cSSL_p = nullptr) : Error(
                     file, line, msg), cSSL(cSSL_p) {};
 
-            inline std::string to_string(void) {
+            inline std::string to_string() {
                 std::stringstream ss;
                 ss << "SSL-ERROR at [" << file << ": " << line << "] ";
                 BIO *bio = BIO_new(BIO_s_mem());
@@ -169,30 +169,6 @@ namespace cserve {
         };
 
     public:
-        /*!
-        * Used to send a message between main thread and worker threads. A pipe is
-        * used and the worker theads use poll to detect an incoming message.
-        */
-        class CommMsg {
-        public:
-
-            static inline int send(int pipe_id) {
-                if ((::send(pipe_id, "X", 1, 0)) != 1) {
-                    return -1;
-                }
-                return 0;
-            };
-
-            static inline int read(int pipe_id) {
-                char c;
-                if (::read(pipe_id, &c, 1) != 1) {
-                    return -1;
-                }
-                return 0;
-            };
-        };
-        //=========================================================================
-
         static std::string _loggername; //!< global logger name
         static std::shared_ptr<spdlog::logger> _logger; //!< shared pointer to logger
 
@@ -233,9 +209,9 @@ namespace cserve {
         * \param[in] port_p Listening port of HTTP server
         * \param[in] nthreads_p Maximal number of parallel threads serving the requests
         */
-        Server(int port,
-               unsigned nthreads = 4,
-               const std::string &userid_str = "");
+        explicit Server(int port,
+                        unsigned nthreads = 4,
+                        const std::string &userid_str = "");
 
         inline static void loggername(const std::string &loggername) { _loggername = loggername; }
 
@@ -245,9 +221,9 @@ namespace cserve {
                                                              bool consolelog = true,
                                                              const std::string &logfile = "");
 
-        static std::shared_ptr<spdlog::logger> logger();
+        static std::shared_ptr<spdlog::logger> logger(spdlog::level::level_enum level = spdlog::level::debug);
 
-        inline int port(void) { return _port; }
+        inline int port() const { return _port; }
 
 
         /*!
@@ -262,7 +238,7 @@ namespace cserve {
          *
          * \returns SSL socket portnumber
          */
-        inline int ssl_port(void) { return _ssl_port; }
+        inline int ssl_port() const { return _ssl_port; }
 
         /*!
          * Sets the file path to the SSL certficate necessary for OpenSSL to work
@@ -276,7 +252,7 @@ namespace cserve {
          *
          * \returns Path to the SSL certificate
          */
-        inline std::string ssl_certificate(void) { return _ssl_certificate; }
+        inline std::string ssl_certificate() { return _ssl_certificate; }
 
         /*!
          * Sets the path to the SSP key
@@ -290,7 +266,7 @@ namespace cserve {
          *
          * \returns Path to the OpenSSL key
          */
-        inline std::string ssl_key(void) { return _ssl_key; }
+        inline std::string ssl_key() { return _ssl_key; }
 
         /*!
          * Sets the secret for the generation JWT's (JSON Web Token). It must be a string
@@ -305,21 +281,21 @@ namespace cserve {
          *
          * \returns String of length 32 with the secret used for JWT's
          */
-        inline std::string jwt_secret(void) { return _jwt_secret; }
+        inline std::string jwt_secret() { return _jwt_secret; }
 
         /*!
          * Returns the maximum number of parallel threads allowed
          *
          * \returns Number of parallel threads allowed
          */
-        inline unsigned nthreads(void) { return _nthreads; }
+        [[nodiscard]] inline unsigned nthreads() const { return _nthreads; }
 
         /*!
          * Return the path where to store temporary files (for uploads)
          *
          * \returns Path to directory for temporary files
          */
-        inline std::string tmpdir(void) { return _tmpdir; }
+        inline std::string tmpdir() { return _tmpdir; }
 
         /*!
          * set the path to the  directory where to store temporary files during uploads
@@ -333,7 +309,7 @@ namespace cserve {
         *
         * \returns Path to directory for script directory
         */
-        inline std::string scriptdir(void) { return _scriptdir; }
+        inline std::string scriptdir() { return _scriptdir; }
 
         /*!
          * set the path to the  directory where to store temporary files during uploads
@@ -347,7 +323,7 @@ namespace cserve {
          *
          * \returns Actual maximal size of  post request
          */
-        inline size_t max_post_size(void) { return _max_post_size; }
+        [[nodiscard]] inline size_t max_post_size() const { return _max_post_size; }
 
         /*!
          * Set the maximal size of a post request
@@ -361,7 +337,7 @@ namespace cserve {
         *
         * \returns Vector of Lua route infos
         */
-        inline std::vector<cserve::LuaRoute> luaRoutes(void) { return _lua_routes; }
+        inline std::vector<cserve::LuaRoute> luaRoutes() { return _lua_routes; }
 
         /*!
          * set the routes that should be handled by Lua scripts
@@ -387,21 +363,8 @@ namespace cserve {
          *
          * \returns Keep alive timeout in seconds
          */
-        inline int keep_alive_timeout(void) { return _keep_alive_timeout; }
+        [[nodiscard]] inline int keep_alive_timeout() const { return _keep_alive_timeout; }
 
-        /*
-        void add_thread(pthread_t thread_id_p, int commpipe_write_p, int sock_id);
-
-        void thread_push(pthread_t thread_id_p, int commpipe_write_p, int sock_id, SSL *cSSL);
-
-        int get_thread_sock(pthread_t thread_id_p);
-
-        int get_thread_pipe(pthread_t thread_id_p);
-
-        SSL *get_thread_ssl(pthread_t thread_id_p);
-
-        void remove_thread(pthread_t thread_id_p);
-*/
         /*!
          * Sets the path to the initialization script (lua script) which is executed for each request
          *
@@ -464,7 +427,7 @@ namespace cserve {
         /*!
         * Return the user data that has been added previously
         */
-        inline void *user_data(void) { return _user_data; }
+        inline void *user_data() { return _user_data; }
 
         /*!
         * Add a pointer to user data which will be made available to the handler
@@ -473,14 +436,14 @@ namespace cserve {
         */
         inline void user_data(void *user_data_p) { _user_data = user_data_p; }
 
-        static void debugmsg(const int line, const std::string &msg);
+        static void debugmsg(int line, const std::string &msg);
 
         /*!
          * Stop the server gracefully (all destructors are called etc.) and the
          * cache file is updated. This function is asynchronous-safe, so it may be called
          * from within a signal handler.
          */
-        inline void stop(void) {
+        inline void stop() {
             // POSIX declares write() to be asynchronous-safe.
             // See https://www.securecoding.cert.org/confluence/display/c/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers
             SocketControl::SocketInfo sockid(SocketControl::EXIT, SocketControl::STOP_SOCKET);

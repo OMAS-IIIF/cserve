@@ -33,4 +33,4 @@ namespace cserve {
     extern void sqliteGlobals(lua_State *L, cserve::Connection &conn, void *user_data);
 };
 
-#endif //SIPI_LUASQLITE_H
+#endif //CSERVE_LUASQLITE_H

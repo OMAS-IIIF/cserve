@@ -48,7 +48,7 @@ namespace cserve {
         size_t chunk_pos;
         size_t post_maxsize;
 
-        size_t read_chunk(std::istream &ins, char **buf, size_t offs = 0);
+        size_t read_chunk(std::istream &ins, char **buf, size_t offs = 0) const;
 
     public:
         /*!
@@ -59,7 +59,7 @@ namespace cserve {
          *            If the chunk or total data is bigger, an cserve::Error is thrown!
          *            IF post_maxsize_p is 0 (default), there is no limit.
          */
-        ChunkReader(std::istream *ins_p, size_t post_maxsize_p = 0);
+        explicit ChunkReader(std::istream *ins_p, size_t post_maxsize_p = 0);
 
         /*!
          * Read all chunks and return the data in the buffer
@@ -92,7 +92,7 @@ namespace cserve {
          *
          * \returns The next byte or EOF, if the end of the HTTP data is reached
          */
-        int getc(void);
+        int getc();
     };
 
 }

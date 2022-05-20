@@ -50,6 +50,7 @@ SockStream::SockStream(int sock_p,
     setg(end, end, end);
 
     out_buf = new char[out_bufsize];
+    memset(out_buf, 0, out_bufsize);
     setp(out_buf, out_buf + out_bufsize);
 }
 
@@ -68,6 +69,7 @@ SockStream::SockStream(SSL *cSSL_p,
     setg(end, end, end);
 
     out_buf = new char[out_bufsize];
+    memset(out_buf, 0, out_bufsize);
     setp(out_buf, out_buf + out_bufsize);
 }
 
@@ -77,7 +79,7 @@ SockStream::~SockStream() {
     delete[] out_buf;
 }
 
-streambuf::int_type SockStream::underflow(void) {
+streambuf::int_type SockStream::underflow() {
     if (gptr() < egptr()) {
         return traits_type::to_int_type(*gptr());
     }
@@ -146,7 +148,7 @@ streambuf::int_type SockStream::overflow(streambuf::int_type ch) {
     return ch;
 }
 
-int SockStream::sync(void) {
+int SockStream::sync() {
     std::ptrdiff_t n = pptr() - out_buf;
     size_t nn = 0;
 

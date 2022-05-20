@@ -156,22 +156,22 @@ namespace cserve {
         void createGlobals(Connection &conn);
 
 
-        std::string configString(const std::string table, const std::string variable, const std::string defval);
+        std::string configString(const std::string& table, const std::string& variable, const std::string& defval);
 
-        bool configBoolean(const std::string table, const std::string variable, const bool defval);
+        bool configBoolean(const std::string& table, const std::string& variable, bool defval);
 
-        int configInteger(const std::string table, const std::string variable, const int defval);
+        int configInteger(const std::string& table, const std::string& variable, int defval);
 
-        float configFloat(const std::string table, const std::string variable, const float defval);
+        float configFloat(const std::string& table, const std::string& variable, float defval);
 
-        const std::vector<std::string> configStringList(const std::string table, const std::string stringlist);
+        std::vector<std::string> configStringList(const std::string& table, const std::string& stringlist);
 
-        const std::map<std::string,std::string> configStringTable(
+        std::map<std::string,std::string> configStringTable(
                 const std::string &table,
                 const std::string &variable,
                 const std::map<std::string,std::string> &defval);
 
-        const std::vector<LuaRoute> configRoute(const std::string routetable);
+        std::vector<LuaRoute> configRoute(const std::string& routetable);
 
         const std::map<std::string,LuaKeyValStore> configKeyValueStores(const std::string table);
         /*!
@@ -190,7 +190,7 @@ namespace cserve {
          * \param[in] lvals vector of parameters to be passed to the function
          * \returns vector of LuaValstruct containing the result of the execution of the lua function
          */
-        std::vector<std::shared_ptr<LuaValstruct>> executeLuafunction(const std::string &funcname, std::vector<std::shared_ptr<LuaValstruct>> lvals);
+        std::vector<std::shared_ptr<LuaValstruct>> executeLuafunction(const std::string &funcname, const std::vector<std::shared_ptr<LuaValstruct>>& lvals);
 
         /*!
          * Executes a Lua function that either is defined in C or in Lua

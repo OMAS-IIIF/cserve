@@ -49,7 +49,7 @@ namespace cserve {
     }
     //============================================================================
 
-    std::string Error::to_string(void) const {
+    std::string Error::to_string() const {
         std::ostringstream err_stream;
         err_stream << "Error at [" << file << ": " << line << "]";
         if (sysErrno != 0) err_stream << " (system error: " << std::strerror(sysErrno) << ")";
