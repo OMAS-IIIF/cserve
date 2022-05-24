@@ -319,7 +319,7 @@ void Connection::process_header() {
                     _keep_alive_timeout = stoi(opts["timeout"]);
                 }
             } else if (name == "content-length") {
-                content_length = static_cast<size_t>(stoll(value));
+                content_length = static_cast<std::streamsize>(stoll(value));
             } else if (name == "transfer-encoding") {
                 if (value == "chunked") {
                     _chunked_transfer_in = true;
@@ -390,8 +390,8 @@ Connection::Connection() {
 
 
 Connection::Connection(Server *server_p, std::istream *ins_p, std::ostream *os_p, string tmpdir_p,
-                       size_t buf_size, size_t buf_inc) : ins(ins_p), os(os_p), _tmpdir(std::move(tmpdir_p)),
-                                                          outbuf_size(buf_size), outbuf_inc(buf_inc) {
+                       std::streamsize buf_size, std::streamsize buf_inc) : ins(ins_p), os(os_p), _tmpdir(std::move(tmpdir_p)),
+                       outbuf_size(buf_size), outbuf_inc(buf_inc) {
     _server = server_p;
     _secure = false;
     cachefile = nullptr;
@@ -1382,7 +1382,6 @@ void Connection::send(const void *buffer, std::streamsize n) {
     }
 }
 //=============================================================================
-
 
 void Connection::sendAndFlush(const void *buffer, std::streamsize n) {
     if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");

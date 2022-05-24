@@ -325,26 +325,26 @@ namespace cserve {
         std::unordered_map<std::string, std::string> header_out;     //!< Output header fields
         std::unordered_map<std::string, std::string> _cookies;       //!< Incoming cookies
         std::vector<UploadedFile> _uploads;               //!< Upoaded files
-        std::istream *ins;          //!< incoming data stream
-        std::ostream *os;           //!< outgoing data stream
-        std::string _tmpdir;        //!< directory used to temporary storage of files (e.g. uploads)
-        StatusCodes status_code;    //!< Status code of response
-        std::string status_string;  //!< Short description of status code
-        bool header_sent;           //!< True if header already sent
-        bool _keep_alive;           //!< if true, don't close the socket after the request
-        int _keep_alive_timeout;    //!< timeout for connection
-        bool _chunked_transfer_in;  //!< Input data is chunked
-        bool _chunked_transfer_out; //!< output data is sent in chunks
-        bool _finished;             //!< Transfer of response data finished
-        char *_content;             //!< Content if content-type is "text/plain", "application/json" etc.
+        std::istream *ins;              //!< incoming data stream
+        std::ostream *os;               //!< outgoing data stream
+        std::string _tmpdir;            //!< directory used to temporary storage of files (e.g. uploads)
+        StatusCodes status_code;        //!< Status code of response
+        std::string status_string;      //!< Short description of status code
+        bool header_sent;               //!< True if header already sent
+        bool _keep_alive;               //!< if true, don't close the socket after the request
+        int _keep_alive_timeout;        //!< timeout for connection
+        bool _chunked_transfer_in;      //!< Input data is chunked
+        bool _chunked_transfer_out;     //!< output data is sent in chunks
+        bool _finished;                 //!< Transfer of response data finished
+        char *_content;                 //!< Content if content-type is "text/plain", "application/json" etc.
         std::streamsize content_length;      //!< length of body in octets (used if not chunked transfer)
-        std::string _content_type;  //!< Content-type (mime type of content)
-        std::ofstream *cachefile;   //!< pointer to cache file
-        char *outbuf;               //!< If not NULL, pointer to the output buffer (buffered output used)
-        size_t outbuf_size;         //!< Actual size of output buffer
-        size_t outbuf_inc;          //!< Increment of outbuf buffer if it has to be enlarged
-        size_t outbuf_nbytes{};       //!< number of bytes used so far in output buffer
-        bool _reset_connection;     //!< true, if connection should be reset (e.g. cors)
+        std::string _content_type;      //!< Content-type (mime type of content)
+        std::ofstream *cachefile;       //!< pointer to cache file
+        char *outbuf;                   //!< If not NULL, pointer to the output buffer (buffered output used)
+        std::streamsize outbuf_size;    //!< Actual size of output buffer
+        std::streamsize outbuf_inc;     //!< Increment of outbuf buffer if it has to be enlarged
+        std::streamsize outbuf_nbytes{};    //!< number of bytes used so far in output buffer
+        bool _reset_connection;         //!< true, if connection should be reset (e.g. cors)
 
         /*!
          * Read, process and parse the HTTP request header
@@ -394,7 +394,7 @@ namespace cserve {
          * \param[in] Increment size of output buffer (it will be increased by multiple of this size if necessary)
          */
         Connection(Server *server_p, std::istream *ins_p, std::ostream *os_p, std::string tmpdir_p,
-                   size_t buf_size = 0, size_t buf_inc = 8192);
+                   std::streamsize buf_size = 0, std::streamsize buf_inc = 8192);
 
         Connection(const Connection &conn) = delete;
 
