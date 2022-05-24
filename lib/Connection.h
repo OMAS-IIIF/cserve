@@ -727,7 +727,7 @@ namespace cserve {
          * \param[in] buffer Data to be transfered
          * \param[in] n Number of bytes to be sent
          */
-        void sendData(const void *buffer, size_t n);
+        void sendData(const void *buffer, std::streamsize n);
 
         /*!
          * Send the given data. If the output is buffered, the data is added to the output
@@ -737,7 +737,7 @@ namespace cserve {
          * \param[in] buffer Data to be transfered
          * \param[in] n Number of bytes to be sent
          */
-        void send(const void *buffer, size_t n);
+        void send(const void *buffer, std::streamsize n);
 
         /*!
          * Send the given data. If the connection is buffered, add the data to the output buffer,
@@ -749,14 +749,14 @@ namespace cserve {
          * \param[in] buffer Data to be transfered
          * \param[in] n Number of bytes to be sent
          */
-        void sendAndFlush(const void *buffer, size_t n);
+        void sendAndFlush(const void *buffer, std::streamsize n);
 
         /*!
          * Sends the data of a file to the connection
          *
          * \param[in] path Path to the file
          */
-        void sendFile(const std::string &path, size_t bufsize = 8192, size_t from = 0, size_t to = 0);
+        void sendFile(const std::string &path, size_t bufsize = 8192, std::streamsize from = 0, std::streamsize to = 0);
 
         /*!
         * Send the given string to the output. Uses \method send

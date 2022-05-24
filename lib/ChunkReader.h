@@ -75,7 +75,7 @@ namespace cserve {
          *
          * \returns The number of bytes that have been read (length of buf)
          */
-        size_t readAll(char **buf);
+        std::streamsize readAll(char **buf);
 
         /*!
          * Get the next (text-)line from the chunk stream, even if the line spans the chunk
@@ -85,7 +85,7 @@ namespace cserve {
          *
          * \return Number of bytes read (that is the length of the line...)
          */
-        size_t getline(std::string &t);
+        std::streamsize getline(std::string &t);
 
         /*!
          * Get the next byte in a chunked stream

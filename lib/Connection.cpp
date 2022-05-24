@@ -1272,7 +1272,7 @@ void Connection::header(const string& name, string value) {
         throw Error(file_, __LINE__, "Header already sent!");
     }
 
-    header_out[name] = value;
+    header_out[name] = std::move(value);
 }
 //=============================================================================
 
@@ -1307,7 +1307,7 @@ void Connection::corsHeader(const std::string &origin) {
 //=========================================================================
 
 
-void Connection::sendData(const void *buffer, size_t n) {
+void Connection::sendData(const void *buffer, std::streamsize n) {
     if (!header_sent) {
         send_header(); // sends content length if not buffer nor chunked
     }
@@ -1319,7 +1319,7 @@ void Connection::sendData(const void *buffer, size_t n) {
 //=============================================================================
 
 
-void Connection::send(const void *buffer, size_t n) {
+void Connection::send(const void *buffer, std::streamsize n) {
     if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
 
     if (outbuf != nullptr) {
@@ -1384,7 +1384,7 @@ void Connection::send(const void *buffer, size_t n) {
 //=============================================================================
 
 
-void Connection::sendAndFlush(const void *buffer, size_t n) {
+void Connection::sendAndFlush(const void *buffer, std::streamsize n) {
     if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
 
     if (outbuf != nullptr) {
@@ -1467,7 +1467,7 @@ void Connection::sendAndFlush(const void *buffer, size_t n) {
 //=============================================================================
 
 
-void Connection::sendFile(const string &path, const size_t bufsize, size_t from, size_t to) {
+void Connection::sendFile(const string &path, const size_t bufsize, std::streamsize from, std::streamsize to) {
     if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
 
     //
@@ -1483,8 +1483,8 @@ void Connection::sendFile(const string &path, const size_t bufsize, size_t from,
         throw Error(file_, __LINE__, "Cannot fstat file: " + path);
     }
 
-    size_t fsize = fstatbuf.st_size;
-    size_t orig_fsize = fsize;
+    std::streamsize fsize = fstatbuf.st_size;
+    std::streamsize orig_fsize = fsize;
 
     FILE *infile = fopen(path.c_str(), "rb");
 
@@ -1515,8 +1515,8 @@ void Connection::sendFile(const string &path, const size_t bufsize, size_t from,
 
     if (outbuf != nullptr) {
         char buf[bufsize];
-        size_t n = 0;
-        size_t nn = 0;
+        std::streamsize n = 0;
+        std::streamsize nn = 0;
         while ((nn < fsize) && ((n = fread(buf, sizeof(char), fsize - nn > bufsize ? bufsize : fsize - nn, infile)) > 0)) {
             add_to_outbuf(buf, n);
             nn += n;
@@ -1531,8 +1531,8 @@ void Connection::sendFile(const string &path, const size_t bufsize, size_t from,
         }
 
         char buf[bufsize];
-        size_t n;
-        size_t nn = 0;
+        std::streamsize n;
+        std::streamsize nn = 0;
 
         while ((nn < fsize) && ((n = fread(buf, sizeof(char), fsize - nn > bufsize ? bufsize : fsize - nn, infile)) > 0)) {
             // send data here...

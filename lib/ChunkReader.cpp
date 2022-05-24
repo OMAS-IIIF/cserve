@@ -23,7 +23,7 @@ namespace cserve {
     ChunkReader::ChunkReader(std::istream *ins_p, size_t post_maxsize_p) : ins(ins_p), post_maxsize(post_maxsize_p) {
         chunk_size = 0;
         chunk_pos = 0;
-    };
+    }
     //=========================================================================
 
     std::streamsize ChunkReader::read_chunk(istream &is, char **buf, size_t offs) const {
@@ -80,8 +80,8 @@ namespace cserve {
     //=========================================================================
 
 
-    size_t ChunkReader::readAll(char **buf) {
-        size_t n, nbytes = 0;
+std::streamsize ChunkReader::readAll(char **buf) {
+    std::streamsize n, nbytes = 0;
         *buf = nullptr;
 
         while ((n = read_chunk(*ins, buf, nbytes)) > 0) {
@@ -100,7 +100,7 @@ namespace cserve {
     }
     //=========================================================================
 
-    size_t ChunkReader::getline(std::string &t) {
+std::streamsize ChunkReader::getline(std::string &t) {
         t.clear();
 
         size_t n = 0;
