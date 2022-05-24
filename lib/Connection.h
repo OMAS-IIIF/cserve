@@ -119,8 +119,8 @@ namespace cserve {
          * \param[in] name_p Name of the cookie
          * \param[in] value_p Value of the Cookie
          */
-        inline Cookie(std::string name_p, const std::string& value_p) :
-        _name(std::move(name_p)), _value(value_p), _secure(true), _http_only(false){}
+        inline Cookie(std::string name_p, std::string  value_p) :
+        _name(std::move(name_p)), _value(std::move(value_p)), _secure(true), _http_only(false){}
 
         /*!
          * Getter for the name
