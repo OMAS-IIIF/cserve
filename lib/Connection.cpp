@@ -217,7 +217,7 @@ namespace cserve {
     }
     //=========================================================================
 
-    string urlencode(const string &value) {
+[[maybe_unused]] string urlencode(const string &value) {
         ostringstream escaped;
         escaped.fill('0');
         escaped << hex;

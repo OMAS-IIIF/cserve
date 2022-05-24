@@ -78,7 +78,7 @@ namespace cserve {
      *
      * \returns Encoded string
      */
-    extern std::string urlencode(const std::string &value);
+    [[maybe_unused]] extern std::string urlencode(const std::string &value);
 
     /*!
      * convert a string to all lowercase characters. The string should contain
@@ -119,7 +119,7 @@ namespace cserve {
          * \param[in] name_p Name of the cookie
          * \param[in] value_p Value of the Cookie
          */
-        inline Cookie(std::string name_p, const std::string value_p) :
+        inline Cookie(std::string name_p, const std::string& value_p) :
         _name(std::move(name_p)), _value(value_p), _secure(true), _http_only(false){}
 
         /*!
