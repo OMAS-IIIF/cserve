@@ -48,7 +48,7 @@ namespace cserve {
         size_t chunk_pos;
         size_t post_maxsize;
 
-        size_t read_chunk(std::istream &ins, char **buf, size_t offs = 0) const;
+        std::streamsize read_chunk(std::istream &is, char **buf, size_t offs = 0) const;
 
     public:
         /*!

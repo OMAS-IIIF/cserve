@@ -166,7 +166,7 @@ namespace cserve {
                             conn.header("Content-Type", "text/text; charset=utf-8");
                             conn << "Lua Error:\r\n==========\r\n" << err << "\r\n";
                             conn.flush();
-                        } catch (InputFailure iofail) {}
+                        } catch (InputFailure &iofail) {}
 
                         Server::logger()->error("FileHandler: error executing lua chunk: {}", err.to_string());
                         return;
@@ -243,7 +243,7 @@ namespace cserve {
                 }
                 conn.flush();
             }
-        } catch (InputFailure iofail) {
+        } catch (InputFailure &iofail) {
             return; // we have an io error => just return, the thread will exit
         } catch (Error &err) {
             try {
@@ -251,7 +251,7 @@ namespace cserve {
                 conn.header("Content-Type", "text/text; charset=utf-8");
                 conn << err;
                 conn.flush();
-            } catch (InputFailure iofail) {}
+            } catch (InputFailure &iofail) {}
 
             Server::logger()->error("FileHandler: internal error: {}", err.to_string());
             return;

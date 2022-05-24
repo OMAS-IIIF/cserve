@@ -1,7 +1,5 @@
 
-#include <algorithm>
 #include <functional>
-#include <cctype>
 #include <locale>
 #include <new>
 #include <regex>
@@ -28,18 +26,18 @@ namespace cserve {
     };
     //=========================================================================
 
-    size_t ChunkReader::read_chunk(istream &ins, char **buf, size_t offs) const {
+    std::streamsize ChunkReader::read_chunk(istream &is, char **buf, size_t offs) const {
         string line;
-        (void) safeGetline(ins, line, max_headerline_len); // read chunk size
+        (void) safeGetline(is, line, max_headerline_len); // read chunk size
 
-        if (ins.fail() || ins.eof()) {
-            throw INPUT_READ_FAIL;
+        if (is.fail() || is.eof()) {
+            throw InputFailure(INPUT_READ_FAIL);
         }
 
-        size_t n;
+        std::streamsize n;
 
         try {
-            n = stoul(line, 0, 16);
+            n = std::stol(line, nullptr, 16);
         } catch (const std::invalid_argument &ia) {
             throw Error(file_, __LINE__, ia.what());
         }
@@ -65,16 +63,16 @@ namespace cserve {
             }
         }
 
-        ins.read(*buf + offs, n);
-        if (ins.fail() || ins.eof()) {
-            throw -1;
+        is.read(*buf + offs, n);
+        if (is.fail() || is.eof()) {
+            throw InputFailure(INPUT_READ_FAIL);
         }
 
         (*buf)[offs + n] = '\0';
-        (void) safeGetline(ins, line, max_headerline_len); // read "\r\n" at end of chunk...
+        (void) safeGetline(is, line, max_headerline_len); // read "\r\n" at end of chunk...
 
-        if (ins.fail() || ins.eof()) {
-            throw INPUT_READ_FAIL;
+        if (is.fail() || is.eof()) {
+            throw InputFailure(INPUT_READ_FAIL);
         }
 
         return n;
@@ -112,11 +110,11 @@ namespace cserve {
 
                 (void) safeGetline(*ins, line, max_headerline_len); // read chunk size
                 if (ins->fail() || ins->eof()) {
-                    throw INPUT_READ_FAIL;
+                    throw InputFailure(INPUT_READ_FAIL);
                 }
 
                 try {
-                    chunk_size = stoul(line, 0, 16);
+                    chunk_size = stoul(line, nullptr, 16);
                 } catch (const std::invalid_argument &ia) {
                     throw Error(file_, __LINE__, ia.what());
                 }
@@ -133,7 +131,7 @@ namespace cserve {
                 if (chunk_size == 0) {
                     (void) safeGetline(*ins, line, max_headerline_len); // get last "\r\n"....
                     if (ins->fail() || ins->eof()) {
-                        throw INPUT_READ_FAIL;
+                        throw InputFailure(INPUT_READ_FAIL);
                     }
                     return n;
                 }
@@ -149,7 +147,7 @@ namespace cserve {
                 string line;
                 (void) safeGetline(*ins, line, max_headerline_len); // read "\r\n" at end of  chunk...
                 if (ins->fail() || ins->eof()) {
-                    throw INPUT_READ_FAIL;
+                    throw InputFailure(INPUT_READ_FAIL);
                 }
             }
 
@@ -166,7 +164,7 @@ namespace cserve {
                             string line;
                             (void) safeGetline(*ins, line, max_headerline_len); // read "\r\n" at end of  chunk...
                             if (ins->fail() || ins->eof()) {
-                                throw INPUT_READ_FAIL;
+                                throw InputFailure(INPUT_READ_FAIL);
                             }
                         }
                         n++;
@@ -190,7 +188,7 @@ namespace cserve {
             (void) safeGetline(*ins, line, max_headerline_len); // read the size of the new chunk
 
             if (ins->fail() || ins->eof()) {
-                throw INPUT_READ_FAIL;
+                throw InputFailure(INPUT_READ_FAIL);
             }
 
             try {
@@ -211,7 +209,7 @@ namespace cserve {
             if (chunk_size == 0) {
                 (void) safeGetline(*ins, line, max_headerline_len); // get last "\r\n"....
                 if (ins->fail() || ins->eof()) {
-                    throw INPUT_READ_FAIL;
+                    throw InputFailure(INPUT_READ_FAIL);
                 }
                 return EOF;
             }
@@ -227,7 +225,7 @@ namespace cserve {
             string line;
             (void) safeGetline(*ins, line, max_headerline_len); // read "\r\n" at end of chunk...
             if (ins->fail() || ins->eof()) {
-                throw INPUT_READ_FAIL;
+                throw InputFailure(INPUT_READ_FAIL);
             }
         }
         return c;

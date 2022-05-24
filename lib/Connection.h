@@ -19,9 +19,33 @@ namespace cserve {
 
     extern const size_t max_headerline_len;
 
-    typedef enum {
-        INPUT_READ_FAIL = -1, OUTPUT_WRITE_FAIL = -2
-    } InputFailure;
+//    typedef enum {
+//        INPUT_READ_FAIL = -1, OUTPUT_WRITE_FAIL = -2
+//    } InputFailure;
+
+    /*!
+     * This class implements a generic Input/Out failure exception
+     */
+    class InputFailure : public std::exception {
+      public:
+        explicit InputFailure(const char * msg);
+
+        explicit InputFailure(std::string msg);
+
+        InputFailure(const InputFailure &ex);
+
+        ~InputFailure() = default;
+
+        InputFailure& operator= (const InputFailure &ex);
+
+        const char *what() const noexcept override;
+
+      private:
+        std::string  msg;
+    };
+
+    const char INPUT_READ_FAIL[] = "INPUT_READ_FAIL";
+    const char OUTPUT_WRITE_FAIL[] = "OUTPUT_WRITE_FAIL";
 
     class Server;
 
@@ -88,7 +112,7 @@ namespace cserve {
      *
      * \returns String converted to all lower case
      */
-    inline void asciitolower(std::string &str) { std::transform(str.begin(), str.end(), str.begin(), ::tolower); }
+    [[maybe_unused]] inline void asciitolower(std::string &str) { std::transform(str.begin(), str.end(), str.begin(), ::tolower); }
 
     /*!
      * convert a string to all uppercase characters. The string should contain
@@ -98,7 +122,7 @@ namespace cserve {
      *
      * \returns String converted to all upper case
      */
-    inline void asciitoupper(std::string &str) { std::transform(str.begin(), str.end(), str.begin(), ::toupper); }
+    [[maybe_unused]] inline void asciitoupper(std::string &str) { std::transform(str.begin(), str.end(), str.begin(), ::toupper); }
 
     /*!
      * This is a class used to represent the possible options of a HTTP cookie
@@ -313,7 +337,7 @@ namespace cserve {
         bool _chunked_transfer_out; //!< output data is sent in chunks
         bool _finished;             //!< Transfer of response data finished
         char *_content;             //!< Content if content-type is "text/plain", "application/json" etc.
-        size_t content_length;      //!< length of body in octets (used if not chunked transfer)
+        std::streamsize content_length;      //!< length of body in octets (used if not chunked transfer)
         std::string _content_type;  //!< Content-type (mime type of content)
         std::ofstream *cachefile;   //!< pointer to cache file
         char *outbuf;               //!< If not NULL, pointer to the output buffer (buffered output used)
@@ -369,12 +393,12 @@ namespace cserve {
          * \param[in] If > 0, an output buffer is created.
          * \param[in] Increment size of output buffer (it will be increased by multiple of this size if necessary)
          */
-        Connection(Server *server_p, std::istream *ins_p, std::ostream *os_p, const std::string &tmpdir_p,
+        Connection(Server *server_p, std::istream *ins_p, std::ostream *os_p, std::string tmpdir_p,
                    size_t buf_size = 0, size_t buf_inc = 8192);
 
-        Connection(const Connection &conn);
+        Connection(const Connection &conn) = delete;
 
-        Connection &operator=(const Connection &other);
+        Connection &operator=(const Connection &other) = delete;
 
         /*!
          * Destructor which frees all resources

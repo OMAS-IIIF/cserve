@@ -104,7 +104,7 @@ namespace cserve {
 
         try {
             conn << "No handler available" << Connection::flush_data;
-        } catch (InputFailure iofail) {
+        } catch (InputFailure &iofail) {
             Server::logger()->error("No handler and no connection available.");
             return;
         }
@@ -891,7 +891,7 @@ namespace cserve {
             try {
                 std::tuple<RequestHandler, std::shared_ptr<RequestHandlerData>> handler_info = getHandler(conn);
                 std::get<0>(handler_info)(conn, luaserver, _user_data, std::get<1>(handler_info));
-            } catch (InputFailure iofail) {
+            } catch (InputFailure &iofail) {
                 Server::logger()->error("Possibly socket closed by peer");
                 return CLOSE; // or CLOSE ??
             }
@@ -905,7 +905,7 @@ namespace cserve {
             } else {
                 return CLOSE;
             }
-        } catch (InputFailure iofail) { // "error" is thrown, if the socket was closed from the main thread...
+        } catch (InputFailure &iofail) { // "error" is thrown, if the socket was closed from the main thread...
             Server::logger()->debug("Socket connection: timeout or socket closed from main");
             return CLOSE;
         } catch (Error &err) {
@@ -917,7 +917,7 @@ namespace cserve {
                 ss << err;
                 *os << "Content-Length: " << ss.str().length() << "\r\n\r\n";
                 *os << ss.str();
-            } catch (InputFailure iofail) {
+            } catch (InputFailure &iofail) {
                 Server::logger()->debug("Possibly socket closed by peer");
             }
             return CLOSE;
