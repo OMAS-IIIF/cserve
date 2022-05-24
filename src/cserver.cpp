@@ -117,6 +117,9 @@ int main(int argc, char *argv[]) {
     logger->set_level(config.loglevel());
 
     cserve::Server server(config.port(), config.nthreads(), config.userid()); // instantiate the server
+
+    std::cout << server.version_string() << std::endl;
+
     server.ssl_port(config.ssl_port()); // set the secure connection port (-1 means no ssl socket)
     if (!config.ssl_certificate().empty()) server.ssl_certificate(config.ssl_certificate());
     if (!config.ssl_key().empty()) server.ssl_key(config.ssl_key());

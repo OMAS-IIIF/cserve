@@ -269,6 +269,12 @@ namespace cserve {
         inline std::string ssl_key() { return _ssl_key; }
 
         /*!
+         * Return the version string
+         * \return Version string
+         */
+        std::string version_string();
+
+        /*!
          * Sets the secret for the generation JWT's (JSON Web Token). It must be a string
          * of length 32, since we're using currently SHA256 encoding.
          *

@@ -200,9 +200,13 @@ namespace cserve {
 
     }
 
+    std::string Server::version_string() {
+        return fmt::format("*** CSERVE V{}.{}.{} ©Lukas Rosenthaler (2022) ***", cserver_VERSION_MAJOR, cserver_VERSION_MINOR, cserver_VERSION_PATCH);
+    }
 
 
-    /**
+
+/**
      * Set the Jason Web Token (jwt) secret that the server will use
      *
      * @param jwt_secret_p String containing the secret.
