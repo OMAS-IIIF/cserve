@@ -36,7 +36,8 @@ The following packages have to be install locally:
 - python > 3.9
 - for testing (with pip3):
   - pytest
-  - psutils
+  - psutil
+  - requests
   - pyJWT
 
 The following steps have to be made:
