@@ -55,9 +55,8 @@ namespace cserve {
 
         ThreadMasterData &operator[](int index);
 
-        [[nodiscard]] inline int nthreads() const { return thread_list.size(); }
+        [[nodiscard]] inline int nthreads() const { return static_cast<int>(thread_list.size()); }
 
-        void join_all();
     };
 
 }

@@ -5,6 +5,8 @@
 #ifndef CSERVER_SCRIPTHANDLER_H
 #define CSERVER_SCRIPTHANDLER_H
 
+#include <utility>
+
 #include "LuaServer.h"
 #include "RequestHandlerData.h"
 
@@ -14,7 +16,7 @@ namespace cserve {
     private:
         std::string _scriptpath;
     public:
-        explicit ScriptHandlerData(const std::string scriptpath) : RequestHandlerData(), _scriptpath(scriptpath) {}
+        explicit ScriptHandlerData(std::string  scriptpath) : RequestHandlerData(), _scriptpath(std::move(scriptpath)) {}
 
         std::string scriptpath() { return _scriptpath; }
     };

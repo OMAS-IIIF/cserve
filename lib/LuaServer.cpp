@@ -28,7 +28,6 @@
 #include <chrono>
 #include <cerrno>
 
-//#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include "spdlog/spdlog.h"
@@ -40,11 +39,8 @@
 #include "Connection.h"
 #include "Cserve.h"
 #include "Error.h"
-//#include "ChunkReader.h"
 
 #include "sole.hpp"
-#include "Parsing.h"
-
 
 #include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
@@ -992,7 +988,7 @@ namespace cserve {
                                           {"chdir",         lua_fs_chdir},
                                           {"copyFile",      lua_fs_copyfile},
                                           {"moveFile",      lua_fs_mvfile},
-                                          {0,               0}};
+                                          {nullptr,               nullptr}};
     //=========================================================================
 
     /*!
@@ -1346,7 +1342,7 @@ namespace cserve {
                 }
             } catch (HttpError &err) {
                 curl_easy_cleanup(_conn);
-                throw err;
+                throw HttpError(err);
             }
         }
 
@@ -1371,7 +1367,7 @@ namespace cserve {
     private:
         CURL *_conn;
         std::string _url;
-        char _curlErrorBuffer[CURL_ERROR_SIZE];
+        char _curlErrorBuffer[CURL_ERROR_SIZE]{};
     };
 
 
@@ -1406,7 +1402,7 @@ namespace cserve {
         std::string method = lua_tostring(L, 1);
 
         // Get the second parameter: URL
-        std::string url = lua_tostring(L, 2);;
+        std::string url = lua_tostring(L, 2);
 
         // the next parameters are either the header values and/or the timeout
         // header: table of key/value pairs of additional HTTP-headers to be sent
@@ -2904,7 +2900,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
      * @param defval Default value to take if variable is not defined
      * @return Configuartion parameter value
      */
-    bool LuaServer::configBoolean(const std::string& table, const std::string& variable, const bool defval) {
+    [[maybe_unused]] bool LuaServer::configBoolean(const std::string& table, const std::string& variable, const bool defval) {
         if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
             lua_pop(L, 1);
             return defval;

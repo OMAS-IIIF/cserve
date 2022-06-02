@@ -2,8 +2,6 @@
 // Created by Lukas Rosenthaler on 29.06.21.
 //
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "ScriptHandler.h"
@@ -92,7 +90,7 @@ namespace cserve {
                 sstr << inf.rdbuf();//read the file
                 std::string eluacode = sstr.str(); // eluacode holds the content of the file
 
-                size_t pos = 0;
+                size_t pos;
                 size_t end = 0; // end of last lua code (including </lua>)
 
                 while ((pos = eluacode.find("<lua>", end)) != std::string::npos) {
