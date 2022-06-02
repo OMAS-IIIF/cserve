@@ -43,7 +43,7 @@ namespace cserve {
         std::mutex thread_queue_mutex;
 
     public:
-        ThreadControl(int n_threads, void *(*start_routine)(void*), Server *serv);
+        ThreadControl(unsigned n_threads, void *(*start_routine)(void*), Server *serv);
 
         ~ThreadControl();
 

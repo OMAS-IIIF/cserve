@@ -13,7 +13,7 @@ static const char __file__[] = __FILE__;
 
 namespace cserve {
 
-    ThreadControl::ThreadControl(int n_threads, void *(*start_routine)(void*), Server *serv) {
+    ThreadControl::ThreadControl(unsigned n_threads, void *(*start_routine)(void*), Server *serv) {
         //thread_list.reserve(n_threads);
         //child_data.reserve(n_threads);
         //

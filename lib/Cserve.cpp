@@ -97,7 +97,7 @@ namespace cserve {
      * @param lua Lua interpreter instance
      * @param user_data Hook to user data
      */
-    static void default_handler(Connection &conn, LuaServer &lua, void *user_data, std::shared_ptr<RequestHandlerData> request_data) {
+    static void default_handler(Connection &conn, LuaServer &lua, [[maybe_unused]] void *user_data, std::shared_ptr<RequestHandlerData> request_data) {
         conn.status(Connection::NOT_FOUND);
         conn.header("Content-Type", "text/text");
         conn.setBuffer();
@@ -469,31 +469,31 @@ namespace cserve {
         SSL_CTX *sslctx = nullptr;
 
         if (ssl) {
-            SSL_CTX *sslctx;
+            SSL_CTX *sslCtx;
             try {
-                if ((sslctx = SSL_CTX_new(SSLv23_server_method())) == nullptr) {
+                if ((sslCtx = SSL_CTX_new(SSLv23_server_method())) == nullptr) {
                     Server::logger()->error("OpenSSL error: SSL_CTX_new() failed");
                     throw SSLError(this_src_file, __LINE__, "OpenSSL error: SSL_CTX_new() failed");
                 }
-                SSL_CTX_set_options(sslctx, SSL_OP_SINGLE_DH_USE);
-                if (SSL_CTX_use_certificate_file(sslctx, _ssl_certificate.c_str(), SSL_FILETYPE_PEM) != 1) {
+                SSL_CTX_set_options(sslCtx, SSL_OP_SINGLE_DH_USE);
+                if (SSL_CTX_use_certificate_file(sslCtx, _ssl_certificate.c_str(), SSL_FILETYPE_PEM) != 1) {
                     Server::logger()->error("OpenSSL error [{}, {}]: SSL_CTX_use_certificate_file({}) failed.",
                                             this_src_file, __LINE__, _ssl_certificate);
                     throw SSLError(this_src_file, __LINE__,
                                    fmt::format("OpenSSL error: SSL_CTX_use_certificate_file({}) failed.", _ssl_certificate));
                 }
-                if (SSL_CTX_use_PrivateKey_file(sslctx, _ssl_key.c_str(), SSL_FILETYPE_PEM) != 1) {
+                if (SSL_CTX_use_PrivateKey_file(sslCtx, _ssl_key.c_str(), SSL_FILETYPE_PEM) != 1) {
                     Server::logger()->error("OpenSSL error [{}, {}]: SSL_CTX_use_PrivateKey_file({}) failed",
                                             this_src_file, __LINE__, _ssl_certificate);
                     throw SSLError(this_src_file, __LINE__,
                                    fmt::format("OpenSSL error: SSL_CTX_use_PrivateKey_file({}) failed", _ssl_certificate));
                 }
-                if (!SSL_CTX_check_private_key(sslctx)) {
+                if (!SSL_CTX_check_private_key(sslCtx)) {
                     Server::logger()->error("OpenSSL error [{}, {}]: SSL_CTX_check_private_key() failed",
                                             this_src_file, __LINE__);
                     throw SSLError(this_src_file, __LINE__, "OpenSSL error: SSL_CTX_check_private_key() failed");
                 }
-                if ((cSSL = SSL_new(sslctx)) == nullptr) {
+                if ((cSSL = SSL_new(sslCtx)) == nullptr) {
                     Server::logger()->error("OpenSSL error [{}, {}]: SSL_new() failed", this_src_file, __LINE__);
                     throw SSLError(this_src_file, __LINE__, "OpenSSL error: SSL_new() failed");
                 }
@@ -519,7 +519,7 @@ namespace cserve {
                 }
 
                 SSL_free(cSSL);
-                SSL_CTX_free(sslctx);
+                SSL_CTX_free(sslCtx);
                 cSSL = nullptr;
             }
         }
@@ -745,7 +745,7 @@ namespace cserve {
                                 SocketControl::SocketInfo sockid;
                                 socket_control.remove(i, sockid); //  ==> CHANGES open_sockets!!
                                 sockid.type = SocketControl::PROCESS_REQUEST;
-                                int n = SocketControl::send_control_message(tinfo.control_pipe, sockid);
+                                ssize_t n = SocketControl::send_control_message(tinfo.control_pipe, sockid);
                                 if (n < 0) {
                                     Server::logger()->warn("Got something unexpected...");
                                 }
@@ -843,7 +843,7 @@ namespace cserve {
     void Server::addRoute(Connection::HttpMethod method_p, const std::string &path_p, RequestHandler handler_p,
                           std::shared_ptr<RequestHandlerData> handler_data_p) {
         handler[method_p][path_p] = handler_p;
-        handler_data[method_p][path_p] = handler_data_p;
+        handler_data[method_p][path_p] = std::move(handler_data_p);
     }
     //=========================================================================
 

@@ -335,7 +335,7 @@ void Connection::process_header() {
 vector<string> Connection::process_header_value(const string &valstr) {
     vector<string> result;
     size_t start = 0;
-    size_t pos = 0;
+    size_t pos;
     while ((pos = valstr.find(';', start)) != string::npos) {
         string tmpstr = valstr.substr(start, pos - start);
         result.push_back(trim_copy(tmpstr));
@@ -348,9 +348,9 @@ vector<string> Connection::process_header_value(const string &valstr) {
 }
 //=============================================================================
 
-InputFailure::InputFailure(const char * msg) : msg(msg) {};
+InputFailure::InputFailure(const char * msg) : msg(msg) {}
 
-[[maybe_unused]] InputFailure::InputFailure(std::string msg) : msg(std::move(msg)) {};
+[[maybe_unused]] InputFailure::InputFailure(std::string msg) : msg(std::move(msg)) {}
 
 InputFailure::InputFailure(const InputFailure &ex) {
     msg = ex.msg;
@@ -531,7 +531,6 @@ Connection::Connection(Server *server_p, std::istream *ins_p, std::ostream *os_p
 
                         if (ins->fail() || ins->eof()) {
                             free(bodybuf);
-                            bodybuf = nullptr;
                             throw InputFailure(INPUT_READ_FAIL);
                         }
                     }
@@ -833,7 +832,7 @@ Connection::Connection(Server *server_p, std::istream *ins_p, std::ostream *os_p
             } else if ((content_type_opts[0] == "text/plain") || (content_type_opts[0] == "application/json") ||
                        (content_type_opts[0] == "application/ld+json") ||
                        (content_type_opts[0] == "application/xml")) {
-                _content_type = content_type_opts[0];
+                _content_type = std::string(content_type_opts[0]);
 
                 if (_chunked_transfer_in) {
                     char *tmp;
@@ -865,7 +864,7 @@ Connection::Connection(Server *server_p, std::istream *ins_p, std::ostream *os_p
             }
         } else if (method_in == "DELETE") {
             vector<string> content_type_opts = process_header_value(header_in["content-type"]);
-            _content_type = content_type_opts[0];
+            _content_type = std::string(content_type_opts[0]);
             if (_chunked_transfer_in) {
                 char *tmp;
                 ChunkReader ckrd(ins, _server->max_post_size());
@@ -895,7 +894,7 @@ Connection::Connection(Server *server_p, std::istream *ins_p, std::ostream *os_p
             _method = DELETE;
         } else if (method_in == "TRACE") {
             vector<string> content_type_opts = process_header_value(header_in["content-type"]);
-            _content_type = content_type_opts[0];
+            _content_type = std::string(content_type_opts[0]);
             if (_chunked_transfer_in) {
                 char *tmp;
                 ChunkReader ckrd(ins, _server->max_post_size());
@@ -1514,10 +1513,10 @@ void Connection::sendFile(const string &path, const size_t bufsize, std::streams
 
     if (outbuf != nullptr) {
         char buf[bufsize];
-        std::streamsize n = 0;
-        std::streamsize nn = 0;
+        size_t n = 0;
+        size_t nn = 0;
         while ((nn < fsize) && ((n = fread(buf, sizeof(char), fsize - nn > bufsize ? bufsize : fsize - nn, infile)) > 0)) {
-            add_to_outbuf(buf, n);
+            add_to_outbuf(buf, static_cast<std::streamsize>(n));
             nn += n;
         }
     } else {
@@ -1530,20 +1529,20 @@ void Connection::sendFile(const string &path, const size_t bufsize, std::streams
         }
 
         char buf[bufsize];
-        std::streamsize n;
-        std::streamsize nn = 0;
+        size_t n;
+        size_t nn = 0;
 
         while ((nn < fsize) && ((n = fread(buf, sizeof(char), fsize - nn > bufsize ? bufsize : fsize - nn, infile)) > 0)) {
             // send data here...
             if (_chunked_transfer_out) {
                 *os << std::hex << n << "\r\n";
                 if (os->eof() || os->fail()) throw InputFailure(OUTPUT_WRITE_FAIL);
-                os->write(buf, n);
+                os->write(buf, static_cast<std::streamsize>(n));
                 if (os->eof() || os->fail()) throw InputFailure(OUTPUT_WRITE_FAIL);
                 *os << "\r\n";
                 if (os->eof() || os->fail()) throw InputFailure(OUTPUT_WRITE_FAIL);
             } else {
-                os->write(buf, n);
+                os->write(buf, static_cast<std::streamsize>(n));
                 if (os->eof() || os->fail()) throw InputFailure(OUTPUT_WRITE_FAIL);
             }
 
@@ -1605,7 +1604,7 @@ void Connection::flush() {
 
 
 Connection &Connection::operator<<(const std::string &str) {
-    send((void *) str.c_str(), str.length());
+    send((void *) str.c_str(), static_cast<std::streamsize>(str.length()));
     return *this;
 }
 //=============================================================================
@@ -1622,17 +1621,17 @@ Connection &Connection::operator<<(const Error &err) {
     stringstream outss;
     outss << err;
     string tmpstr = outss.str();
-    send((void *) tmpstr.c_str(), tmpstr.length());
+    send((void *) tmpstr.c_str(), static_cast<std::streamsize>(tmpstr.length()));
     return *this;
 }
 //=============================================================================
 
 
-void Connection::add_to_outbuf(char *buf, size_t n) {
+void Connection::add_to_outbuf(char *buf, std::streamsize n) {
     if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
 
     if (outbuf_nbytes + n > outbuf_size) {
-        size_t incsize = outbuf_size + ((n + outbuf_inc - 1) / outbuf_inc) * outbuf_inc;
+        std::streamsize incsize = outbuf_size + ((n + outbuf_inc - 1) / outbuf_inc) * outbuf_inc;
         char *tmpbuf;
         if ((tmpbuf = (char *) realloc(outbuf, incsize)) == nullptr) {
             throw Error(file_, __LINE__, "realloc failed!", errno);
@@ -1666,12 +1665,8 @@ void Connection::send_header(size_t n) {
         if ((outbuf != nullptr) && (outbuf_nbytes > 0)) {
             *os << "Content-Length: " << outbuf_nbytes << "\r\n\r\n";
             if (os->eof() || os->fail()) throw InputFailure(OUTPUT_WRITE_FAIL);
-        } else if (n > 0) {
-            *os << "Content-Length: " << n << "\r\n\r\n";
-            if (os->eof() || os->fail()) throw InputFailure(OUTPUT_WRITE_FAIL);
         } else {
             *os << "Content-Length: " << n << "\r\n\r\n";
-            //*os << "\r\n";
             if (os->eof() || os->fail()) throw InputFailure(OUTPUT_WRITE_FAIL);
         }
     }
