@@ -56,7 +56,7 @@ namespace cserve {
         *
         * \param[in] type Hash/checksum method to use (see HashType)
         */
-        explicit Hash(HashType type);
+        [[maybe_unused]] explicit Hash(HashType type);
 
         /*!
         * Destructor which cleans up everything
@@ -71,7 +71,7 @@ namespace cserve {
         *
         * \returns true in case of success, false if the data couln't be processed
         */
-        bool add_data(const void *data, size_t len);
+        [[maybe_unused]] bool add_data(const void *data, size_t len);
 
         /*!
         * Calculate the checksum of a fileType_string. THe method uses directly
@@ -83,7 +83,7 @@ namespace cserve {
         *
         * \returns true in case of success, false if the data couln't be processed
         */
-        bool hash_of_file(const std::string &path, size_t buflen = 16 * 1024);
+        [[maybe_unused]] bool hash_of_file(const std::string &path, size_t buflen = 16 * 1024);
 
         /*!
         * Adds data to the has from a input stream. It reads the stream until
@@ -104,7 +104,7 @@ namespace cserve {
         *
         * \returns Returns the has value as string
         */
-        std::string hash();
+        [[maybe_unused]] std::string hash();
     };
 
 }

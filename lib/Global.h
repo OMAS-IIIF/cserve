@@ -38,13 +38,13 @@
 namespace cserve {
 
     template<typename Enumeration>
-    inline auto as_integer(Enumeration const value) -> typename std::underlying_type<Enumeration>::type {
+    [[maybe_unused]] inline auto as_integer(Enumeration const value) -> typename std::underlying_type<Enumeration>::type {
         return static_cast<typename std::underlying_type<Enumeration>::type>(value);
     }
     //-------------------------------------------------------------------------
 
 
-    inline std::string getFileName(const std::string &s) {
+    [[maybe_unused]] inline std::string getFileName(const std::string &s) {
         char sep = '/';
         size_t i = s.rfind(sep, s.length());
 
