@@ -101,86 +101,86 @@ std::streamsize ChunkReader::readAll(char **buf) {
     //=========================================================================
 
 std::streamsize ChunkReader::getline(std::string &t) {
-        t.clear();
+    t.clear();
 
-        size_t n = 0;
-        while (true) {
-            if (chunk_pos >= chunk_size) {
-                string line;
+    streamsize n = 0;
+    while (true) {
+        if (chunk_pos >= chunk_size) {
+            string line;
 
-                (void) safeGetline(*ins, line, max_headerline_len); // read chunk size
+            (void) safeGetline(*ins, line, max_headerline_len); // read chunk size
+            if (ins->fail() || ins->eof()) {
+                throw InputFailure(INPUT_READ_FAIL);
+            }
+
+            try {
+                chunk_size = stoul(line, nullptr, 16);
+            } catch (const std::invalid_argument &ia) {
+                throw Error(file_, __LINE__, ia.what());
+            }
+
+            //
+            // check for post_maxsize
+            //
+            if ((post_maxsize > 0) && (chunk_size > post_maxsize)) {
+                stringstream ss;
+                ss << "Chunksize (" << chunk_size << ") to big (maxsize=" << post_maxsize << ")";
+                throw Error(file_, __LINE__, ss.str());
+            }
+
+            if (chunk_size == 0) {
+                (void) safeGetline(*ins, line, max_headerline_len); // get last "\r\n"....
                 if (ins->fail() || ins->eof()) {
                     throw InputFailure(INPUT_READ_FAIL);
                 }
-
-                try {
-                    chunk_size = stoul(line, nullptr, 16);
-                } catch (const std::invalid_argument &ia) {
-                    throw Error(file_, __LINE__, ia.what());
-                }
-
-                //
-                // check for post_maxsize
-                //
-                if ((post_maxsize > 0) && (chunk_size > post_maxsize)) {
-                    stringstream ss;
-                    ss << "Chunksize (" << chunk_size << ") to big (maxsize=" << post_maxsize << ")";
-                    throw Error(file_, __LINE__, ss.str());
-                }
-
-                if (chunk_size == 0) {
-                    (void) safeGetline(*ins, line, max_headerline_len); // get last "\r\n"....
-                    if (ins->fail() || ins->eof()) {
-                        throw InputFailure(INPUT_READ_FAIL);
-                    }
-                    return n;
-                }
-                chunk_pos = 0;
+                return n;
             }
+            chunk_pos = 0;
+        }
 
-            std::istream::sentry se(*ins, true);
-            std::streambuf *sb = ins->rdbuf();
-            int c = sb->sbumpc();
-            chunk_pos++;
+        std::istream::sentry se(*ins, true);
+        std::streambuf *sb = ins->rdbuf();
+        int c = sb->sbumpc();
+        chunk_pos++;
 
-            if (chunk_pos >= chunk_size) {
-                string line;
-                (void) safeGetline(*ins, line, max_headerline_len); // read "\r\n" at end of  chunk...
-                if (ins->fail() || ins->eof()) {
-                    throw InputFailure(INPUT_READ_FAIL);
-                }
-            }
-
-            n++;
-
-            switch (c) {
-                case '\n':
-                    return n;
-                case '\r':
-                    if (sb->sgetc() == '\n') {
-                        sb->sbumpc();
-                        chunk_pos++;
-                        if (chunk_pos >= chunk_size) {
-                            string line;
-                            (void) safeGetline(*ins, line, max_headerline_len); // read "\r\n" at end of  chunk...
-                            if (ins->fail() || ins->eof()) {
-                                throw InputFailure(INPUT_READ_FAIL);
-                            }
-                        }
-                        n++;
-                    }
-                    return n;
-                case EOF:
-                    // Also handle the case when the last line has no line ending
-                    if (t.empty())
-                        ins->setstate(std::ios::eofbit);
-                    return n;
-                default:
-                    t += (char) c;
+        if (chunk_pos >= chunk_size) {
+            string line;
+            (void) safeGetline(*ins, line, max_headerline_len); // read "\r\n" at end of  chunk...
+            if (ins->fail() || ins->eof()) {
+                throw InputFailure(INPUT_READ_FAIL);
             }
         }
+
+        n++;
+
+        switch (c) {
+            case '\n':
+                return n;
+            case '\r':
+                if (sb->sgetc() == '\n') {
+                    sb->sbumpc();
+                    chunk_pos++;
+                    if (chunk_pos >= chunk_size) {
+                        string line;
+                        (void) safeGetline(*ins, line, max_headerline_len); // read "\r\n" at end of  chunk...
+                        if (ins->fail() || ins->eof()) {
+                            throw InputFailure(INPUT_READ_FAIL);
+                        }
+                    }
+                    n++;
+                }
+                return n;
+            case EOF:
+                // Also handle the case when the last line has no line ending
+                if (t.empty())
+                    ins->setstate(std::ios::eofbit);
+                return n;
+            default:
+                t += (char) c;
+        }
     }
-    //=========================================================================
+}
+//=========================================================================
 
     int ChunkReader::getc() {
         if (chunk_pos >= chunk_size) {

@@ -350,7 +350,7 @@ vector<string> Connection::process_header_value(const string &valstr) {
 
 InputFailure::InputFailure(const char * msg) : msg(msg) {};
 
-InputFailure::InputFailure(std::string msg) : msg(std::move(msg)) {};
+[[maybe_unused]] InputFailure::InputFailure(std::string msg) : msg(std::move(msg)) {};
 
 InputFailure::InputFailure(const InputFailure &ex) {
     msg = ex.msg;
@@ -1237,7 +1237,7 @@ void Connection::setChunkedTransfer() {
 }
 //=============================================================================
 
-void Connection::openCacheFile(const std::string &cfname) {
+[[maybe_unused]] void Connection::openCacheFile(const std::string &cfname) {
     cachefile = new ofstream(cfname, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
 
     if (cachefile->fail()) {
@@ -1246,7 +1246,7 @@ void Connection::openCacheFile(const std::string &cfname) {
 }
 //=============================================================================
 
-void Connection::closeCacheFile() {
+[[maybe_unused]] void Connection::closeCacheFile() {
     if (cachefile != nullptr) {
         cachefile->close();
         delete cachefile;
@@ -1289,7 +1289,7 @@ void Connection::cookies(const Cookie &cookie_p) {
 //=============================================================================
 
 
-void Connection::corsHeader(const char *origin) {
+[[maybe_unused]] void Connection::corsHeader(const char *origin) {
     if (origin == nullptr) return;
     header_out["Access-Control-Allow-Origin"] = origin;
     header_out["Access-Control-Allow-Credentials"] = "true";
@@ -1298,7 +1298,7 @@ void Connection::corsHeader(const char *origin) {
 //=========================================================================
 
 
-void Connection::corsHeader(const std::string &origin) {
+[[maybe_unused]] void Connection::corsHeader(const std::string &origin) {
     if (origin.empty()) return;
     header_out["Access-Control-Allow-Origin"] = origin;
     header_out["Access-Control-Allow-Credentials"] = "true";
@@ -1307,7 +1307,7 @@ void Connection::corsHeader(const std::string &origin) {
 //=========================================================================
 
 
-void Connection::sendData(const void *buffer, std::streamsize n) {
+[[maybe_unused]] void Connection::sendData(const void *buffer, std::streamsize n) {
     if (!header_sent) {
         send_header(); // sends content length if not buffer nor chunked
     }
@@ -1383,7 +1383,7 @@ void Connection::send(const void *buffer, std::streamsize n) {
 }
 //=============================================================================
 
-void Connection::sendAndFlush(const void *buffer, std::streamsize n) {
+[[maybe_unused]] void Connection::sendAndFlush(const void *buffer, std::streamsize n) {
     if (_finished) throw Error(file_, __LINE__, "Sending data already terminated!");
 
     if (outbuf != nullptr) {

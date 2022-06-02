@@ -30,15 +30,15 @@ namespace cserve {
       public:
         explicit InputFailure(const char * msg);
 
-        explicit InputFailure(std::string msg);
+        [[maybe_unused]] explicit InputFailure(std::string msg);
 
         InputFailure(const InputFailure &ex);
 
-        ~InputFailure() = default;
+        ~InputFailure() override = default;
 
         InputFailure& operator= (const InputFailure &ex);
 
-        const char *what() const noexcept override;
+        [[nodiscard]] const char *what() const noexcept override;
 
       private:
         std::string  msg;
@@ -704,19 +704,19 @@ namespace cserve {
         *
         * \param[in] cfname Name of cache file
         */
-        void openCacheFile(const std::string &cfname);
+        [[maybe_unused]] void openCacheFile(const std::string &cfname);
 
         /*!
          * close cache file
          */
-        void closeCacheFile();
+        [[maybe_unused]] void closeCacheFile();
 
         /*!
          * test if a cachefile is open for writing...
          *
          * @return true, if cache file is open
          */
-        inline bool isCacheFileOpen() {
+        [[maybe_unused]] inline bool isCacheFileOpen() {
             return (cachefile != nullptr);
         }
 
@@ -727,7 +727,7 @@ namespace cserve {
          * \param[in] buffer Data to be transfered
          * \param[in] n Number of bytes to be sent
          */
-        void sendData(const void *buffer, std::streamsize n);
+        [[maybe_unused]] void sendData(const void *buffer, std::streamsize n);
 
         /*!
          * Send the given data. If the output is buffered, the data is added to the output
@@ -749,7 +749,7 @@ namespace cserve {
          * \param[in] buffer Data to be transfered
          * \param[in] n Number of bytes to be sent
          */
-        void sendAndFlush(const void *buffer, std::streamsize n);
+        [[maybe_unused]] void sendAndFlush(const void *buffer, std::streamsize n);
 
         /*!
          * Sends the data of a file to the connection
