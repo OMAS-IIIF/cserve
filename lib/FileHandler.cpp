@@ -1,7 +1,6 @@
 //
 // Created by Lukas Rosenthaler on 29.06.21.
 //
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -10,7 +9,7 @@
 #include "FileHandler.h"
 #include "Parsing.h"
 
-static const char __file__[] = __FILE__;
+static const char file_[] = __FILE__;
 
 namespace cserve {
 
@@ -137,7 +136,7 @@ namespace cserve {
                 sstr << inf.rdbuf();//read the file
                 std::string eluacode = sstr.str(); // eluacode holds the content of the file
 
-                size_t pos = 0;
+                size_t pos;
                 size_t end = 0; // end of last lua code (including </lua>)
 
                 while ((pos = eluacode.find("<lua>", end)) != std::string::npos) {
@@ -185,7 +184,7 @@ namespace cserve {
                 struct stat fstatbuf{};
 
                 if (stat(infile.c_str(), &fstatbuf) != 0) {
-                    throw Error(__file__, __LINE__, "Cannot fstat file!");
+                    throw Error(file_, __LINE__, "Cannot fstat file!");
                 }
                 size_t fsize = fstatbuf.st_size;
 #ifdef __APPLE__
@@ -212,18 +211,18 @@ namespace cserve {
                     //
                     std::regex re(R"(bytes=\s*(\d+)-(\d*)[\D.*]?)");
                     std::cmatch m;
-                    int start = 0; // lets assume beginning of file
-                    int end = fsize - 1; // lets assume whole file
+                    std::streamsize start;
+                    auto end = static_cast<std::streamsize>(fsize - 1); // lets assume whole file
                     if (std::regex_match(range.c_str(), m, re)) {
                         if (m.size() < 2) {
-                            throw Error(__file__, __LINE__, "Range expression invalid!");
+                            throw Error(file_, __LINE__, "Range expression invalid!");
                         }
                         start = std::stoi(m[1]);
                         if ((m.size() > 1) && !m[2].str().empty()) {
                             end = std::stoi(m[2]);
                         }
                     } else {
-                        throw Error(__file__, __LINE__, "Range expression invalid!");
+                        throw Error(file_, __LINE__, "Range expression invalid!");
                     }
 
                     conn.status(Connection::PARTIAL_CONTENT);
