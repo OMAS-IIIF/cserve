@@ -94,14 +94,37 @@ namespace cserve {
          */
         ~ThreadControl();
 
+        /*!
+         * Push the given thread to the queue of threads waiting for a task
+         * @param tinfo Inof about the thread to be pushed to the queue of waiting tasks
+         */
         void thread_push(const ThreadMasterData &tinfo);
 
+        /*!
+         * Pop a thread from the list of waiting threads and return it in tinfo
+         * @param tinfo Thread info of popped thread
+         * @return TRUE, if thread was available, FALSE otherwise
+         */
         bool thread_pop(ThreadMasterData &tinfo);
 
+        /*!
+         * Delete a thread from the list of all threads (may be because it exited...)
+         * @param pos Position of hread in the list
+         * @return The new number of threads available
+         */
         int thread_delete(int pos);
 
+        /*!
+         * Access a thread fron the list using the []-operator
+         * @param index
+         * @return Thread info
+         */
         ThreadMasterData &operator[](int index);
 
+        /*!
+         * Return the number of threads available
+         * @return
+         */
         [[nodiscard]] inline int nthreads() const { return static_cast<int>(thread_list.size()); }
 
     };
