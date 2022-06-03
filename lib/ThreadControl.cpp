@@ -3,13 +3,10 @@
 //
 
 #include "ThreadControl.h"
-#include <iostream>
-#include <stdio.h>
-#include <string.h>
-#include "spdlog/spdlog.h"
+#include <cstring>
 #include "Cserve.h"
 
-static const char __file__[] = __FILE__;
+static const char file_[] = __FILE__;
 
 namespace cserve {
 
@@ -23,7 +20,7 @@ namespace cserve {
         for (int n = 0; n < n_threads; n++) {
             int control_pipe[2];
             if (socketpair(PF_LOCAL, SOCK_STREAM, 0, control_pipe) != 0) {
-                Server::logger()->error("Creating pipe failed at [{}: {}]: {}", __file__, __LINE__, strerror(errno));
+                Server::logger()->error("Creating pipe failed at [{}: {}]: {}", file_, __LINE__, strerror(errno));
                 return;
             }
             child_data.push_back({control_pipe[1], control_pipe[0], serv});
@@ -37,8 +34,8 @@ namespace cserve {
             thread_data.control_pipe = child_data[n].result;
             pthread_attr_t tattr;
             pthread_attr_init(&tattr);
-            if (pthread_create(&thread_data.tid, &tattr, start_routine, (void *) (&cd[n])) < 0) {
-                Server::logger()->error("Could not create thread at [{}: {}]: {}", __file__, __LINE__, strerror(errno));
+            if (pthread_create(&thread_data.tid, &tattr, start_routine, (void *) (&cd[n])) != 0) {
+                Server::logger()->error("Could not create thread at [{}: {}]: {}", file_, __LINE__, strerror(errno));
                 break;
             }
             thread_list.push_back(thread_data);
@@ -65,7 +62,7 @@ namespace cserve {
 
     bool ThreadControl::thread_pop(ThreadMasterData &tinfo) {
         std::unique_lock<std::mutex> thread_queue_guard(thread_queue_mutex);
-        tinfo = {0, 0};
+        tinfo = {nullptr, 0};
         if (!thread_queue.empty()) {
             tinfo = thread_queue.front();
             thread_queue.pop();
@@ -79,14 +76,14 @@ namespace cserve {
         if (index >= 0 && index < thread_list.size()) {
             return thread_list[index];
         } else {
-            throw ThreadControlErrors::INVALID_INDEX;
+            throw ThreadControlError("INVALID_INDEX");
         }
     }
     //=========================================================================
 
     int ThreadControl::thread_delete(int pos) {
         thread_list.erase(thread_list.begin() + pos);
-        return thread_list.size();
+        return static_cast<int>(thread_list.size());
     }
     //=========================================================================
 

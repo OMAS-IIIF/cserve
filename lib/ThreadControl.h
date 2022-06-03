@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <pthread.h> //for threading , link with lpthread
 //#include <thread>
+#include <utility>
 #include <vector>
 #include <queue>
 #include <mutex>
@@ -21,6 +22,45 @@ namespace cserve {
 
     class Server; // Declaration only
 
+    /*!
+     * Error thrown by methods of ThreadControl
+     */
+    class ThreadControlError : public std::exception {
+    public:
+
+        /*!
+         * Constructor of ThreadControlError
+         * @param msg_p Error message as character array
+         */
+        [[maybe_unused]] inline explicit ThreadControlError(const char *msg_p) { msg = msg_p; };
+
+        /*!
+         * Constructor of ThreadControlError
+         * @param msg_p Error message as std::string
+         */
+        [[maybe_unused]] inline explicit ThreadControlError(std::string msg_p) : msg(std::move(msg_p)) {};
+
+        /*!
+         * Copy constructor
+         * @param err Another ThreadControlError
+         */
+        inline ThreadControlError(const ThreadControlError &err) { msg = err.msg; };
+
+        /*!
+         * Returns the error message
+         * @return
+         */
+        [[nodiscard]] inline const char* what() const noexcept override {
+            return msg.c_str();
+        }
+
+    private:
+        std::string msg;
+    };
+
+    /*!
+     * Class that controls the worker threads
+     */
     class ThreadControl {
     public:
         typedef struct {
@@ -34,8 +74,6 @@ namespace cserve {
             Server *serv;
         } ThreadChildData;
 
-        typedef enum {INVALID_INDEX} ThreadControlErrors;
-
     private:
         std::vector<ThreadMasterData> thread_list; //!> List of all threads
         std::vector<ThreadChildData> child_data; //!> Data given to the thread
@@ -43,8 +81,17 @@ namespace cserve {
         std::mutex thread_queue_mutex;
 
     public:
+        /*!
+         * Constructor which creates the given number of worker threads
+         * @param n_threads Number of threads to create
+         * @param start_routine Function that the threads should run
+         * @param serv Reference to the server
+         */
         ThreadControl(unsigned n_threads, void *(*start_routine)(void*), Server *serv);
 
+        /*!
+         * Destructor
+         */
         ~ThreadControl();
 
         void thread_push(const ThreadMasterData &tinfo);
