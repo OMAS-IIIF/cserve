@@ -11,20 +11,20 @@
 #include "CserverConf.h"
 #include "Connection.h"
 
-static const char __file__[] = __FILE__;
+static const char file_[] = __FILE__;
 
-extern size_t data_volume(const std::string volstr) {
+extern size_t data_volume(const std::string& volstr) {
     size_t l = volstr.length();
-    size_t ll = 0;
-    size_t data_volume = 0;
+    size_t ll;
+    size_t data_volume;
     char c = '\0';
 
     if (l > 1) {
-        c = toupper(volstr[l - 1]);
+        c = static_cast<char>(toupper(volstr[l - 1]));
         ll = 1;
     }
     if ((l > 2) && (c == 'B')) {
-        c = toupper(volstr[l - 2]);
+        c = static_cast<char>(toupper(volstr[l - 2]));
         ll = 2;
     }
     if (c == 'M') {
@@ -40,7 +40,7 @@ extern size_t data_volume(const std::string volstr) {
 }
 
 void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data) {
-    CserverConf *conf = (CserverConf *) user_data;
+    auto *conf = (CserverConf *) user_data;
 
     lua_createtable(L, 0, 14); // table1
 
@@ -326,7 +326,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     if (!cserverOpts.get_option("--loglevel")->empty()) _loglevel = optLogLevel;
     if (!cserverOpts.get_option("--routes")->empty()) {
         std::vector<std::string> rinfos = cserve::split(optRoutes, ';');
-        for (const std::string rinfostr: rinfos) {
+        for (const std::string& rinfostr: rinfos) {
             std::vector<std::string> rinfo = cserve::split(rinfostr, ':');
             if (rinfo.size() < 3) {
                 std::cerr << fmt::format("Route spcification invalid: {}\n", rinfostr);

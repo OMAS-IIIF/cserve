@@ -12,7 +12,7 @@
 
 #include <LuaServer.h>
 
-extern size_t data_volume(std::string volstr);
+extern size_t data_volume(const std::string& volstr);
 
 //void cserverConfGlobals(lua_State *L, void *user_data);
 
