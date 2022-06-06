@@ -1,16 +1,11 @@
 #include <string>
 #include <iostream>
-#include <fstream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <csignal>
 #include <utility>
-#include <thread>
 
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
 
 #include "Global.h"
-#include "Error.h"
 #include "Cserve.h"
 #include "LuaServer.h"
 #include "LuaSqlite.h"
@@ -47,7 +42,7 @@ static int lua_gaga(lua_State *L) {
         const char *str = lua_tostring(L, i);
         if (str != nullptr) {
             conn->send("GAGA: ", 5);
-            conn->send(str, strlen(str));
+            conn->send(str, static_cast<int>(strlen(str)));
         }
     }
     return 0;
@@ -118,7 +113,7 @@ int main(int argc, char *argv[]) {
 
     cserve::Server server(config.port(), config.nthreads(), config.userid()); // instantiate the server
 
-    std::cout << server.version_string() << std::endl;
+    std::cout << cserve::Server::version_string() << std::endl;
 
     server.ssl_port(config.ssl_port()); // set the secure connection port (-1 means no ssl socket)
     if (!config.ssl_certificate().empty()) server.ssl_certificate(config.ssl_certificate());

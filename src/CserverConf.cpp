@@ -276,9 +276,9 @@ CserverConf::CserverConf(int argc, char *argv[]) {
             _filehandler_route = luacfg.configString("cserve", "filehandler_route", _filehandler_route);
             _tmpdir = luacfg.configString("cserve", "tmpdir", _tmpdir);
             _scriptdir = luacfg.configString("cserve", "scriptdir", _scriptdir);
-            _nthreads = luacfg.configInteger("cserve", "nthreads", _nthreads);
+            _nthreads = luacfg.configInteger("cserve", "nthreads", static_cast<int>(_nthreads));
             _keep_alive = luacfg.configInteger("cserve", "keep_alive", _keep_alive);
-            _max_post_size = luacfg.configInteger("cserve", "max_post_size", _max_post_size);
+            _max_post_size = luacfg.configInteger("cserve", "max_post_size", static_cast<int>(_max_post_size));
             _initscript = luacfg.configString("cserve", "initscript", _initscript);
             _logfile = luacfg.configString("cserve", "logfile", _logfile);
 
