@@ -22,6 +22,7 @@ static void sighandler(int sig) {
     if (serverptr != nullptr) {
         int old_ll = setlogmask(LOG_MASK(LOG_INFO));
         //syslog(LOG_INFO, "Got SIGINT, stopping server");
+        cserve::Server::logger()->info("Got signal {}, stopping server", sig);
         setlogmask(old_ll);
         serverptr->stop();
     } else {
