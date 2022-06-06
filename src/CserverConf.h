@@ -12,7 +12,7 @@
 
 #include <LuaServer.h>
 
-extern size_t data_volume(std::string volstr);
+extern size_t data_volume(const std::string& volstr);
 
 //void cserverConfGlobals(lua_State *L, void *user_data);
 
@@ -27,7 +27,7 @@ private:
     std::string _ssl_key;
     std::string _jwt_secret;
     int _ssl_port;
-    int _nthreads;
+    unsigned int _nthreads;
     std::string _docroot;
     std::string  _filehandler_route;
     std::string _tmpdir;
@@ -80,7 +80,7 @@ public:
     [[nodiscard]] inline int ssl_port() const { return _ssl_port; }
 
     inline void nthreads(int nthreads) { _nthreads = nthreads; }
-    [[nodiscard]] inline int nthreads() const { return _nthreads; }
+    [[nodiscard]] inline unsigned int nthreads() const { return _nthreads; }
 
     inline void docroot(const std::string &docroot) { _docroot = docroot; }
     inline std::string docroot() { return _docroot; }
