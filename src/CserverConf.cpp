@@ -15,8 +15,8 @@ static const char file_[] = __FILE__;
 
 extern size_t data_volume(const std::string& volstr) {
     size_t l = volstr.length();
-    size_t ll = 0;
-    size_t data_volume = 0;
+    size_t ll;
+    size_t data_volume;
     char c = '\0';
 
     if (l > 1) {
@@ -326,7 +326,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     if (!cserverOpts.get_option("--loglevel")->empty()) _loglevel = optLogLevel;
     if (!cserverOpts.get_option("--routes")->empty()) {
         std::vector<std::string> rinfos = cserve::split(optRoutes, ';');
-        for (const std::string rinfostr: rinfos) {
+        for (const std::string& rinfostr: rinfos) {
             std::vector<std::string> rinfo = cserve::split(rinfostr, ':');
             if (rinfo.size() < 3) {
                 std::cerr << fmt::format("Route spcification invalid: {}\n", rinfostr);

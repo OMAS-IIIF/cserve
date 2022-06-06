@@ -41,27 +41,27 @@
 
 namespace cserve {
 
-    typedef struct _LuaValstruct {
+    typedef struct LuaValstruct {
         enum {
             INT_TYPE, FLOAT_TYPE, STRING_TYPE, BOOLEAN_TYPE, TABLE_TYPE
-        } type;
+        } type{};
         struct {
             int i;
             float f;
             std::string s;
             bool b;
-            std::unordered_map<std::string, std::shared_ptr<struct _LuaValstruct>> table;
+            std::unordered_map<std::string, std::shared_ptr<struct LuaValstruct>> table;
         } value;
         //inline LuaValstruct() { type = }
     } LuaValstruct;
 
-    typedef struct _LuaRoute {
+    typedef struct LuaRoute {
         Connection::HttpMethod method;
         std::string route;
         std::string script;
     } LuaRoute;
 
-    typedef std::unordered_map<std::string, LuaValstruct> LuaKeyValStore;
+    [[maybe_unused]] typedef std::unordered_map<std::string, LuaValstruct> LuaKeyValStore;
 
     typedef void (*LuaSetGlobalsFunc)(lua_State *L, cserve::Connection &, void *);
 
@@ -69,7 +69,7 @@ namespace cserve {
 
     class LuaServer {
     private:
-        lua_State *L;
+        lua_State *L{};
         //std::vector<LuaSetGlobalsFunc> setGlobals;
 
     public:
@@ -83,7 +83,7 @@ namespace cserve {
          *
          * \param[in] conn HTTP Connection object
          */
-        LuaServer(Connection &conn);
+        explicit LuaServer(Connection &conn);
 
 
         /*!
@@ -92,7 +92,7 @@ namespace cserve {
          * \param[in] luafile A script containing lua commands
          * \param[in] iscode If true, the string contains lua-code to be executed directly
          */
-        LuaServer(const std::string &luafile, bool iscode = false);
+        explicit LuaServer(const std::string &luafile, bool iscode = false);
 
         /*!
          * Instantiates a lua interpreter an executes the given lua script
@@ -114,9 +114,7 @@ namespace cserve {
         /*!
          * Assignment operator throws error (not allowed!)
          */
-        inline LuaServer &operator=(const LuaServer &other) {
-            throw Error(__FILE__, __LINE__, "Assigment operator not allowed!");
-        }
+        inline LuaServer &operator=(const LuaServer &other) = delete;
 
         /*!
          * Destroys the lua interpreter and all associated resources
@@ -158,22 +156,21 @@ namespace cserve {
 
         std::string configString(const std::string& table, const std::string& variable, const std::string& defval);
 
-        bool configBoolean(const std::string& table, const std::string& variable, bool defval);
+        [[maybe_unused]] bool configBoolean(const std::string& table, const std::string& variable, bool defval);
 
         int configInteger(const std::string& table, const std::string& variable, int defval);
 
-        float configFloat(const std::string& table, const std::string& variable, float defval);
+        [[maybe_unused]] float configFloat(const std::string& table, const std::string& variable, float defval);
 
-        std::vector<std::string> configStringList(const std::string& table, const std::string& stringlist);
+        [[maybe_unused]] std::vector<std::string> configStringList(const std::string& table, const std::string& stringlist);
 
-        std::map<std::string,std::string> configStringTable(
+        [[maybe_unused]] std::map<std::string,std::string> configStringTable(
                 const std::string &table,
                 const std::string &variable,
                 const std::map<std::string,std::string> &defval);
 
         std::vector<LuaRoute> configRoute(const std::string& routetable);
 
-        const std::map<std::string,LuaKeyValStore> configKeyValueStores(const std::string table);
         /*!
          * Execute a chunk of Lua code
          *
@@ -190,7 +187,7 @@ namespace cserve {
          * \param[in] lvals vector of parameters to be passed to the function
          * \returns vector of LuaValstruct containing the result of the execution of the lua function
          */
-        std::vector<std::shared_ptr<LuaValstruct>> executeLuafunction(const std::string &funcname, const std::vector<std::shared_ptr<LuaValstruct>>& lvals);
+        [[maybe_unused]] std::vector<std::shared_ptr<LuaValstruct>> executeLuafunction(const std::string &funcname, const std::vector<std::shared_ptr<LuaValstruct>>& lvals);
 
         /*!
          * Executes a Lua function that either is defined in C or in Lua
@@ -199,7 +196,7 @@ namespace cserve {
          * \param[in] n Number of arguments
          * \returns true if function with given name exists
          */
-        bool luaFunctionExists(const std::string &funcname);
+        [[maybe_unused]] bool luaFunctionExists(const std::string &funcname);
     };
 
 }

@@ -37,7 +37,7 @@ static const char file_[] = __FILE__;
 
 namespace cserve {
 
-    Hash::Hash(HashType type) {
+    [[maybe_unused]] Hash::Hash(HashType type) {
         context = EVP_MD_CTX_create();
         if (context == nullptr) {
             throw Error(file_, __LINE__, "EVP_MD_CTX_create failed!");
@@ -78,12 +78,12 @@ namespace cserve {
     }
     //==========================================================================
 
-    bool Hash::add_data(const void *data, size_t len) {
+    [[maybe_unused]] bool Hash::add_data(const void *data, size_t len) {
         return EVP_DigestUpdate(context, data, len);
     }
     //==========================================================================
 
-    bool Hash::hash_of_file(const string &path, size_t buflen) {
+    [[maybe_unused]] bool Hash::hash_of_file(const string &path, size_t buflen) {
         auto buf = make_unique<char[]>(buflen);
 
         int fptr = ::open(path.c_str(), O_RDONLY);
@@ -110,14 +110,16 @@ namespace cserve {
         char buffer[4096];
         int i = 0;
         while (input.good() && (i < 4096)) {
-            buffer[i++] = input.get();
+            int c = input.get();
+            if (c == EOF) break;
+            buffer[i++] = static_cast<char>(c);
         }
         EVP_DigestUpdate(h.context, buffer, i);
         return input;
     }
     //==========================================================================
 
-    string Hash::hash() {
+    [[maybe_unused]] string Hash::hash() {
         unsigned char hash[EVP_MAX_MD_SIZE];
         unsigned int lengthOfHash = 0;
         string hashstr;

@@ -74,7 +74,7 @@ namespace cserve::Parsing {
          * @param str the string to be parsed.
          * @return the corresponding integer.
          */
-        size_t parse_int(std::string &str);
+        [[maybe_unused]] size_t parse_int(std::string &str);
 
         /*!
          * Parses a floating-point number containing only digits and an optional decimal point.
@@ -82,7 +82,7 @@ namespace cserve::Parsing {
          * @param str the string to be parsed.
          * @return the corresponding floating-point number.
          */
-        float parse_float(std::string &str);
+        [[maybe_unused]] float parse_float(std::string &str);
     }
 
 #endif //__cserve_parsing_h

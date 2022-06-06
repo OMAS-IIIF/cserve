@@ -22,9 +22,8 @@
  */
 #include "SockStream.h"
 
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <string.h>
+#include <cstring>
 #include <unistd.h>
 
 
@@ -124,7 +123,7 @@ streambuf::int_type SockStream::overflow(streambuf::int_type ch) {
                 tmp_n = send(sock, out_buf + nn, n - nn, MSG_NOSIGNAL);
             } else {
                 if (SSL_get_shutdown(cSSL) == 0) {
-                    tmp_n = SSL_write(cSSL, out_buf + nn, n - nn);
+                    tmp_n = SSL_write(cSSL, out_buf + nn, static_cast<int>(n - nn));
                 } else {
                     tmp_n = 0;
                 }
@@ -137,11 +136,11 @@ streambuf::int_type SockStream::overflow(streambuf::int_type ch) {
             nn += tmp_n;
         }
 
-        pbump(-nn);
-        *pptr() = ch;
+        pbump(-1*static_cast<int>(nn));
+        *pptr() = static_cast<char>(ch);
         pbump(1);
     } else {
-        *pptr() = ch;
+        *pptr() = static_cast<char>(ch);
         pbump(1);
     }
 
@@ -158,7 +157,7 @@ int SockStream::sync() {
             tmp_n = send(sock, out_buf + nn, n - nn, MSG_NOSIGNAL);
         } else {
             if (SSL_get_shutdown(cSSL) == 0) {
-                tmp_n = SSL_write(cSSL, out_buf + nn, n - nn);
+                tmp_n = SSL_write(cSSL, out_buf + nn, static_cast<int>(n - nn));
             } else {
                 tmp_n = 0;
             }
@@ -171,7 +170,7 @@ int SockStream::sync() {
         nn += tmp_n;
     }
 
-    pbump(-nn);
+    pbump(-1*static_cast<int>(nn));
 
     return 0;
 }

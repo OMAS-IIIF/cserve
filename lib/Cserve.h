@@ -142,7 +142,7 @@ namespace cserve {
          */
         class SSLError : Error {
         protected:
-            SSL *cSSL;
+            SSL *cSSL{};
         public:
             inline SSLError(const char *file,
                             const int line,
@@ -182,7 +182,7 @@ namespace cserve {
         std::string _ssl_key; //!< Path to SSL certificate
         std::string _jwt_secret;
 
-        int stoppipe[2];
+        int stoppipe[2]{};
 
         std::string _tmpdir; //!< path to directory, where uplaods are being stored
         std::string _scriptdir; //!< Path to directory, where scripts for the "Lua"-routes are found
@@ -213,9 +213,9 @@ namespace cserve {
                         unsigned nthreads = 4,
                         const std::string &userid_str = "");
 
-        inline static void loggername(const std::string &loggername) { _loggername = loggername; }
+        [[maybe_unused]] inline static void loggername(const std::string &loggername) { _loggername = loggername; }
 
-        inline static const std::string &loggername() { return _loggername; }
+        [[maybe_unused]] inline static const std::string &loggername() { return _loggername; }
 
         static std::shared_ptr<spdlog::logger> create_logger(spdlog::level::level_enum level = spdlog::level::debug,
                                                              bool consolelog = true,
@@ -223,7 +223,7 @@ namespace cserve {
 
         static std::shared_ptr<spdlog::logger> logger(spdlog::level::level_enum level = spdlog::level::debug);
 
-        inline int port() const { return _port; }
+        [[maybe_unused]] [[nodiscard]] inline int port() const { return _port; }
 
 
         /*!
@@ -238,7 +238,7 @@ namespace cserve {
          *
          * \returns SSL socket portnumber
          */
-        inline int ssl_port() const { return _ssl_port; }
+        [[maybe_unused]] [[nodiscard]] inline int ssl_port() const { return _ssl_port; }
 
         /*!
          * Sets the file path to the SSL certficate necessary for OpenSSL to work
@@ -252,14 +252,14 @@ namespace cserve {
          *
          * \returns Path to the SSL certificate
          */
-        inline std::string ssl_certificate() { return _ssl_certificate; }
+        [[maybe_unused]] inline std::string ssl_certificate() { return _ssl_certificate; }
 
         /*!
          * Sets the path to the SSP key
          *
          * \param[in] path Path to the SSL key necessary for OpenSSL to work
          */
-        inline void ssl_key(const std::string &path) { _ssl_key = path; }
+        [[maybe_unused]] inline void ssl_key(const std::string &path) { _ssl_key = path; }
 
         /*!
          * Returns the path of the OpenSSL key
@@ -272,7 +272,7 @@ namespace cserve {
          * Return the version string
          * \return Version string
          */
-        std::string version_string();
+        static std::string version_string();
 
         /*!
          * Sets the secret for the generation JWT's (JSON Web Token). It must be a string
@@ -294,14 +294,14 @@ namespace cserve {
          *
          * \returns Number of parallel threads allowed
          */
-        [[nodiscard]] inline unsigned nthreads() const { return _nthreads; }
+        [[maybe_unused]] [[nodiscard]] inline unsigned nthreads() const { return _nthreads; }
 
         /*!
          * Return the path where to store temporary files (for uploads)
          *
          * \returns Path to directory for temporary files
          */
-        inline std::string tmpdir() { return _tmpdir; }
+        [[maybe_unused]] inline std::string tmpdir() { return _tmpdir; }
 
         /*!
          * set the path to the  directory where to store temporary files during uploads
@@ -315,7 +315,7 @@ namespace cserve {
         *
         * \returns Path to directory for script directory
         */
-        inline std::string scriptdir() { return _scriptdir; }
+        [[maybe_unused]] inline std::string scriptdir() { return _scriptdir; }
 
         /*!
          * set the path to the  directory where to store temporary files during uploads
@@ -343,7 +343,7 @@ namespace cserve {
         *
         * \returns Vector of Lua route infos
         */
-        inline std::vector<cserve::LuaRoute> luaRoutes() { return _lua_routes; }
+        [[maybe_unused]] inline std::vector<cserve::LuaRoute> luaRoutes() { return _lua_routes; }
 
         /*!
          * set the routes that should be handled by Lua scripts
@@ -369,7 +369,7 @@ namespace cserve {
          *
          * \returns Keep alive timeout in seconds
          */
-        [[nodiscard]] inline int keep_alive_timeout() const { return _keep_alive_timeout; }
+        [[maybe_unused]] [[nodiscard]] inline int keep_alive_timeout() const { return _keep_alive_timeout; }
 
         /*!
          * Sets the path to the initialization script (lua script) which is executed for each request

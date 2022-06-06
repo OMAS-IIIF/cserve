@@ -6,6 +6,8 @@
 #define CSERVER_FILEHANDLER_H
 
 
+#include <utility>
+
 #include "LuaServer.h"
 #include "RequestHandlerData.h"
 
@@ -16,7 +18,7 @@ namespace cserve {
         std::string _route;
         std::string _docroot;
     public:
-        FileHandlerData(const std::string &route, const std::string docroot) : RequestHandlerData(), _route(route), _docroot(docroot) {}
+        FileHandlerData(std::string route, std::string docroot) : RequestHandlerData(), _route(std::move(route)), _docroot(std::move(docroot)) {}
 
         std::string route() { return _route; }
 

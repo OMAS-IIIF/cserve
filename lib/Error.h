@@ -72,11 +72,11 @@ namespace cserve {
 
         [[nodiscard]] inline int getLine() const { return line; }
 
-        [[nodiscard]] inline std::string getFile() const { return file; }
+        [[maybe_unused]] [[nodiscard]] inline std::string getFile() const { return file; }
 
         [[nodiscard]] inline std::string getMessage() const { return message; }
 
-        [[nodiscard]] inline int getSysErrno() const { return sysErrno; }
+        [[maybe_unused]] [[nodiscard]] inline int getSysErrno() const { return sysErrno; }
 
         /*!
          * Retuns the error as a one-line string

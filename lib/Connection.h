@@ -234,7 +234,7 @@ namespace cserve {
             CONTINUE = 100,
             SWITCHING_PROTOCOLS = 101,
             PROCESSING = 102,
-            EARLY_HINTS = 103,
+            EARLY_HINTS [[maybe_unused]] = 103,
 
             OK = 200,
             CREATED = 201,
@@ -357,7 +357,7 @@ namespace cserve {
          * \param[in] buf Buffer containing the data
          * \param[in] n Number of bytes
          */
-        void add_to_outbuf(char *buf, size_t n);
+        void add_to_outbuf(char *buf, std::streamsize n);
 
         /*!
          * Send the HTTP header. If n > 0, a "Content-Lenght" header is added
@@ -406,7 +406,7 @@ namespace cserve {
         ~Connection();
 
 
-        [[nodiscard]] inline bool finished() const { return _finished; } // TODO: Temporary for debugging!!
+        [[maybe_unused]] [[nodiscard]] inline bool finished() const { return _finished; } // TODO: Temporary for debugging!!
 
         /*!
          * Get the server
@@ -496,14 +496,14 @@ namespace cserve {
          *
          * \param[in] keep_alive_timeout Set the keep alive timeout to this value (in seconds)
          */
-        inline void keepAliveTimeout(int keep_alive_timeout) { _keep_alive_timeout = keep_alive_timeout; }
+        [[maybe_unused]] inline void keepAliveTimeout(int keep_alive_timeout) { _keep_alive_timeout = keep_alive_timeout; }
 
         /*!
          * Return the keep alive timeout of the connection
          *
          * \returns keep alive timeout in seconds
          */
-        [[nodiscard]] inline int keepAliveTimeout() const { return _keep_alive_timeout; }
+        [[maybe_unused]] [[nodiscard]] inline int keepAliveTimeout() const { return _keep_alive_timeout; }
 
         /*!
          * Sets the response status code
@@ -547,14 +547,14 @@ namespace cserve {
          *
          * \params[in] origin URL of the origin
          */
-        void corsHeader(const char *origin);
+        [[maybe_unused]] void corsHeader(const char *origin);
 
         /*!
          * Send the CORS header with the given origin
          *
          * \params[in] origin URL of the origin
          */
-        void corsHeader(const std::string &origin);
+        [[maybe_unused]] void corsHeader(const std::string &origin);
 
         /*!
          * Returns a unordered_map of cookies
@@ -573,14 +573,14 @@ namespace cserve {
          *
          * \returns path of temporary directory
          */
-        inline std::string tmpdir() { return _tmpdir; }
+        [[maybe_unused]] inline std::string tmpdir() { return _tmpdir; }
 
         /*!
          * setting the directory for temporary files
          *
          * \param[in] tmpdir_p String with the path to the directory to be used for temporary uploads
          */
-        inline void tmpdir(const std::string &tmpdir_p) { _tmpdir = tmpdir_p; }
+        [[maybe_unused]] inline void tmpdir(const std::string &tmpdir_p) { _tmpdir = tmpdir_p; }
 
         /*!
          * Return a list of the get parameter names
@@ -682,7 +682,7 @@ namespace cserve {
          *
          * \param[in] n Number of octets the body will have
          */
-        inline void addContentLength(size_t n) { header("Content-Length", std::to_string(n)); }
+        [[maybe_unused]] inline void addContentLength(size_t n) { header("Content-Length", std::to_string(n)); }
 
         /*
          * Use a buffered connection. This method can be used a long as no body data has been added.
@@ -692,14 +692,14 @@ namespace cserve {
          */
         void setBuffer(size_t buf_size = 8912, size_t buf_inc = 8912);
 
-        inline bool isBuffered() { return (outbuf != nullptr); }
+        [[maybe_unused]] inline bool isBuffered() { return (outbuf != nullptr); }
 
         /*!
          * Set the transfer mode for the response to chunked
          */
         void setChunkedTransfer();
 
-/*!
+       /*!
         * open a cache file
         *
         * \param[in] cfname Name of cache file
