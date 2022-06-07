@@ -924,12 +924,4 @@ namespace cserve {
         }
     }
     //=========================================================================
-
-    void Server::debugmsg(const int line, const std::string &msg) {
-        std::lock_guard<std::mutex> debug_mutex_guard(debugio);
-
-        std::cerr << "DBG> " << line << " " << msg << std::endl;
-    }
-    //=========================================================================
-
 }

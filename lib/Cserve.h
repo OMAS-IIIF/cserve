@@ -442,20 +442,15 @@ namespace cserve {
         */
         inline void user_data(void *user_data_p) { _user_data = user_data_p; }
 
-        static void debugmsg(int line, const std::string &msg);
-
         /*!
          * Stop the server gracefully (all destructors are called etc.) and the
          * cache file is updated. This function is asynchronous-safe, so it may be called
          * from within a signal handler.
          */
         inline void stop() {
-            // POSIX declares write() to be asynchronous-safe.
-            // See https://www.securecoding.cert.org/confluence/display/c/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers
             SocketControl::SocketInfo sockid(SocketControl::EXIT, SocketControl::STOP_SOCKET);
             SocketControl::send_control_message(stoppipe[1], sockid);
-
-            debugmsg(__LINE__, "Sent stop message to stoppipe[1]=" + std::to_string(stoppipe[1]));
+            logger()->debug("Sent stop message to stoppipe[1]={}", stoppipe[1]);
         }
 
 
