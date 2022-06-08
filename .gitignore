@@ -40,3 +40,4 @@
 cmake-build-release
 __pycache__
 /build-linux
+/docs
