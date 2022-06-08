@@ -43,38 +43,67 @@ namespace cserve {
             if (uri[0] != '/') uri = "/" + uri;
         }
 
-        std::string infile = _docroot + uri;
+        std::filesystem::path path(_docroot + uri);
+        //
+        // if there is no filename given, check if there is something like "index.XXX"
+        //
+        if (path.filename().empty()) {
+            std::filesystem::path newpath(path);
+            newpath /= "index.html";
+            if (access(newpath.c_str(), R_OK) == 0) {
+                path /= "index.html";
+            }
 
-        if (access(infile.c_str(), R_OK) != 0) { // test, if file exists
+            newpath = path;
+            newpath /= "index.htm";
+            if (access(newpath.c_str(), R_OK) == 0) {
+                path /= "index.htm";
+            }
+
+            newpath = path;
+            newpath /= "index.elua";
+            if (access(newpath.c_str(), R_OK) == 0) {
+                path /= "index.elua";
+            }
+
+            newpath = path;
+            newpath /= "index.lua";
+            if (access(newpath.c_str(), R_OK) == 0) {
+                path /= "index.lua";
+            }
+        }
+
+        if (access(path.c_str(), R_OK) != 0) { // test, if file exists
             conn.status(Connection::NOT_FOUND);
             conn.header("Content-Type", "text/text; charset=utf-8");
-            conn << "File not found\n";
+            conn << "File not found.\r\n";
             conn.flush();
-            Server::logger()->error("FileHandler: '{}' not readable.", infile);
+            Server::logger()->error("FileHandler: '{}' not readable.", path.string());
             return;
         }
 
         struct stat s{};
 
-        if (stat(infile.c_str(), &s) == 0) {
+        if (stat(path.c_str(), &s) == 0) {
             if (!(s.st_mode & S_IFREG)) { // we have not a regular file, do nothing!
+                conn.setBuffer();
                 conn.status(Connection::NOT_FOUND);
                 conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << infile << " not aregular file\n";
+                conn << path << " not a regular file\r\n";
                 conn.flush();
-                Server::logger()->error("FileHandler: '{}' is not regular file.", infile);
+                Server::logger()->error("FileHandler: '{}' is not regular file.", path.string());
                 return;
             }
         } else {
+            conn.setBuffer();
             conn.status(Connection::NOT_FOUND);
             conn.header("Content-Type", "text/text; charset=utf-8");
-            conn << "Could not stat file" << infile << "\n";
+            conn << "Could not stat file" << path << "\r\n";
             conn.flush();
-            Server::logger()->error("FileHandler: Could not stat '{}'", infile);
+            Server::logger()->error("FileHandler: Could not stat '{}'", path.string());
             return;
         }
-
-        std::pair<std::string, std::string> mime = Parsing::getFileMimetype(infile);
+        std::pair<std::string, std::string> mime = Parsing::getFileMimetype(path.string());
 
         size_t extpos = uri.find_last_of('.');
         std::string extension;
@@ -86,24 +115,24 @@ namespace cserve {
         try {
             if ((extension == "html") && (mime.first == "text/html")) {
                 conn.header("Content-Type", "text/html; charset=utf-8");
-                conn.sendFile(infile);
+                conn.sendFile(path.string());
             } else if (extension == "js") {
                 conn.header("Content-Type", "application/javascript; charset=utf-8");
-                conn.sendFile(infile);
+                conn.sendFile(path.string());
             } else if (extension == "css") {
                 conn.header("Content-Type", "text/css; charset=utf-8");
-                conn.sendFile(infile);
+                conn.sendFile(path.string());
             } else if (extension == "lua") { // pure lua
                 conn.setBuffer();
                 std::ifstream inf;
-                inf.open(infile);//open the input file
+                inf.open(path.string());//open the input file
 
                 std::stringstream sstr;
                 sstr << inf.rdbuf();//read the file
                 std::string luacode = sstr.str();//str holds the content of the file
 
                 try {
-                    if (lua.executeChunk(luacode, infile) < 0) {
+                    if (lua.executeChunk(luacode, path.string()) < 0) {
                         conn.flush();
                         return;
                     }
@@ -125,7 +154,7 @@ namespace cserve {
             } else if (extension == "elua") { // embedded lua <lua> .... </lua>
                 conn.setBuffer();
                 std::ifstream inf;
-                inf.open(infile);//open the input file
+                inf.open(path.string());//open the input file
 
                 std::stringstream sstr;
                 sstr << inf.rdbuf();//read the file
@@ -150,7 +179,7 @@ namespace cserve {
                     }
 
                     try {
-                        if (lua.executeChunk(luastr, infile) < 0) {
+                        if (lua.executeChunk(luastr, path.string()) < 0) {
                             conn.flush();
                             return;
                         }
@@ -172,13 +201,13 @@ namespace cserve {
                 conn << htmlcode;
                 conn.flush();
             } else {
-                std::string actual_mimetype = cserve::Parsing::getBestFileMimetype(infile);
+                std::string actual_mimetype = cserve::Parsing::getBestFileMimetype(path.string());
                 //
                 // first we get the filesize and time using fstat
                 //
                 struct stat fstatbuf{};
 
-                if (stat(infile.c_str(), &fstatbuf) != 0) {
+                if (stat(path.c_str(), &fstatbuf) != 0) {
                     throw Error(file_, __LINE__, "Cannot fstat file!");
                 }
                 size_t fsize = fstatbuf.st_size;
@@ -199,7 +228,7 @@ namespace cserve {
                     conn.header("Content-Length", std::to_string(fsize));
                     conn.header("Last-Modified", timebuf);
                     conn.header("Content-Transfer-Encoding: binary");
-                    conn.sendFile(infile);
+                    conn.sendFile(path.string());
                 } else {
                     //
                     // now we parse the range
@@ -230,17 +259,19 @@ namespace cserve {
                     std::stringstream ss;
                     ss << "bytes " << start << "-" << end << "/" << fsize;
                     conn.header("Content-Range", ss.str());
-                    conn.header("Content-Disposition", std::string("inline; filename=") + infile);
+                    conn.header("Content-Disposition", std::string("inline; filename=") + path.string());
                     conn.header("Content-Transfer-Encoding: binary");
                     conn.header("Last-Modified", timebuf);
-                    conn.sendFile(infile, 8192, start, end);
+                    conn.sendFile(path.string(), 8192, start, end);
                 }
                 conn.flush();
+                Server::logger()->info("Sent {} to {}:{}.", path.string(), conn.peer_ip(), conn.peer_port());
             }
         } catch (InputFailure &iofail) {
             return; // we have an io error => just return, the thread will exit
         } catch (Error &err) {
             try {
+                conn.setBuffer();
                 conn.status(Connection::INTERNAL_SERVER_ERROR);
                 conn.header("Content-Type", "text/text; charset=utf-8");
                 conn << err;
