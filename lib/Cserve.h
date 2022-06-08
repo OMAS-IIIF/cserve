@@ -80,9 +80,6 @@
 
 namespace cserve {
 
-
-    typedef void (*RequestHandler)(Connection &, LuaServer &, void *, std::shared_ptr<RequestHandlerData>);
-
     typedef enum {
         CONTINUE, CLOSE
     } ThreadStatus;
@@ -190,15 +187,15 @@ namespace cserve {
         std::map<pthread_t, SocketControl::SocketInfo> thread_ids; //!< Map of active worker threads
         int _keep_alive_timeout;
         bool running; //!< Main runloop should keep on going
-        std::map<std::string, RequestHandler> handler[Connection::NumHttpMethods]; // request handlers for the different 9 request methods
-        std::map<std::string, std::shared_ptr<RequestHandlerData>> handler_data[Connection::NumHttpMethods]; // request handlers for the different 9 request methods
+        std::map<std::string, std::shared_ptr<RequestHandler>> handler[Connection::NumHttpMethods]; // request handlers for the different 9 request methods
+        std::shared_ptr<RequestHandler> default_handler;
         void *_user_data; //!< Some opaque user data that can be given to the Connection (for use within the handler)
         std::string _initscript;
         std::vector<cserve::LuaRoute> _lua_routes; //!< This vector holds the routes that are served by lua scripts
         std::vector<GlobalFunc> lua_globals;
         size_t _max_post_size;
 
-        std::tuple<RequestHandler, std::shared_ptr<RequestHandlerData>>  getHandler(Connection &conn);
+        std::shared_ptr<RequestHandler> getHandler(Connection &conn);
 
         SocketControl::SocketInfo accept_connection(int sock, bool ssl = false);
 
@@ -415,8 +412,7 @@ namespace cserve {
          * \param[in] handler_data_p Pointer to arbitrary data given to the handler when called
          *
          */
-        void addRoute(Connection::HttpMethod method_p, const std::string &path, RequestHandler handler_p,
-                      std::shared_ptr<RequestHandlerData> data = nullptr);
+        void addRoute(Connection::HttpMethod method_p, const std::string &path, std::shared_ptr<RequestHandler> handler_p);
 
 
         /*!

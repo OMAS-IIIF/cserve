@@ -9,19 +9,20 @@
 
 #include "LuaServer.h"
 #include "RequestHandlerData.h"
+#include "RequestHandler.h"
 
 namespace cserve {
 
-    class ScriptHandlerData: public RequestHandlerData {
+    class ScriptHandler: public RequestHandler {
     private:
         std::string _scriptpath;
     public:
-        explicit ScriptHandlerData(std::string  scriptpath) : RequestHandlerData(), _scriptpath(std::move(scriptpath)) {}
+        explicit ScriptHandler(std::string  scriptpath) : RequestHandler(), _scriptpath(std::move(scriptpath)) {}
+
+        void handler(Connection& conn, LuaServer &lua, void *user_data) override;
 
         std::string scriptpath() { return _scriptpath; }
     };
-
-    extern void ScriptHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, std::shared_ptr<RequestHandlerData> request_data);
 
 }
 

@@ -21,12 +21,11 @@ namespace cserve {
      * @param user_data
      * @param hd Pointer to string object containing the lua script file name
      */
-    void ScriptHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, std::shared_ptr<RequestHandlerData> request_data) {
+    void ScriptHandler::handler(cserve::Connection &conn, LuaServer &lua, void *user_data) {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
-        std::shared_ptr<ScriptHandlerData> data = std::dynamic_pointer_cast<ScriptHandlerData>(request_data);
 
-        if (data == nullptr) {
+        if (_scriptpath.empty()) {
             conn.setBuffer();
             conn.status(Connection::INTERNAL_SERVER_ERROR);
             conn.header("Content-Type", "text/text; charset=utf-8");
@@ -35,34 +34,33 @@ namespace cserve {
             Server::logger()->error("Error in ScriptHandler: No script path defined.");
             return;
         }
-        std::string script = data->scriptpath();
 
-        if (access(script.c_str(), R_OK) != 0) { // test, if file exists
+        if (access(_scriptpath.c_str(), R_OK) != 0) { // test, if file exists
             conn.status(Connection::NOT_FOUND);
             conn.header("Content-Type", "text/text; charset=utf-8");
             conn << "File not found\n";
             conn.flush();
-            Server::logger()->error("ScriptHandler '{}' not readable", script);
+            Server::logger()->error("ScriptHandler '{}' not readable", _scriptpath);
             return;
         }
 
-        size_t extpos = script.find_last_of('.');
+        size_t extpos = _scriptpath.find_last_of('.');
         std::string extension;
 
         if (extpos != std::string::npos) {
-            extension = script.substr(extpos + 1);
+            extension = _scriptpath.substr(extpos + 1);
         }
 
         try {
             if (extension == "lua") { // pure lua
                 std::ifstream inf;
-                inf.open(script); //open the input file
+                inf.open(_scriptpath); //open the input file
                 std::stringstream sstr;
                 sstr << inf.rdbuf(); //read the file
                 std::string luacode = sstr.str();//str holds the content of the file
 
                 try {
-                    if (lua.executeChunk(luacode, script) < 0) {
+                    if (lua.executeChunk(luacode, _scriptpath) < 0) {
                         conn.flush();
                         return;
                     }
@@ -84,7 +82,7 @@ namespace cserve {
             } else if (extension == "elua") { // embedded lua <lua> .... </lua>
                 conn.setBuffer();
                 std::ifstream inf;
-                inf.open(script);//open the input file
+                inf.open(_scriptpath);//open the input file
 
                 std::stringstream sstr;
                 sstr << inf.rdbuf();//read the file
@@ -109,7 +107,7 @@ namespace cserve {
                     }
 
                     try {
-                        if (lua.executeChunk(luastr, script) < 0) {
+                        if (lua.executeChunk(luastr, _scriptpath) < 0) {
                             conn.flush();
                             return;
                         }

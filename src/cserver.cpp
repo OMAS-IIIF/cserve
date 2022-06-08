@@ -5,12 +5,12 @@
 #include <utility>
 
 
-#include "Global.h"
 #include "Cserve.h"
 #include "LuaServer.h"
 #include "LuaSqlite.h"
 #include "CserverConf.h"
-#include "RequestHandlerData.h"
+#include "TestHandler.h"
+#include "PingHandler.h"
 
 
 cserve::Server *serverptr = nullptr;
@@ -54,7 +54,7 @@ static int lua_gaga(lua_State *L) {
 /*!
  * Just some testing testing the extension of lua, not really doing something useful
  */
-static void new_lua_func(lua_State *L, cserve::Connection &conn, void *user_data) {
+static void new_lua_func(lua_State *L, cserve::Connection &conn, [[maybe_unused]] void *user_data) {
     lua_pushcfunction(L, lua_gaga);
     lua_setglobal(L, "gaga");
 }
@@ -62,7 +62,7 @@ static void new_lua_func(lua_State *L, cserve::Connection &conn, void *user_data
 
 /*LUA TEST****************************************************************************/
 
-
+/*
 void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, std::shared_ptr<cserve::RequestHandlerData> request_data) {
     conn.setBuffer();
     std::vector <std::string> headers = conn.header();
@@ -73,28 +73,7 @@ void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
     conn << "It works!" << cserve::Connection::flush_data;
     return;
 }
-
-
-void TestHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, std::shared_ptr<cserve::RequestHandlerData> request_data) {
-    conn.setBuffer();
-    conn.setChunkedTransfer();
-
-    conn.header("Content-Type", "text/html; charset=utf-8");
-    conn << "<html><head>";
-    conn << "<title>OMAS-IIIF CSERVE TEST (chunked transfer)</title>";
-    conn << "</head>" << cserve::Connection::flush_data;
-
-    conn << "<body><h1>OMAS-IIIF CSERVE TEST (chunked transfer)</h1>";
-    conn << "<p>Dies ist ein kleiner Text</p>";
-    conn << "</body></html>" << cserve::Connection::flush_data;
-}
-
-void PingHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, std::shared_ptr<cserve::RequestHandlerData> request_data) {
-    conn.setBuffer();
-    conn << "PONG" << cserve::Connection::flush_data;
-}
-
-
+*/
 int main(int argc, char *argv[]) {
     auto logger = cserve::Server::create_logger();
     logger->info("CSERVE startet main");
@@ -139,16 +118,19 @@ int main(int argc, char *argv[]) {
     //
     if (!config.docroot().empty()) {
         std::pair <std::string, std::string> tmp = config.filehandler_info();
-        std::shared_ptr<cserve::FileHandlerData> data = std::make_shared<cserve::FileHandlerData>(tmp.first, tmp.second);
-        server.addRoute(cserve::Connection::GET, tmp.first, cserve::FileHandler, data);
-        server.addRoute(cserve::Connection::POST, tmp.first, cserve::FileHandler, data);
+        auto file_handler = std::make_shared<cserve::FileHandler>(tmp.first, tmp.second);
+        server.addRoute(cserve::Connection::GET, tmp.first, file_handler);
+        server.addRoute(cserve::Connection::POST, tmp.first, file_handler);
     }
 
     //
     // Test handler (should be removed for production system)
     //
-    server.addRoute(cserve::Connection::GET, "/test", TestHandler);
-    server.addRoute(cserve::Connection::GET, "/ping", PingHandler);
+    std::shared_ptr<TestHandler> test_handler = std::make_shared<TestHandler>();
+    server.addRoute(cserve::Connection::GET, "/test", test_handler);
+
+    std::shared_ptr<PingHandler> ping_handler = std::make_shared<PingHandler>();
+    server.addRoute(cserve::Connection::GET, "/ping", std::make_shared<PingHandler>());
 
     serverptr = &server;
     old_sighandler = signal(SIGINT, sighandler);

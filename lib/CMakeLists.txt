@@ -65,6 +65,8 @@ add_library(cserve
         ThreadControl.cpp ThreadControl.h
         RequestHandlerData.h
         Cserve.cpp Cserve.h
+        RequestHandler.h
+        DefaultHandler.cpp DefaultHandler.h
         FileHandler.cpp FileHandler.h
         ScriptHandler.cpp ScriptHandler.h
         CserveVersion.h)

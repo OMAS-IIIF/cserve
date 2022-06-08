@@ -10,22 +10,30 @@
 
 #include "LuaServer.h"
 #include "RequestHandlerData.h"
+#include "RequestHandler.h"
 
 namespace cserve {
 
-    class FileHandlerData: public RequestHandlerData {
+    /*!
+     * Implements the "standard" HTTP-server filehandler. It delivers all files as is, with the exception of
+     * of files with the extension ".lua" and ".elua".
+     * - ".lua" are files containing Lua code
+     * - ".elua" are files containing embedded lua in HTML. The Lua code start with <lua> and ends with </lua>.
+     */
+     class FileHandler: public RequestHandler {
     private:
         std::string _route;
         std::string _docroot;
     public:
-        FileHandlerData(std::string route, std::string docroot) : RequestHandlerData(), _route(std::move(route)), _docroot(std::move(docroot)) {}
+        [[maybe_unused]] FileHandler(std::string route, std::string docroot) : RequestHandler(), _route(std::move(route)), _docroot(std::move(docroot)) {}
 
-        std::string route() { return _route; }
+        void handler(Connection& conn, LuaServer &lua, void *user_data) override;
 
-        std::string docroot() { return _docroot; }
+        [[maybe_unused]] std::string route() { return _route; }
+
+        [[maybe_unused]] std::string docroot() { return _docroot; }
     };
 
-    extern void FileHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, std::shared_ptr<RequestHandlerData> request_data);
 }
 
 #endif //CSERVER_FILEHANDLER_H

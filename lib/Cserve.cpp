@@ -1,24 +1,13 @@
 /*
- * Copyright © 2016 Lukas Rosenthaler, Andrea Bianco, Benjamin Geer,
- * Ivan Subotic, Tobias Schweizer, André Kilchenmann, and André Fatton.
- * This file is part of Sipi.
- * Sipi is free software: you can redistribute it and/or modify
+ * Copyright © 2022 Lukas Rosenthaler
+ * This file is part of OMAS/cserve
+ * OMAS/cserve is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * Sipi is distributed in the hope that it will be useful,
+ * OMAS/cserve is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * Additional permission under GNU AGPL version 3 section 7:
- * If you modify this Program, or any covered work, by linking or combining
- * it with Kakadu (or a modified version of that library) or Adobe ICC Color
- * Profiles (or a modified version of that library) or both, containing parts
- * covered by the terms of the Kakadu Software Licence or Adobe Software Licence,
- * or both, the licensors of this Program grant you additional permission
- * to convey the resulting work.
- * See the GNU Affero General Public License for more details.
- * You should have received a copy of the GNU Affero General Public
- * License along with Sipi.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <iostream>
@@ -45,13 +34,12 @@
 #include "Cserve.h"
 #include "LuaServer.h"
 #include "makeunique.h"
+#include "DefaultHandler.h"
 #include "ScriptHandler.h"
 
 #include "CserveVersion.h"
 
 static const char this_src_file[] = __FILE__;
-
-static std::mutex debugio; // mutex to protect debugging messages from threads
 
 std::string cserve::Server::_loggername;
 std::shared_ptr<spdlog::logger> cserve::Server::_logger = nullptr;
@@ -87,30 +75,6 @@ namespace cserve {
             }
         }
     }
-    //=========================================================================
-
-    /**
-     * This ist just the default handler that handles any unknown routes or requests. It
-     * is called if the server does not know how to ahndle a requerst...
-     *
-     * @param conn Connection instance
-     * @param lua Lua interpreter instance
-     * @param user_data Hook to user data
-     */
-    static void default_handler(Connection &conn, LuaServer &lua, [[maybe_unused]] void *user_data, std::shared_ptr<RequestHandlerData> request_data) {
-        conn.status(Connection::NOT_FOUND);
-        conn.header("Content-Type", "text/text");
-        conn.setBuffer();
-
-        try {
-            conn << "No handler available" << Connection::flush_data;
-        } catch (InputFailure &iofail) {
-            Server::logger()->error("No handler and no connection available.");
-            return;
-        }
-
-        Server::logger()->error("No handler available. Host: '{}' Uri: '{}'", conn.host(), conn.uri());
-   }
     //=========================================================================
 
     /**
@@ -198,6 +162,7 @@ namespace cserve {
         SSL_library_init();
         OpenSSL_add_all_algorithms();
 
+        default_handler = std::make_shared<DefaultHandler>();
     }
 
     std::string Server::version_string() {
@@ -232,31 +197,29 @@ namespace cserve {
      * @param handler_data_p Returns the pointer to the handler data
      * @return The appropriate handler for this request.
      */
-    std::tuple<RequestHandler, std::shared_ptr<RequestHandlerData>> Server::getHandler(Connection &conn) {
+    std::shared_ptr<RequestHandler> Server::getHandler(Connection &conn) {
         std::map<std::string, RequestHandler>::reverse_iterator item;
 
         size_t max_match_len = 0;
         std::string matching_path;
-        RequestHandler matching_handler = nullptr;
+        std::shared_ptr<RequestHandler> matching_handler;
 
-        for (item = handler[conn.method()].rbegin(); item != handler[conn.method()].rend(); ++item) {
-          //TODO:: Selects wrong handler if the URI starts with the substring
-            size_t len = conn.uri().length() < item->first.length() ? conn.uri().length() : item->first.length();
-
-            if (item->first == conn.uri().substr(0, len)) {
+        for (auto const& [route, hfunc]: handler[conn.method()]) {
+            size_t len = conn.uri().length() < route.length() ? conn.uri().length() : route.length();
+            if (route == conn.uri().substr(0, len)) {
                 if (len > max_match_len) {
                     max_match_len = len;
-                    matching_path = item->first;
-                    matching_handler = item->second;
+                    matching_path = route;
+                    matching_handler = hfunc;
                 }
             }
         }
 
         if (max_match_len > 0) {
             //handler_data = handler_data[conn.method()][matching_path];
-            return std::make_tuple(matching_handler, handler_data[conn.method()][matching_path]);
+            return matching_handler;
         }
-        return std::make_tuple(default_handler, nullptr);
+        return default_handler;
     }
     //=============================================================================
 
@@ -566,8 +529,8 @@ namespace cserve {
         //
         for (auto &route : _lua_routes) {
             route.script = _scriptdir + "/" + route.script;
-            std::shared_ptr<ScriptHandlerData> data = std::make_shared<ScriptHandlerData>(route.script);
-            addRoute(route.method, route.route, ScriptHandler, data);
+            std::shared_ptr<ScriptHandler> handler = std::make_shared<ScriptHandler>(route.script);
+            addRoute(route.method, route.route, handler);
 
             old_ll = setlogmask(LOG_MASK(LOG_INFO));
             Server::logger()->info("Added route '{}' with script '{}'", route.route.c_str(), route.script.c_str());
@@ -840,10 +803,8 @@ namespace cserve {
     //=========================================================================
 
 
-    void Server::addRoute(Connection::HttpMethod method_p, const std::string &path_p, RequestHandler handler_p,
-                          std::shared_ptr<RequestHandlerData> handler_data_p) {
-        handler[method_p][path_p] = handler_p;
-        handler_data[method_p][path_p] = std::move(handler_data_p);
+    void Server::addRoute(Connection::HttpMethod method_p, const std::string &path_p, std::shared_ptr<RequestHandler> handler_p) {
+        handler[method_p][path_p] = std::move(handler_p);
     }
     //=========================================================================
 
@@ -889,8 +850,8 @@ namespace cserve {
             }
 
             try {
-                std::tuple<RequestHandler, std::shared_ptr<RequestHandlerData>> handler_info = getHandler(conn);
-                std::get<0>(handler_info)(conn, luaserver, _user_data, std::get<1>(handler_info));
+                std::shared_ptr<RequestHandler> req_handler = getHandler(conn);
+                req_handler->handler(conn, luaserver, _user_data);
             } catch (InputFailure &iofail) {
                 Server::logger()->error("Possibly socket closed by peer");
                 return CLOSE; // or CLOSE ??

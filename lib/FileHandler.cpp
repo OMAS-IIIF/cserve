@@ -22,14 +22,12 @@ namespace cserve {
      * @param conn Connection instance
      * @param lua Lua interpreter instance
      * @param user_data Hook to user data
-     * @param hd nullptr or pair (docroot, route)
      */
-    void FileHandler(cserve::Connection &conn, LuaServer &lua, void *user_data, std::shared_ptr<RequestHandlerData> request_data) {
+    void FileHandler::handler(cserve::Connection &conn, LuaServer &lua, void *user_data) {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
 
-        std::shared_ptr<FileHandlerData> data = std::dynamic_pointer_cast<FileHandlerData>(request_data);
-        if (data == nullptr) {
+        if (_docroot.empty() || _route.empty()) {
             conn.setBuffer();
             conn.status(Connection::INTERNAL_SERVER_ERROR);
             conn.header("Content-Type", "text/text; charset=utf-8");
@@ -39,16 +37,13 @@ namespace cserve {
             return;
         }
 
-        std::string docroot = data->docroot();
-        std::string route = data->route();
-
-        lua.add_servertableentry("docroot", docroot);
-        if (uri.find(route) == 0) {
-            uri = uri.substr(route.length());
+        lua.add_servertableentry("docroot", _docroot);
+        if (uri.find(_route) == 0) {
+            uri = uri.substr(_route.length());
             if (uri[0] != '/') uri = "/" + uri;
         }
 
-        std::string infile = docroot + uri;
+        std::string infile = _docroot + uri;
 
         if (access(infile.c_str(), R_OK) != 0) { // test, if file exists
             conn.status(Connection::NOT_FOUND);
