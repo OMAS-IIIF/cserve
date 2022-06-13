@@ -3,7 +3,6 @@
 //
 
 #include "ThreadControl.h"
-#include <cstring>
 #include "Cserve.h"
 
 static const char file_[] = __FILE__;
@@ -62,7 +61,7 @@ namespace cserve {
 
     bool ThreadControl::thread_pop(ThreadMasterData &tinfo) {
         std::unique_lock<std::mutex> thread_queue_guard(thread_queue_mutex);
-        tinfo = {nullptr, 0};
+        tinfo = {0, 0};
         if (!thread_queue.empty()) {
             tinfo = thread_queue.front();
             thread_queue.pop();

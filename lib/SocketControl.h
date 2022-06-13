@@ -55,18 +55,26 @@ namespace cserve {
 
         class SocketInfo {
         public:
+
             ControlMessageType type;
             SocketType socket_type;
             int sid;
-            SSL *ssl_sid;
-            SSL_CTX *sslctx;
+            SSL *ssl_sid{};
+            SSL_CTX *sslctx{};
             char peer_ip[INET6_ADDRSTRLEN]{};
             int peer_port;
 
             explicit SocketInfo(ControlMessageType type = NOOP,
                                 SocketType socket_type = CONTROL_SOCKET,
-                                int sid = -1,
-                                SSL * ssl_sid = nullptr,
+                                int sid = -1) :
+                                type(type), socket_type(socket_type), sid(sid), ssl_sid(nullptr), sslctx(nullptr), peer_port(-1) {
+                for (char & i : peer_ip) i = '\0';
+            }
+
+            explicit SocketInfo(ControlMessageType type,
+                                SocketType socket_type,
+                                int sid,
+                                SSL * ssl_sid,
                                 SSL_CTX *sslctx = nullptr,
                                 char *_peer_ip = nullptr,
                                 int peer_port = -1) :
@@ -118,7 +126,7 @@ namespace cserve {
     private:
         std::mutex sockets_mutex; //!> protecting mutex
         std::vector<pollfd> open_sockets; //!> open sockets waiting for reading
-        std::vector<SocketInfo> generic_open_sockets;//!> open socket-info's waiting for reading
+        std::vector<SocketInfo> generic_open_sockets; //!> open socket-info's waiting for reading
         std::queue<SocketInfo> waiting_sockets; //!> Sockets that have input and are waiting for the thread
         //std::unordered_set<SocketInfo, socket_info_hash> working_sockets; //!> Socket's that are currently working
         int n_msg_sockets; //!> Number of sockets communicating with the threads

@@ -146,7 +146,10 @@ namespace cserve {
         SIData data{};
         data.type = EXIT;
         data.socket_type = CONTROL_SOCKET;
-        data.sid = 0;
+        data.ssl_sid = nullptr;
+        data.sslctx = nullptr;
+        data.peer_port = -1;
+        for (int i = 0; i < INET6_ADDRSTRLEN; i++) data.peer_ip[i] = '\0';
         for (int i = 0; i < n_msg_sockets; i++) {
             data.sid = generic_open_sockets[i].sid;
             ::send(generic_open_sockets[i].sid, &data, sizeof(SIData), 0);

@@ -56,7 +56,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 #include(FindOpenSSL REQUIRED)
 
 #add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
-
+add_definitions(${CMAKE_CXX_FLAGS} " -std=c++17")
 #
 # this is needed for curl...
 #
