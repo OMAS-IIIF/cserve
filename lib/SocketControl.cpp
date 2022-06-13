@@ -68,8 +68,9 @@ namespace cserve {
     }
     //=========================================================================
 
-    void SocketControl::remove(int pos, SocketInfo &sockid) { // called multiple times, changes open sockets vector!!!
+    SocketControl::SocketInfo SocketControl::remove(int pos) { // called multiple times, changes open sockets vector!!!
         std::unique_lock<std::mutex> mutex_guard(sockets_mutex);
+        SocketControl::SocketInfo sockid;
         if ((pos >= 0) && (pos < generic_open_sockets.size())) {
             sockid = generic_open_sockets[pos];
             generic_open_sockets.erase(generic_open_sockets.begin() + pos);
@@ -90,6 +91,7 @@ namespace cserve {
             ssl_sock_id = -1;
             dyn_socket_base--;
         }
+        return sockid;
     }
 
     void SocketControl::move_to_waiting(int pos) { // called multiple times, changes open sockets vector!!!
@@ -104,14 +106,14 @@ namespace cserve {
     }
     //=========================================================================
 
-    bool SocketControl::get_waiting(SocketInfo &sockid) {
+    std::optional<SocketControl::SocketInfo> SocketControl::get_waiting() {
         std::unique_lock<std::mutex> mutex_guard(sockets_mutex);
         if (!waiting_sockets.empty()) {
-            sockid = waiting_sockets.front();
+            SocketInfo sock_info = waiting_sockets.front();
             waiting_sockets.pop();
-            return true;
+            return sock_info;
         } else {
-            return false;
+            return {};
         }
     }
     //=========================================================================§

@@ -592,11 +592,12 @@ namespace cserve {
                                     //
                                     // see if we have sockets waiting for a thread.If yes, we reuse this thread directly
                                     //
-                                    SocketControl::SocketInfo sockid;
-                                    if (socket_control.get_waiting(sockid)) {
+                                    std::optional<SocketControl::SocketInfo> opt_sockid = socket_control.get_waiting();
+                                    if (opt_sockid.has_value()) {
                                         //
                                         // We have a waiting socket. Get it and make the thread processing it!
                                         //
+                                        SocketControl::SocketInfo sockid = opt_sockid.value();
                                         sockid.type = SocketControl::PROCESS_REQUEST;
                                         SocketControl::send_control_message(sockets[i].fd, sockid);
                                     } else {
@@ -617,11 +618,12 @@ namespace cserve {
                                     //
                                     // see if we have sockets waiting for a thread.If yes, we reuse this thread directly
                                     //
-                                    SocketControl::SocketInfo sockid;
-                                    if (socket_control.get_waiting(sockid)) {
+                                    std::optional<SocketControl::SocketInfo> opt_sockid = socket_control.get_waiting();
+                                    if (opt_sockid.has_value()) {
                                         //
                                         // We have a waiting socket. Get it and make the thread processing it!
                                         //
+                                        SocketControl::SocketInfo sockid = opt_sockid.value();
                                         sockid.type = SocketControl::PROCESS_REQUEST;
                                         SocketControl::send_control_message(sockets[i].fd, sockid);
                                     } else {
@@ -672,8 +674,8 @@ namespace cserve {
                             }
 
                             SocketControl::SocketInfo sockid;
-                            socket_control.remove(socket_control.get_http_socket_id(), sockid); // remove the HTTP socket
-                            socket_control.remove(socket_control.get_ssl_socket_id(), sockid); // remove the SSL socket
+                            (void) socket_control.remove(socket_control.get_http_socket_id()); // remove the HTTP socket
+                            (void) socket_control.remove(socket_control.get_ssl_socket_id()); // remove the SSL socket
                             socket_control.close_all_dynsocks(close_socket);
                             socket_control.broadcast_exit(); // broadcast EXIT to all worker threads
                             running = false;
@@ -700,8 +702,7 @@ namespace cserve {
                             //
                             ThreadControl::ThreadMasterData tinfo;
                             if (thread_control.thread_pop(tinfo)) { // thread available
-                                SocketControl::SocketInfo sockid;
-                                socket_control.remove(i, sockid); //  ==> CHANGES open_sockets!!
+                                SocketControl::SocketInfo sockid = socket_control.remove(i); //  ==> CHANGES open_sockets!!
                                 sockid.type = SocketControl::PROCESS_REQUEST;
                                 ssize_t n = SocketControl::send_control_message(tinfo.control_pipe, sockid);
                                 if (n < 0) {
@@ -721,15 +722,13 @@ namespace cserve {
                             // ist a hangup from a dynamic client socket!
                             // we close and remove it
                             //
-                            SocketControl::SocketInfo sockid;
-                            socket_control.remove(i, sockid); //  ==> CHANGES open_sockets!!
+                            SocketControl::SocketInfo sockid = socket_control.remove(i); //  ==> CHANGES open_sockets!!
                             close_socket(sockid);
                         } else if (i < socket_control.get_n_msg_sockets()) {
                             //
                             // it's a hangup from one of the thread sockets -> thread exited
                             //
-                            SocketControl::SocketInfo sockid;
-                            socket_control.remove(i, sockid); //  ==> CHANGES open_sockets!!
+                            (void) socket_control.remove(i); //  ==> CHANGES open_sockets!!
                             thread_control.thread_delete(i); // delete the thread
                             if (socket_control.get_n_msg_sockets() == 0) {
                                 running = false;
@@ -738,14 +737,12 @@ namespace cserve {
                             //
                             // The HTTP socked was being closed -> must be EXIT
                             //
-                            SocketControl::SocketInfo sockid;
-                            socket_control.remove(i, sockid); //  ==> CHANGES open_sockets!!
+                            (void) socket_control.remove(i); //  ==> CHANGES open_sockets!!
                         } else if (i == socket_control.get_ssl_socket_id()) {
                             //
                             // The HTTP socked was being closed -> must be EXIT - do nothing!
                             //
-                            SocketControl::SocketInfo sockid;
-                            socket_control.remove(i, sockid); //  ==> CHANGES open_sockets!!
+                            (void) socket_control.remove(i); //  ==> CHANGES open_sockets!!
                         } else {
                             Server::logger()->error("We got a HANGUP from an unknown socket (socket_id = {})", i);
                         }

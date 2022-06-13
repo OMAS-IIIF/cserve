@@ -175,13 +175,13 @@ namespace cserve {
 
         inline const pollfd &operator[](int index) { return open_sockets[index]; };
 
-        void remove(int pos, SocketInfo &sockid);
+        SocketInfo remove(int pos);
 
 
 
         void move_to_waiting(int pos);
 
-        bool get_waiting(SocketInfo &sockid);
+        std::optional<SocketInfo>  get_waiting();
 
         static ssize_t send_control_message(int pipe_id, const SocketInfo &msg);
 
