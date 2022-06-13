@@ -21,8 +21,8 @@ namespace cserve {
 
     pollfd *SocketControl::get_sockets_arr() {
         open_sockets.clear();
-        for (auto const &tmp: generic_open_sockets) {
-            open_sockets.push_back({tmp.sid, POLLIN, 0});
+         for (auto const &tmp: generic_open_sockets) {
+             open_sockets.push_back({tmp.sid, POLLIN, 0});
         }
         return open_sockets.data();
     }
@@ -117,16 +117,10 @@ namespace cserve {
     //=========================================================================§
 
     ssize_t SocketControl::send_control_message(int pipe_id, const SocketInfo &msg) {
-        SIData data{};
-        data.type = msg.type;
-        data.socket_type = msg.socket_type;
-        data.sid = msg.sid;
-        data.ssl_sid = msg.ssl_sid;
-        data.sslctx = msg.sslctx;
+        SIData data = {msg.type, msg.socket_type, msg.sid, msg.ssl_sid, msg.sslctx, "", msg.peer_port};
         for (int i = 0; i < INET6_ADDRSTRLEN; ++i) {
             data.peer_ip[i] = msg.peer_ip[i];
         }
-        data.peer_port = msg.peer_port;
         return ::send(pipe_id, &data, sizeof(SIData), 0);
     }
     //=========================================================================§
@@ -143,13 +137,8 @@ namespace cserve {
     //=========================================================================§
 
     void SocketControl::broadcast_exit() {
-        SIData data{};
-        data.type = EXIT;
-        data.socket_type = CONTROL_SOCKET;
-        data.ssl_sid = nullptr;
-        data.sslctx = nullptr;
-        data.peer_port = -1;
-        for (int i = 0; i < INET6_ADDRSTRLEN; i++) data.peer_ip[i] = '\0';
+        SIData data = {EXIT, CONTROL_SOCKET, -1, nullptr, nullptr, "", -1};
+        for (char &c: data.peer_ip) { c = '\0'; }
         for (int i = 0; i < n_msg_sockets; i++) {
             data.sid = generic_open_sockets[i].sid;
             ::send(generic_open_sockets[i].sid, &data, sizeof(SIData), 0);

@@ -445,7 +445,7 @@ namespace cserve {
          */
         inline void stop() {
             SocketControl::SocketInfo sockid(SocketControl::EXIT, SocketControl::STOP_SOCKET);
-            SocketControl::send_control_message(stoppipe[1], sockid);
+            (void) SocketControl::send_control_message(stoppipe[1], sockid);
             logger()->debug("Sent stop message to stoppipe[1]={}", stoppipe[1]);
         }
 

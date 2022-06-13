@@ -105,18 +105,11 @@ namespace cserve {
      */
     Server::Server(int port,
                    unsigned nthreads,
-                   const std::string &userid_str) :
-                   _port(port),
-                   _nthreads(nthreads) {
-        _sockfd = -1;
-        _ssl_sockfd = -1;
-        _ssl_port = -1;
+                   const std::string &userid_str) : _port(port), _nthreads(nthreads),
+                   _sockfd(-1), _ssl_sockfd(-1), _ssl_port(-1), _max_post_size(1024*1024), _user_data(nullptr),
+                   running(false), _keep_alive_timeout(20) {
         stoppipe[0] = -1;
         stoppipe[1] = -1;
-        _max_post_size = 1024*1024;
-        _user_data = nullptr;
-        running = false;
-        _keep_alive_timeout = 20;
 
         std::shared_ptr<spdlog::logger> logger;
         if (_loggername.empty()) {
