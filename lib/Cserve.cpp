@@ -111,6 +111,8 @@ namespace cserve {
         _sockfd = -1;
         _ssl_sockfd = -1;
         _ssl_port = -1;
+        stoppipe[0] = -1;
+        stoppipe[1] = -1;
         _max_post_size = 1024*1024;
         _user_data = nullptr;
         running = false;
@@ -793,6 +795,9 @@ namespace cserve {
             }
         }
 
+        void *res;
+        pthread_join(sighandler_thread, &res);
+        std::cerr << "*******" << res << std::endl;
         old_ll = setlogmask(LOG_MASK(LOG_INFO));
         Server::logger()->info("Server shutting down");
         setlogmask(old_ll);
