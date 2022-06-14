@@ -83,7 +83,7 @@ namespace cserve {
          *
          * \returns Error string
          */
-        [[nodiscard]] std::string to_string() const;
+        [[nodiscard]] virtual std::string to_string() const;
 
         /*!
          * String conversion operator.
