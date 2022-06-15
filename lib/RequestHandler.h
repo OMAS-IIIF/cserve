@@ -38,7 +38,7 @@ namespace cserve {
          * Pure virtual function that gives the template for implementing a request handler
          * @param conn Connection reference
          * @param lua Lua interpreter
-         * @param user_data Additonal unspecified data that cann be given to the handler
+         * @param user_data Additional unspecified data that can be given to the handler
          */
         virtual void handler(Connection& conn, LuaServer& lua, void* user_data) = 0;
     };
