@@ -128,15 +128,21 @@ int main(int argc, char *argv[]) {
     //
     // Test handler (should be removed for production system)
     //
-    cserve::RequestHandlerLoader loader("./handlers/testhandler/libtesthandler.so", "createTestHandler", "destroyTestHandler");
-    //loader.load();
-    std::shared_ptr<cserve::RequestHandler> test_handler = loader.get_instance();
-    test_handler->set_route("/test");
-    //std::shared_ptr<TestHandler> test_handler = std::make_shared<TestHandler>();
+    std::filesystem::path testhandler_path(config.handlerdir());
+    testhandler_path /= "testhandler.so";
+    cserve::RequestHandlerLoader test_loader(testhandler_path,
+                                             "createTestHandler",
+                                             "destroyTestHandler");
+    std::shared_ptr<cserve::RequestHandler> test_handler = test_loader.get_instance();
     server.addRoute(cserve::Connection::GET, "/test", test_handler);
 
-    std::shared_ptr<PingHandler> ping_handler = std::make_shared<PingHandler>();
-    server.addRoute(cserve::Connection::GET, "/ping", std::make_shared<PingHandler>());
+    std::filesystem::path pinghandler_path(config.handlerdir());
+    pinghandler_path /= "pinghandler.so";
+    cserve::RequestHandlerLoader ping_loader(pinghandler_path,
+                                             "createPingHandler",
+                                             "destroyPingHandler");
+    std::shared_ptr<cserve::RequestHandler> ping_handler = ping_loader.get_instance();
+    server.addRoute(cserve::Connection::GET, "/ping", ping_handler);
 
     serverptr = &server;
     old_sighandler = signal(SIGINT, sighandler);

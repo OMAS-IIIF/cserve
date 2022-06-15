@@ -15,12 +15,17 @@ def pytest_addoption(parser):
     parser.addoption(
         "--cserver", action="store", default="notset", help="The absolut path to the cserver executable"
     )
+    parser.addoption(
+        "--handlerdir", action="store", default="notset", help="The absolut path to the handler directory"
+    )
+
 
 
 @pytest.fixture(scope="session")
 def manager(request):
     cserver_exe = request.config.getoption('--cserver')
-    manager = CserverProcessManager(cserver_exe)
+    cserver_handlerdir = request.config.getoption('--handlerdir')
+    manager = CserverProcessManager(cserver_exe, cserver_handlerdir)
     manager.start_cserver()
     yield manager
     manager.stop_cserver()
@@ -28,9 +33,10 @@ def manager(request):
 
 class CserverProcessManager:
 
-    def __init__(self, cserver_exe):
+    def __init__(self, cserver_exe, cserver_handlerdir):
         self.cserver_exe = cserver_exe
         self.cserver_config = {
+            "CSERVER_HANDLERDIR": cserver_handlerdir,
             "CSERVER_PORT": "8080",
             "CSERVER_SSLPORT": "8443",
             "CSERVER_SSLCERTIFICATE": './testserver/certificate/certificate.pem',

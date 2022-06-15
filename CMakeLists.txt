@@ -104,6 +104,7 @@ add_subdirectory(${EXT_PROJECTS_DIR}/magic)
 add_subdirectory(${EXT_PROJECTS_DIR}/catch2)
 add_subdirectory(lib)
 add_subdirectory(handlers/testhandler)
+add_subdirectory(handlers/pinghandler)
 
 link_directories(
         ${CONFIGURE_LIBDIR}
@@ -118,7 +119,7 @@ include_directories(
 add_executable(cserver
         ${COMMON_SOURCE_FILES_DIR}/cserver.cpp
         ${COMMON_SOURCE_FILES_DIR}/CLI11.hpp
-        ${COMMON_SOURCE_FILES_DIR}/CserverConf.cpp ${COMMON_SOURCE_FILES_DIR}/CserverConf.h src/PingHandler.cpp src/PingHandler.h )
+        ${COMMON_SOURCE_FILES_DIR}/CserverConf.cpp ${COMMON_SOURCE_FILES_DIR}/CserverConf.h )
 
 configure_file(${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h.in ${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h)
 
@@ -148,11 +149,16 @@ target_include_directories(cserver PUBLIC
         ${PROJECT_SOURCE_DIR}/lib
 )
 
-add_dependencies(cserver testhandler)
+add_dependencies(cserver
+        testhandler
+        pinghandler)
+
+add_custom_command(TARGET cserver POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:cserver>
+        ${COMMON_LOCAL}/bin/cserver)
 
 install(TARGETS cserver cserve RUNTIME ARCHIVE)
-#install(FILES src/CserverConf.cpp
-#        DESTINATION include/cserve)
 install(DIRECTORY ${COMMON_LOCAL}/lib/ TYPE LIB REGEX "/(cmake|lua|pkkconfig)/" EXCLUDE)
 install(DIRECTORY ${COMMON_LOCAL}/include/ TYPE INCLUDE)
 

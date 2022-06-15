@@ -800,6 +800,7 @@ namespace cserve {
 
     void Server::addRoute(Connection::HttpMethod method_p, const std::string &path_p, std::shared_ptr<RequestHandler> handler_p) {
         handler[method_p][path_p] = std::move(handler_p);
+        handler[method_p][path_p]->set_route(path_p);
     }
     //=========================================================================
 

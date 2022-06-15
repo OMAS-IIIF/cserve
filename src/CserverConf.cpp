@@ -42,12 +42,15 @@ extern size_t data_volume(const std::string& volstr) {
 void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data) {
     auto *conf = (CserverConf *) user_data;
 
-    lua_createtable(L, 0, 14); // table1
+    lua_createtable(L, 0, 15); // table1
+
+    lua_pushstring(L, "handlerdir"); // table1 - "index_L1"
+    lua_pushstring(L, conf->handlerdir().c_str());
+    lua_rawset(L, -3); // table1
 
     lua_pushstring(L, "userid"); // table1 - "index_L1"
     lua_pushstring(L, conf->userid().c_str());
     lua_rawset(L, -3); // table1
-
     lua_pushstring(L, "port"); // table1 - "index_L1"
     lua_pushinteger(L, conf->port());
     lua_rawset(L, -3); // table1
@@ -125,6 +128,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     //
     _serverconf_ok = 0;
 
+    _handlerdir = "./handler";
     _userid = "";
     _port = 8080;
     _ssl_port = 8443;
@@ -153,6 +157,10 @@ CserverConf::CserverConf(int argc, char *argv[]) {
                            optConfigfile,
                            "Configuration file for web server.")->envname("CSERVER_CONFIGFILE")
             ->check(CLI::ExistingFile);
+
+    std::string optHandlerdir;
+    cserverOpts.add_option("--handlerdir", optHandlerdir, "Path to the request handlers.")
+            ->envname("CSERVER_HANDLERDIR");
 
     std::string optUserid;
     cserverOpts.add_option("--userid", optUserid, "Userid to use to run cserver.")
@@ -265,6 +273,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
             // cserve::Server::logger()->info("Reading configuration from '{}'.", optConfigfile);
             cserve::LuaServer luacfg = cserve::LuaServer(optConfigfile);
 
+            _handlerdir = luacfg.configString("cserve", "handlerdir", _handlerdir);
             _userid = luacfg.configString("cserve", "userid", _userid);
             _port = luacfg.configInteger("cserve", "port", _port);
 
@@ -307,6 +316,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     // now merge config file, commandline and environment variable parameters
     // config file is overwritten by environment variable is overwritten by command line param
     //
+    if (!cserverOpts.get_option("--handlerdir")->empty()) _handlerdir = optHandlerdir;
     if (!cserverOpts.get_option("--userid")->empty()) _userid = optUserid;
     if (!cserverOpts.get_option("--port")->empty()) _port = optServerport;
     if (!cserverOpts.get_option("--sslport")->empty()) _ssl_port = optSSLport;

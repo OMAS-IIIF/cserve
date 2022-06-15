@@ -21,6 +21,7 @@ extern void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *use
 class CserverConf {
 private:
     int _serverconf_ok;
+    std::string _handlerdir;
     std::string _userid;
     int _port;
     std::string _ssl_certificate;
@@ -61,6 +62,9 @@ public:
      * @return 0 on success, non-zero on failure
      */
     [[nodiscard]] inline bool serverconf_ok() const { return _serverconf_ok; }
+
+    inline void handlerdir(const std::string &handlerdir) { _handlerdir = handlerdir; }
+    inline std::string handlerdir() { return _handlerdir; }
 
     inline void userid(const std::string &userid) { _userid = userid; }
     inline std::string userid() { return _userid; }
