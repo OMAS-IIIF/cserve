@@ -78,7 +78,7 @@ void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
 */
 int main(int argc, char *argv[]) {
     auto logger = cserve::Server::create_logger();
-    logger->info("CSERVE startet main");
+    logger->info("CSERVER started main");
 
     //
     // read the configuration parameters. The parameters can be defined in
