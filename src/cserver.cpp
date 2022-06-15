@@ -3,15 +3,17 @@
 #include <cstdlib>
 #include <csignal>
 #include <utility>
+#include <dlfcn.h>
 
 
 #include "Cserve.h"
 #include "LuaServer.h"
 #include "LuaSqlite.h"
 #include "CserverConf.h"
-#include "TestHandler.h"
+#include "RequestHandler.h"
 #include "PingHandler.h"
 
+#include "RequestHandlerLoader.h"
 
 cserve::Server *serverptr = nullptr;
 
@@ -126,7 +128,11 @@ int main(int argc, char *argv[]) {
     //
     // Test handler (should be removed for production system)
     //
-    std::shared_ptr<TestHandler> test_handler = std::make_shared<TestHandler>();
+    cserve::RequestHandlerLoader loader("./handlers/testhandler/libtesthandler.so", "createTestHandler", "destroyTestHandler");
+    //loader.load();
+    std::shared_ptr<cserve::RequestHandler> test_handler = loader.get_instance();
+    test_handler->set_route("/test");
+    //std::shared_ptr<TestHandler> test_handler = std::make_shared<TestHandler>();
     server.addRoute(cserve::Connection::GET, "/test", test_handler);
 
     std::shared_ptr<PingHandler> ping_handler = std::make_shared<PingHandler>();

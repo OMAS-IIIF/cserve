@@ -12,7 +12,7 @@ namespace cserve {
     public:
         inline RequestHandlerData() = default;
 
-        inline virtual ~RequestHandlerData()= default;
+        inline virtual ~RequestHandlerData() = default;
 
     };
 

@@ -8,7 +8,6 @@
 #include <utility>
 
 #include "LuaServer.h"
-#include "RequestHandlerData.h"
 #include "RequestHandler.h"
 
 namespace cserve {

@@ -14,17 +14,25 @@ namespace cserve {
      * Abstract class for defining a request handler
      */
     class RequestHandler {
+        std::string route;
+        std::string basepath;
     public:
 
         /*!
          * Default constructur
          */
         RequestHandler() = default;
-
+        
         /*!
          * Default destructor
          */
         virtual ~RequestHandler() = default;
+
+        inline virtual std::string name() { return std::string("RequestHandler"); }
+
+        inline void set_route(const std::string &route_p) { route = route_p; }
+
+        inline std::string get_route() { return route; }
 
         /*!
          * Pure virtual function that gives the template for implementing a request handler
