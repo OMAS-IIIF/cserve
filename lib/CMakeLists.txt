@@ -50,6 +50,7 @@ include_directories(
 configure_file(CserveVersion.h.in CserveVersion.h)
 
 add_library(cserve
+        CLI11.hpp
         Global.h
         makeunique.h
         Error.cpp Error.h
@@ -69,7 +70,9 @@ add_library(cserve
         DefaultHandler.cpp DefaultHandler.h
         FileHandler.cpp FileHandler.h
         ScriptHandler.cpp ScriptHandler.h
-        CserveVersion.h RequestHandlerLoader.cpp RequestHandlerLoader.h ConfValue.cpp ConfValue.h)
+        CserveVersion.h
+        RequestHandlerLoader.cpp RequestHandlerLoader.h
+        ConfValue.cpp ConfValue.h)
 
 add_dependencies(cserve
         spdlog
