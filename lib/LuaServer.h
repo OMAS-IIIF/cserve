@@ -35,7 +35,7 @@
 
 #include "Error.h"
 #include "Connection.h"
-
+#include "Global.h"
 #include "lua.hpp"
 
 
@@ -59,6 +59,8 @@ namespace cserve {
         Connection::HttpMethod method;
         std::string route;
         std::string script;
+        LuaRoute(const std::string &lua_route_str);
+        inline bool empty() { return route.empty() || script.empty() }
     } LuaRoute;
 
     [[maybe_unused]] typedef std::unordered_map<std::string, LuaValstruct> LuaKeyValStore;

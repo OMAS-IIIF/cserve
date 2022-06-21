@@ -230,6 +230,40 @@ namespace cserve {
         return ret;
     }
 
+    LuaRoute::LuaRoute(const std::string &lua_route_str) {
+        // ToDo: Better error handling, if route is invalid!
+        std::vector<std::string> rinfo = cserve::split(lua_route_str, ':');
+        if (rinfo.size() < 3) {
+            method = cserve::Connection::HttpMethod::OTHER;
+            std::cerr << fmt::format("Route spcification invalid: {}\n", lua_route_str);
+            return;
+        }
+        if (cserve::strtoupper(rinfo[0]) == "GET") {
+            method = cserve::Connection::HttpMethod::GET;
+        } else if (cserve::strtoupper(rinfo[0]) == "PUT") {
+            method = cserve::Connection::HttpMethod::PUT;
+        } else if (cserve::strtoupper(rinfo[0]) == "POST") {
+            method = cserve::Connection::HttpMethod::POST;
+        } else if (cserve::strtoupper(rinfo[0]) == "DELETE") {
+            method = cserve::Connection::HttpMethod::DELETE;
+        } else if (cserve::strtoupper(rinfo[0]) == "OPTIONS") {
+            method = cserve::Connection::HttpMethod::OPTIONS;
+        } else if (cserve::strtoupper(rinfo[0]) == "CONNECT") {
+            method = cserve::Connection::HttpMethod::CONNECT;
+        } else if (cserve::strtoupper(rinfo[0]) == "HEAD") {
+            method = cserve::Connection::HttpMethod::HEAD;
+        } else if (cserve::strtoupper(rinfo[0]) == "OTHER") {
+            method = cserve::Connection::HttpMethod::OTHER;
+        } else {
+            method = cserve::Connection::HttpMethod::OTHER;
+            std::cerr << fmt::format("Route spcification invalid: {}\n", lua_route_str);
+            return;
+        }
+        route = rinfo[1];
+        script = rinfo[2];
+    }
+
+
     /*!
      * Instantiates a Lua server
      */

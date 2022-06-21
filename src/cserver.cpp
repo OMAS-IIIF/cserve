@@ -78,7 +78,25 @@ void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
 */
 int main(int argc, char *argv[]) {
     auto logger = cserve::Server::create_logger();
-    logger->info("CSERVER started main");
+
+    int old_ll = setlogmask(LOG_MASK(LOG_INFO));
+    logger->info(cserve::Server::version_string());
+    setlogmask(old_ll);
+
+    std::string handlerdir{};
+
+    if (const char* env_p = std::getenv("CSERVER_HANDLERDIR")) {
+        handlerdir = env_p;
+    }
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--handlerdir") == 0) {
+            ++i;
+            if (i < argc) {
+                handlerdir = argv[i];
+                break;
+            }
+        }
+    }
 
     //
     // read the configuration parameters. The parameters can be defined in

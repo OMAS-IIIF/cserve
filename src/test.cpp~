@@ -1,0 +1,41 @@
+#include <string>
+#include <iostream>
+#include <optional>
+#include <utility>
+
+#include "../lib/CLI11.hpp"
+
+class Haha {
+private:
+  int haha;
+public:
+  inline Haha(int i) : haha(i) {}
+  inline int& get_haha_ref() { return haha; }
+};
+
+int main(int argc, char *argv[]) {
+  CLI::App app("This is a test", "test");
+
+  Haha gaga(4711);
+  app.add_option("--gaga", gaga.get_haha_ref(), "A gaga option")->envname("GAGA");
+  std::string gugus = "Hallo gugus";
+  app.add_option("--gugus", gugus, "A gugus string")->envname("GUGUS");
+
+  app.parse(argc, argv);
+
+  if (app.get_option("--gaga")->empty()) {
+    std::cerr << "gaga is empty, default=" << gaga.get_haha_ref() << std::endl;
+  }
+  else {
+    std::cerr << "gaga is set, value=" << gaga.get_haha_ref() << std::endl;
+  }
+
+  if (app.get_option("--gugus")->empty()) {
+    std::cerr << "gugus is empty, default=" << gugus << std::endl;
+  }
+  else {
+    std::cerr << "gugus is set, value=" << gugus << std::endl;
+  }
+  return 0;
+}
+    
