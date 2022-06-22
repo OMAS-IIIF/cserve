@@ -159,24 +159,6 @@ namespace cserve {
         void createGlobals(Connection &conn);
 
 
-        std::string configString(const std::string& table, const std::string& variable, const std::string& defval);
-
-        [[maybe_unused]] bool configBoolean(const std::string& table, const std::string& variable, bool defval);
-
-        int configInteger(const std::string& table, const std::string& variable, int defval);
-
-        spdlog::level::level_enum configLoglevel(const std::string& table, const std::string& variable, spdlog::level::level_enum defval);
-
-        [[maybe_unused]] float configFloat(const std::string& table, const std::string& variable, float defval);
-
-        [[maybe_unused]] std::vector<std::string> configStringList(const std::string& table, const std::string& stringlist);
-
-        [[maybe_unused]] std::map<std::string,std::string> configStringTable(
-                const std::string &table,
-                const std::string &variable,
-                const std::map<std::string,std::string> &defval);
-
-        std::vector<LuaRoute> configRoute(const std::string& routetable);
 
         /*!
          * Execute a chunk of Lua code

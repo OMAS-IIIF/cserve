@@ -25,7 +25,7 @@ class CserverConf {
 private:
     int _serverconf_ok;
 
-    std::vector <cserve::LuaRoute> _routes; // ToDo: is this necessary??
+    std::vector<cserve::LuaRoute> _routes; // ToDo: is this necessary??
     spdlog::level::level_enum _loglevel = spdlog::level::debug;
 
     std::unordered_map<std::string, cserve::ConfValue> _values;
@@ -55,7 +55,7 @@ public:
      */
     [[nodiscard]] inline bool serverconf_ok() const { return _serverconf_ok; }
 
-    inline const std::unordered_map<std::string, cserve::ConfValue>& get_values() { return _values; }
+    inline const std::unordered_map<std::string, cserve::ConfValue> &get_values() { return _values; }
 
     std::optional<int> get_int(const std::string &name);
 
@@ -63,10 +63,12 @@ public:
 
     std::optional<std::string> get_string(const std::string &name);
 
-    inline void routes(const std::vector <cserve::LuaRoute> &routes) { _routes = routes; }
-    inline std::vector <cserve::LuaRoute> routes() { return _routes; }
+    inline void routes(const std::vector<cserve::LuaRoute> &routes) { _routes = routes; }
+
+    inline std::vector<cserve::LuaRoute> routes() { return _routes; }
 
     inline void loglevel(spdlog::level::level_enum loglevel) { _loglevel = loglevel; }
+
     inline spdlog::level::level_enum loglevel() { return _loglevel; }
 };
 

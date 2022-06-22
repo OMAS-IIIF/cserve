@@ -10,6 +10,7 @@
 #include "LuaServer.h"
 #include "CserverConf.h"
 #include "Connection.h"
+#include "LuaConfig.h"
 
 static const char file_[] = __FILE__;
 
@@ -105,8 +106,6 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     _values.emplace("logfile", cserve::ConfValue("--logfile", "./cserver.log", "Name of the logfile.", "CSERVE_LOGFILE", _cserverOpts));
     _values.emplace("loglevel", cserve::ConfValue("--loglevel", spdlog::level::debug, "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.", "CSERVER_LOGLEVEL", _cserverOpts));
 
-
-
     try {
         _cserverOpts->parse(argc, argv);
     } catch (const CLI::ParseError &e) {
@@ -116,7 +115,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
 
     if (!_cserverOpts->get_option("--config")->empty()) {
         cserve::LuaServer luacfg = cserve::LuaServer(_values["config"].get_string().value());
-        typedef std::variant<int, float, std::string, cserve::DataSize, spdlog::level::level_enum, std::vector<std::string>> UnionDataType;
+        typedef std::variant<int, float, std::string, cserve::DataSize, spdlog::level::level_enum, std::vector<cserve::LuaRoute>> UnionDataType;
         std::unordered_map<std::string, UnionDataType> valmap;
 
         for (auto const& [name, val] : _values) {
@@ -142,102 +141,34 @@ CserverConf::CserverConf(int argc, char *argv[]) {
                     break;
             }
         }
-
-
-
-        try {
-            // cserve::Server::logger()->info("Reading configuration from '{}'.", optConfigfile);
-            cserve::LuaServer luacfg = cserve::LuaServer(_values["config"].get_string().value());
-
-            //_handlerdir = luacfg.configString("cserve", "handlerdir", _handlerdir);
-            _userid = luacfg.configString("cserve", "userid", _userid);
-            _port = luacfg.configInteger("cserve", "port", _port);
-
-            _ssl_port = luacfg.configInteger("cserve", "ssl_port", _ssl_port);
-            _ssl_certificate = luacfg.configString("cserve", "sslcert", _ssl_certificate);
-            _ssl_key = luacfg.configString("cserve", "sslkey", _ssl_key);
-            _jwt_secret = luacfg.configString("cserve", "jwt_secret", _jwt_secret);
-            _docroot = luacfg.configString("cserve", "docroot", _docroot);
-            _filehandler_route = luacfg.configString("cserve", "filehandler_route", _filehandler_route);
-            _tmpdir = luacfg.configString("cserve", "tmpdir", _tmpdir);
-            _scriptdir = luacfg.configString("cserve", "scriptdir", _scriptdir);
-            _nthreads = luacfg.configInteger("cserve", "nthreads", static_cast<int>(_nthreads));
-            _keep_alive = luacfg.configInteger("cserve", "keep_alive", _keep_alive);
-            _max_post_size = luacfg.configInteger("cserve", "max_post_size", static_cast<int>(_max_post_size));
-            _initscript = luacfg.configString("cserve", "initscript", _initscript);
-            _logfile = luacfg.configString("cserve", "logfile", _logfile);
-
-            std::string loglevelstr;
-            for (const auto &ll: logLevelMap) { // convert spdlog::level::level_enum to std::string
-                if (ll.second == _loglevel) {
-                    loglevelstr = ll.first;
-                    break;
+        for (auto const& [name, val] : _values) {
+            if (_cserverOpts->get_option(val.get_optionname())->empty()) {
+                auto vtype = val.get_type();
+                switch (vtype) {
+                    case cserve::ConfValue::INTEGER:
+                        _values[name].set_value(std::get<int>(valmap[name]));
+                        break;
+                    case cserve::ConfValue::FLOAT:
+                        _values[name].set_value(std::get<float>(valmap[name]));
+                        break;
+                    case cserve::ConfValue::STRING:
+                        _values[name].set_value(std::get<std::string>(valmap[name]));
+                        break;
+                    case cserve::ConfValue::DATASIZE:
+                        _values[name].set_value(std::get<cserve::DataSize>(valmap[name]));
+                        break;
+                    case cserve::ConfValue::LOGLEVEL:
+                        _values[name].set_value(std::get<spdlog::level::level_enum>(valmap[name]));
+                        break;
+                    case cserve::ConfValue::LUAROUTES:
+                        _values[name].set_value(std::get<std::vector<cserve::LuaRoute>>(valmap[name]));
+                        break;
                 }
             }
-            loglevelstr = luacfg.configString("cserve", "loglevel", loglevelstr);
-            for (const auto &ll: logLevelMap) { // convert std::string to spdlog::level::level_enum
-                if (ll.first == loglevelstr) {
-                    _loglevel = ll.second;
-                    break;
-                }
-            }
-
-            _routes = luacfg.configRoute("routes");
-        } catch (cserve::Error &err) {
-            std::cerr << err << std::endl;
         }
     }
 
-    //
-    // now merge config file, commandline and environment variable parameters
-    // config file is overwritten by environment variable is overwritten by command line param
-    //
-    if (!_cserverOpts.get_option("--handlerdir")->empty()) _handlerdir = optHandlerdir;
-    if (!_cserverOpts.get_option("--userid")->empty()) _userid = optUserid;
-    if (!_cserverOpts.get_option("--port")->empty()) _port = optServerport;
-    if (!_cserverOpts.get_option("--sslport")->empty()) _ssl_port = optSSLport;
-    if (!_cserverOpts.get_option("--sslcert")->empty()) _ssl_certificate = optSSLCertificatePath;
-    if (!_cserverOpts.get_option("--sslkey")->empty()) _ssl_key = optSSLKeyPath;
-    if (!_cserverOpts.get_option("--jwtkey")->empty()) _jwt_secret = optJWTKey;
-    if (!_cserverOpts.get_option("--docroot")->empty()) _docroot = optDocroot;
-    if (!_cserverOpts.get_option("--filehandler_route")->empty()) _filehandler_route = optFilehandlerRoute;
-    if (!_cserverOpts.get_option("--tmpdir")->empty()) _tmpdir = optTmpdir;
-    if (!_cserverOpts.get_option("--scriptdir")->empty()) _scriptdir = optScriptDir;
-    if (!_cserverOpts.get_option("--nthreads")->empty()) _nthreads = optNThreads;
-    if (!_cserverOpts.get_option("--keepalive")->empty()) _keep_alive = optKeepAlive;
-    if (!_cserverOpts.get_option("--maxpost")->empty()) _max_post_size = data_volume(optMaxPostSize);
-    if (!_cserverOpts.get_option("--initscript")->empty()) _initscript = optInitscript;
 
-    if (!_cserverOpts.get_option("--logfile")->empty()) _logfile = optLogfile;
-    if (!_cserverOpts.get_option("--loglevel")->empty()) _loglevel = optLogLevel;
-    if (!cserverOpts.get_option("--routes")->empty()) {
-        std::vector<std::string> rinfos = cserve::split(optRoutes, ';');
-        for (const std::string& rinfostr: rinfos) {
-            std::vector<std::string> rinfo = cserve::split(rinfostr, ':');
-            if (rinfo.size() < 3) {
-                std::cerr << fmt::format("Route spcification invalid: {}\n", rinfostr);
-                continue;
-            }
-            if (cserve::strtoupper(rinfo[0]) == "GET") {
-                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::GET, rinfo[1], rinfo[2]});
-            } else if (cserve::strtoupper(rinfo[0]) == "PUT") {
-                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::PUT, rinfo[1], rinfo[2]});
-            } else if (cserve::strtoupper(rinfo[0]) == "POST") {
-                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::POST, rinfo[1], rinfo[2]});
-            } else if (cserve::strtoupper(rinfo[0]) == "DELETE") {
-                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::DELETE, rinfo[1], rinfo[2]});
-            } else if (cserve::strtoupper(rinfo[0]) == "OPTIONS") {
-                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::OPTIONS, rinfo[1], rinfo[2]});
-            } else if (cserve::strtoupper(rinfo[0]) == "CONNECT") {
-                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::CONNECT, rinfo[1], rinfo[2]});
-            } else if (cserve::strtoupper(rinfo[0]) == "HEAD") {
-                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::HEAD, rinfo[1], rinfo[2]});
-            } else if (cserve::strtoupper(rinfo[0]) == "OTHER") {
-                _routes.push_back(cserve::LuaRoute{cserve::Connection::HttpMethod::OTHER, rinfo[1], rinfo[2]});
-            }
-        }
-    }
-    _filehandler_info = {_filehandler_route, _docroot};
 }
 
 void CserverConf::parse_cmdline_args(int argc, char *argv[]) {
