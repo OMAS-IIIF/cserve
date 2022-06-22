@@ -5,7 +5,7 @@
 #include "ConfValue.h"
 
 #include <utility>
-
+#include <algorithm>
 namespace cserve {
 
     extern size_t data_volume(const std::string& volstr) {
@@ -98,10 +98,11 @@ namespace cserve {
                 ->transform(CLI::CheckedTransformer(logLevelMap, CLI::ignore_case));
     }
 
-    ConfValue::ConfValue(std::string optionname, std::vector<std::string> lua_routes, std::string description, std::string envname, const std::shared_ptr<CLI::App>& app)
+    ConfValue::ConfValue(std::string optionname, std::vector<LuaRoute> lua_routes, std::string description, std::string envname, const std::shared_ptr<CLI::App>& app)
     : _luaroutes_value(std::move(lua_routes)), _description(std::move(description)), _envname(std::move(envname)), _value_type(LUAROUTES) {
-        std::vector<int> i;
-        app->add_option(std::move(optionname), i, _description)
+        std::vector<std::string> tmpstr;
+        for (auto& r: _luaroutes_value) { tmpstr.push_back(r.to_string()); }
+        app->add_option(std::move(optionname), tmpstr, _description)
                 ->envname(_envname);
     }
 

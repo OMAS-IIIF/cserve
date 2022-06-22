@@ -95,10 +95,10 @@ CserverConf::CserverConf(int argc, char *argv[]) {
     _values.emplace("jwt_secret", cserve::ConfValue("--jwtkey","UP4014, the biggest steam engine", "The secret for generating JWT's (JSON Web Tokens) (exactly 42 characters).", "CSERVER_JWTKEY", _cserverOpts));
     _values.emplace("nthreads", cserve::ConfValue("-t,--nthreads", static_cast<int>(std::thread::hardware_concurrency()), "Number of worker threads to be used by cserver\"", "CSERVER_NTHREADS", _cserverOpts));
     _values.emplace("docroot", cserve::ConfValue("--docroot", "./docroot", "Path to document root for file server.", "CSERVER_DOCROOT", _cserverOpts)); // TODO: Move to file server plugin
-    _values.emplace("filehandler_route", cserve::ConfValue("--filehandler_route", "/", "Route root for file server.", "CSERVER_FILEHANDLER_ROUTE", _cserverOpts)); // TODO: Move to file server plugin
+    _values.emplace("wwwroute", cserve::ConfValue("--wwwroute", "/", "Route root for file server.", "CSERVER_WWW_ROUTE", _cserverOpts)); // TODO: Move to file server plugin
     _values.emplace("tmpdir", cserve::ConfValue("--tmpdir", "./tmp", "Path to the temporary directory (e.g. for uploads etc.).", "CSERVER_TMPDIR", _cserverOpts));
     _values.emplace("scriptdir", cserve::ConfValue("--scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.", "CSERVER_SCRIPTDIR", _cserverOpts)); // Todo: Move to script handler plugin
-    _values.emplace("luaroutes", cserve::ConfValue("--routes", std::vector<std::string>(), "Lua routes in the form \"<http-type>:<route>:<script>\"", "CSERVER_LUAROUTES", _cserverOpts));  // Todo: Move to script handler plugin
+    _values.emplace("routes", cserve::ConfValue("--routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"", "CSERVER_LUAROUTES", _cserverOpts));  // Todo: Move to script handler plugin
     _values.emplace("keep_alive", cserve::ConfValue("--keepalive", 5, "Number of seconds for the keep-alive option of HTTP 1.1.", "CSERVER_KEEPALIVE", _cserverOpts));
     _values.emplace("max_post_size", cserve::ConfValue("--maxpost", cserve::DataSize("50MB"), "A string indicating the maximal size of a POST request, e.g. '100M'.", "CSERVER_MAXPOSTSIZE", _cserverOpts)); // 50MB
     _values.emplace("initscript", cserve::ConfValue("--initscript", "", "Path to LUA init script.", "CSERVER_INITSCRIPT", _cserverOpts));
@@ -116,38 +116,31 @@ CserverConf::CserverConf(int argc, char *argv[]) {
 
     if (!_cserverOpts->get_option("--config")->empty()) {
         cserve::LuaServer luacfg = cserve::LuaServer(_values["config"].get_string().value());
+        typedef std::variant<int, float, std::string, cserve::DataSize, spdlog::level::level_enum, std::vector<std::string>> UnionDataType;
+        std::unordered_map<std::string, UnionDataType> valmap;
+
         for (auto const& [name, val] : _values) {
             auto vtype = val.get_type();
             switch (vtype) {
                 case cserve::ConfValue::INTEGER:
-                    luacfg.configInteger("cserve", name, val.get_int().value());
+                    valmap.emplace(name, luacfg.configInteger("cserve", name, val.get_int().value()));
                     break;
                 case cserve::ConfValue::FLOAT:
-                    luacfg.configFloat("cserve", name, val.get_float().value());
+                    valmap.emplace(name, luacfg.configFloat("cserve", name, val.get_float().value()));
                     break;
                 case cserve::ConfValue::STRING:
-                    luacfg.configString("cserve", name, val.get_string().value());
+                    valmap.emplace(name, luacfg.configString("cserve", name, val.get_string().value()));
                     break;
                 case cserve::ConfValue::DATASIZE:
-                    luacfg.configString("cserve", name, val.get_datasize().value().as_string());
+                    valmap.emplace(name, luacfg.configString("cserve", name, val.get_datasize().value().as_string()));
                     break;
                 case cserve::ConfValue::LOGLEVEL:
-                    std::unordered_map<spdlog::level::level_enum,std::string> logNamesMap = {
-                            {spdlog::level::trace, "TRACE"},
-                            {spdlog::level::debug, "DEBUG"},
-                            {spdlog::level::info, "INFO"},
-                            {spdlog::level::warn, "WARN",},
-                            {spdlog::level::err, "ERR"},
-                            {spdlog::level::critical, "CRITICAL"},
-                            {spdlog::level::off, "OFF"}
-                    };
-                    std::string loglevelstr = logNamesMap[val.get_loglevel()];
-                    luacfg.configString("cserve", name, loglevelstr);
+                    valmap.emplace(name, luacfg.configLoglevel("cserve", name, val.get_loglevel().value()));
                     break;
                 case cserve::ConfValue::LUAROUTES:
+                     valmap.emplace(name, luacfg.configRoute(name));
                     break;
             }
-            lua_rawset(L, -3); // table1
         }
 
 

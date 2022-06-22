@@ -48,7 +48,7 @@ namespace cserve {
         std::string _string_value{};
         DataSize _datasize_value{};
         spdlog::level::level_enum _loglevel_value{};
-        std::vector<std::string> _luaroutes_value{};
+        std::vector<LuaRoute> _luaroutes_value{};
         std::string _description{};
         std::string _envname{};
     public:
@@ -66,7 +66,7 @@ namespace cserve {
 
         ConfValue(std::string optionname, spdlog::level::level_enum loglevel, std::string description, std::string envname, const std::shared_ptr<CLI::App>& app);
 
-        ConfValue(std::string optionname, std::vector<std::string> lua_routes, std::string description, std::string envname, const std::shared_ptr<CLI::App>& app);
+        ConfValue(std::string optionname, std::vector<LuaRoute> lua_routes, std::string description, std::string envname, const std::shared_ptr<CLI::App>& app);
 
         inline ConfValue(const ConfValue &cv)
                 : _value_type(cv._value_type), _int_value(cv._int_value), _float_value(cv._float_value), _string_value(cv._string_value),
@@ -86,13 +86,25 @@ namespace cserve {
             return *this;
         }
 
-        inline DataType get_type() const { return _value_type; }
+        [[nodiscard]] inline DataType get_type() const { return _value_type; }
 
-        inline std::optional<int> get_int() const { if (_value_type == INTEGER) return _int_value; else return {}; }
-        inline std::optional<float> get_float() const { if (_value_type == FLOAT) return _float_value; else return {}; }
-        inline std::optional<std::string> get_string() const { if (_value_type == STRING) return _string_value; else return {}; }
-        inline std::optional<DataSize> get_datasize() const { if (_value_type == DATASIZE) return _datasize_value; else return {}; }
-        inline spdlog::level::level_enum get_loglevel() const { if (_value_type == LOGLEVEL) return _loglevel_value; else return {}; }
+        [[nodiscard]] inline std::optional<int> get_int() const { if (_value_type == INTEGER) return _int_value; else return {}; }
+        inline void set_int(int ival) { _int_value = ival; _value_type = INTEGER; }
+
+        [[nodiscard]] inline std::optional<float> get_float() const { if (_value_type == FLOAT) return _float_value; else return {}; }
+        inline void set_float(float fval) { _float_value = fval; _value_type = FLOAT; }
+
+        [[nodiscard]] inline std::optional<std::string> get_string() const { if (_value_type == STRING) return _string_value; else return {}; }
+        inline void set_string(const std::string &strval) { _string_value = strval; _value_type = STRING; }
+
+        [[nodiscard]] inline std::optional<DataSize> get_datasize() const { if (_value_type == DATASIZE) return _datasize_value; else return {}; }
+        inline void set_datasize(const DataSize &dsval) { _datasize_value = dsval; _value_type = DATASIZE; }
+
+        [[nodiscard]] inline std::optional<spdlog::level::level_enum> get_loglevel() const { if (_value_type == LOGLEVEL) return _loglevel_value; else return {}; }
+        inline void set_loglevel(spdlog::level::level_enum loglevel_val) { _loglevel_value = loglevel_val; _value_type = LOGLEVEL; }
+
+        inline std::optional<std::vector<std::string>> get_routes() const { if (_value_type == LUAROUTES) return _luaroutes_value; else return {}; }
+        inline void set_routes(const std::vector<std::string> &luaroutes_val) { _luaroutes_value = luaroutes_val; _value_type = LUAROUTES; }
 
         inline std::string get_description() { return _description; }
         inline std::string get_envname() { return _envname; }

@@ -263,6 +263,27 @@ namespace cserve {
         script = rinfo[2];
     }
 
+    std::string LuaRoute::to_string() {
+        std::unordered_map<Connection::HttpMethod, std::string> method_map = {
+                {cserve::Connection::HttpMethod::GET, "GET"},
+                {cserve::Connection::HttpMethod::PUT, "PUT"},
+                {cserve::Connection::HttpMethod::POST, "POST"},
+                {cserve::Connection::HttpMethod::DELETE, "DELETE"},
+                {cserve::Connection::HttpMethod::OPTIONS, "OPTIONS"},
+                {cserve::Connection::HttpMethod::CONNECT, "CONNECT"},
+                {cserve::Connection::HttpMethod::HEAD, "HEAD"},
+                {cserve::Connection::HttpMethod::OTHER, "OTHER"}
+        };
+        std::string method_str;
+        try {
+            method_str = method_map.at(method);
+        }
+        catch(const std::out_of_range &err) {
+            throw Error(file_, __LINE__, fmt::format("No valid method: {}", method));
+        }
+        return fmt::format("{}:{}:{}", method_str, route, script);
+    }
+
 
     /*!
      * Instantiates a Lua server
@@ -2948,7 +2969,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         if (!lua_isboolean(L, -1)) {
-            throw Error(file_, __LINE__, "Integer expected for " + table + "." + variable);
+            throw Error(file_, __LINE__, "Boolean expected for " + table + "." + variable);
         }
 
         bool retval = lua_toboolean(L, -1) == 1;
@@ -2986,6 +3007,47 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         int retval = static_cast<int>(lua_tointeger(L, -1));
         lua_pop(L, 2);
         return retval;
+    }
+    //=========================================================================
+
+    spdlog::level::level_enum LuaServer::configLoglevel(const std::string& table, const std::string& variable, spdlog::level::level_enum defval) {
+        if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
+            lua_pop(L, 1);
+            return defval;
+        }
+
+        lua_getfield(L, -1, variable.c_str());
+
+        if (lua_isnil(L, -1)) {
+            lua_pop(L, 2);
+            return defval;
+        }
+
+        if (!lua_isstring(L, -1)) {
+            throw Error(file_, __LINE__, "\"TRACE\", \"DEBUG\", \"INFO\", \"WARN\", \"ERR\", \"CRITICAL\" or \"OFF\" expected for " + table + "." + variable);
+        }
+
+        std::string loglevel_str = lua_tostring(L, -1);
+        std::unordered_map<std::string, spdlog::level::level_enum> loglevel_map{
+                {"TRACE",    spdlog::level::trace},
+                {"DEBUG",    spdlog::level::debug},
+                {"INFO",     spdlog::level::info},
+                {"WARN",     spdlog::level::warn},
+                {"ERR",      spdlog::level::err},
+                {"CRITICAL", spdlog::level::critical},
+                {"OFF",      spdlog::level::off}
+        };
+
+        spdlog::level::level_enum loglevel;
+        try {
+            loglevel = loglevel_map.at(loglevel_str);
+        }
+        catch (const std::out_of_range &err) {
+            throw Error(file_, __LINE__, "\"TRACE\", \"DEBUG\", \"INFO\", \"WARN\", \"ERR\", \"CRITICAL\" or \"OFF\" expected for " + table + "." + variable);
+        }
+
+        lua_pop(L, 2);
+        return loglevel;
     }
     //=========================================================================
 

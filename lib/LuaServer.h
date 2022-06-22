@@ -25,13 +25,14 @@
  */
 #ifndef __cserve_lua_server_h
 #define __cserve_lua_server_h
-
 #include <iostream>
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <variant>
 #include <stdexcept>
 #include <memory>
+#include <spdlog/common.h>
 
 #include "Error.h"
 #include "Connection.h"
@@ -59,8 +60,10 @@ namespace cserve {
         Connection::HttpMethod method;
         std::string route;
         std::string script;
+        LuaRoute() = default;
         LuaRoute(const std::string &lua_route_str);
-        inline bool empty() { return route.empty() || script.empty() }
+        std::string to_string() const;
+        inline bool empty() { return route.empty() || script.empty(); }
     } LuaRoute;
 
     [[maybe_unused]] typedef std::unordered_map<std::string, LuaValstruct> LuaKeyValStore;
@@ -161,6 +164,8 @@ namespace cserve {
         [[maybe_unused]] bool configBoolean(const std::string& table, const std::string& variable, bool defval);
 
         int configInteger(const std::string& table, const std::string& variable, int defval);
+
+        spdlog::level::level_enum configLoglevel(const std::string& table, const std::string& variable, spdlog::level::level_enum defval);
 
         [[maybe_unused]] float configFloat(const std::string& table, const std::string& variable, float defval);
 
