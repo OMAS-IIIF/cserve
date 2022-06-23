@@ -3,6 +3,7 @@
 //
 
 #include <thread>
+#include <utility>
 
 #include "CLI11.hpp"
 
@@ -10,7 +11,6 @@
 #include "LuaServer.h"
 #include "CserverConf.h"
 #include "Connection.h"
-#include "LuaConfig.h"
 
 static const char file_[] = __FILE__;
 
@@ -38,7 +38,7 @@ void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data)
                 lua_pushstring(L, val.get_datasize().value_or(cserve::DataSize()).as_string().c_str());
                 break;
             case cserve::ConfValue::LOGLEVEL:
-                lua_pushstring(L, val.get_loglevel().value_or(LogLevel()).as_string().c_str());
+                lua_pushstring(L, val.get_loglevel_as_string().value_or("OFF").c_str());
                 break;
             case cserve::ConfValue::LUAROUTES:
                 break;
@@ -79,33 +79,67 @@ std::optional<std::string> CserverConf::get_string(const std::string &name) {
     }
 }
 
-CserverConf::CserverConf(int argc, char *argv[]) {
+std::optional<cserve::DataSize> CserverConf::get_datasize(const std::string &name) {
+    try {
+        auto val = _values.at(name);
+        return val.get_datasize();
+    }
+    catch (std::out_of_range &err) {
+        return {};
+    }
+}
+
+CserverConf::CserverConf() {
     //
     // first we set the hardcoded defaults that are used if nothing else has been defined
     //
     _cserverOpts = std::make_shared<CLI::App>("cserver is a small C++ based webserver with Lua integration.", "cserver");
     _serverconf_ok = 0;
+}
 
-    _values.emplace("config", cserve::ConfValue("-c,--config", "./config", "Configuration file for web server.", "CSERVER_CONFIGFILE", _cserverOpts));
-    _values.emplace("handlerdir", cserve::ConfValue("-h,--handlerdir", "./handler", "", "CSERVER_HANLDERDIR", _cserverOpts));
-    _values.emplace("userid", cserve::ConfValue("-u,--userid", "", "Username to use to run cserver.", "CSERVER_USERID", _cserverOpts));
-    _values.emplace("port", cserve::ConfValue("-p,--port", 8080, "", "CSERVER_PORT", _cserverOpts));
-    _values.emplace("ssl_port", cserve::ConfValue("--sslport", 8443, "HTTP port to use for cserver.", "CSERVER_SSLPORT", _cserverOpts));
-    _values.emplace("ssl_certificate", cserve::ConfValue("-sslcert", "./certificate/certificate.pem", "Path to SSL certificate.", "CSERVER_SSLCERTIFICATE", _cserverOpts));
-    _values.emplace("ssl_key", cserve::ConfValue("--sslkey", "./certificate/key.pem", "Path to the SSL key file.", "CSERVER_SSLKEY", _cserverOpts));
-    _values.emplace("jwt_secret", cserve::ConfValue("--jwtkey","UP4014, the biggest steam engine", "The secret for generating JWT's (JSON Web Tokens) (exactly 42 characters).", "CSERVER_JWTKEY", _cserverOpts));
-    _values.emplace("nthreads", cserve::ConfValue("-t,--nthreads", static_cast<int>(std::thread::hardware_concurrency()), "Number of worker threads to be used by cserver\"", "CSERVER_NTHREADS", _cserverOpts));
-    _values.emplace("docroot", cserve::ConfValue("--docroot", "./docroot", "Path to document root for file server.", "CSERVER_DOCROOT", _cserverOpts)); // TODO: Move to file server plugin
-    _values.emplace("wwwroute", cserve::ConfValue("--wwwroute", "/", "Route root for file server.", "CSERVER_WWW_ROUTE", _cserverOpts)); // TODO: Move to file server plugin
-    _values.emplace("tmpdir", cserve::ConfValue("--tmpdir", "./tmp", "Path to the temporary directory (e.g. for uploads etc.).", "CSERVER_TMPDIR", _cserverOpts));
-    _values.emplace("scriptdir", cserve::ConfValue("--scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.", "CSERVER_SCRIPTDIR", _cserverOpts)); // Todo: Move to script handler plugin
-    _values.emplace("routes", cserve::ConfValue("--routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"", "CSERVER_LUAROUTES", _cserverOpts));  // Todo: Move to script handler plugin
-    _values.emplace("keep_alive", cserve::ConfValue("--keepalive", 5, "Number of seconds for the keep-alive option of HTTP 1.1.", "CSERVER_KEEPALIVE", _cserverOpts));
-    _values.emplace("max_post_size", cserve::ConfValue("--maxpost", cserve::DataSize("50MB"), "A string indicating the maximal size of a POST request, e.g. '100M'.", "CSERVER_MAXPOSTSIZE", _cserverOpts)); // 50MB
-    _values.emplace("initscript", cserve::ConfValue("--initscript", "", "Path to LUA init script.", "CSERVER_INITSCRIPT", _cserverOpts));
-    _values.emplace("logfile", cserve::ConfValue("--logfile", "./cserver.log", "Name of the logfile.", "CSERVE_LOGFILE", _cserverOpts));
-    _values.emplace("loglevel", cserve::ConfValue("--loglevel", spdlog::level::debug, "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.", "CSERVER_LOGLEVEL", _cserverOpts));
+void CserverConf::add_config(std::string name, int defaultval, std::string description) {
+    std::string optionname = "--" + name;
+    std::string envname = "CSERVER_" + cserve::strtoupper(name);
+    _values.emplace(name, cserve::ConfValue(optionname, defaultval, std::move(description), envname, _cserverOpts));
+}
 
+void CserverConf::add_config(std::string name, float defaultval, std::string description) {
+    std::string optionname = "--" + name;
+    std::string envname = "CSERVER_" + cserve::strtoupper(name);
+    _values.emplace(name, cserve::ConfValue(optionname, defaultval, std::move(description), envname, _cserverOpts));
+}
+
+void CserverConf::add_config(std::string name, const char *defaultval, std::string description) {
+    std::string optionname = "--" + name;
+    std::string envname = "CSERVER_" + cserve::strtoupper(name);
+    _values.emplace(name, cserve::ConfValue(optionname, defaultval, std::move(description), envname, _cserverOpts));
+}
+
+void CserverConf::add_config(std::string name, std::string defaultval, std::string description) {
+    std::string optionname = "--" + name;
+    std::string envname = "CSERVER_" + cserve::strtoupper(name);
+    _values.emplace(name, cserve::ConfValue(optionname, std::move(defaultval), std::move(description), envname, _cserverOpts));
+}
+
+void CserverConf::add_config(std::string name, const cserve::DataSize &defaultval, std::string description) {
+    std::string optionname = "--" + name;
+    std::string envname = "CSERVER_" + cserve::strtoupper(name);
+    _values.emplace(name, cserve::ConfValue(optionname, defaultval, std::move(description), envname, _cserverOpts));
+}
+
+void CserverConf::add_config(std::string name, spdlog::level::level_enum defaultval, std::string description) {
+    std::string optionname = "--" + name;
+    std::string envname = "CSERVER_" + cserve::strtoupper(name);
+    _values.emplace(name, cserve::ConfValue(optionname, defaultval, std::move(description), envname, _cserverOpts));
+}
+
+void CserverConf::add_config(std::string name, std::vector<cserve::LuaRoute> defaultval, std::string description) {
+    std::string optionname = "--" + name;
+    std::string envname = "CSERVER_" + cserve::strtoupper(name);
+    _values.emplace(name, cserve::ConfValue(optionname, std::move(defaultval), std::move(description), envname, _cserverOpts));
+}
+
+void CserverConf::parse_cmdline_args(int argc, char *argv[]) {
     try {
         _cserverOpts->parse(argc, argv);
     } catch (const CLI::ParseError &e) {
@@ -137,7 +171,7 @@ CserverConf::CserverConf(int argc, char *argv[]) {
                     valmap.emplace(name, luacfg.configLoglevel("cserve", name, val.get_loglevel().value()));
                     break;
                 case cserve::ConfValue::LUAROUTES:
-                     valmap.emplace(name, luacfg.configRoute(name));
+                    valmap.emplace(name, luacfg.configRoute(name));
                     break;
             }
         }
@@ -167,10 +201,4 @@ CserverConf::CserverConf(int argc, char *argv[]) {
             }
         }
     }
-
-
-}
-
-void CserverConf::parse_cmdline_args(int argc, char *argv[]) {
-
 }

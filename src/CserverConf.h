@@ -43,7 +43,21 @@ public:
      * @param argc From main() arguments
      * @param argv From main() arguments
      */
-    CserverConf(int argc, char *argv[]);
+    CserverConf();
+
+    void add_config(std::string name, int defaultval, std::string description);
+
+    void add_config(std::string name, float defaultval, std::string description);
+
+    void add_config(std::string name, const char *defaultval, std::string description);
+
+    void add_config(std::string name, std::string defaultval, std::string description);
+
+    void add_config(std::string name, const cserve::DataSize &defaultval, std::string description);
+
+    void add_config(std::string name, spdlog::level::level_enum defaultval, std::string description);
+
+    void add_config(std::string name, std::vector<cserve::LuaRoute> defaultval, std::string description);
 
     void parse_cmdline_args(int argc, char *argv[]);
 
@@ -62,6 +76,8 @@ public:
     std::optional<float> get_float(const std::string &name);
 
     std::optional<std::string> get_string(const std::string &name);
+
+    std::optional<cserve::DataSize> get_datasize(const std::string &name);
 
     inline void routes(const std::vector<cserve::LuaRoute> &routes) { _routes = routes; }
 

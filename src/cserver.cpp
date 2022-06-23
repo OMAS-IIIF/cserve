@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     logger->info(cserve::Server::version_string());
     setlogmask(old_ll);
 
-    std::string handlerdir{};
+    std::string handlerdir("./handler");
 
     if (const char* env_p = std::getenv("CSERVER_HANDLERDIR")) {
         handlerdir = env_p;
@@ -99,6 +99,26 @@ int main(int argc, char *argv[]) {
     }
 
     //
+    // Load test handler (should be removed for production system)
+    //
+    std::filesystem::path testhandler_path(handlerdir);
+    testhandler_path /= "testhandler.so";
+    cserve::RequestHandlerLoader test_loader(testhandler_path,
+                                             "createTestHandler",
+                                             "destroyTestHandler");
+    std::shared_ptr<cserve::RequestHandler> test_handler = test_loader.get_instance();
+
+    //
+    // Load ping handler
+    //
+    std::filesystem::path pinghandler_path(handlerdir);
+    pinghandler_path /= "pinghandler.so";
+    cserve::RequestHandlerLoader ping_loader(pinghandler_path,
+                                             "createPingHandler",
+                                             "destroyPingHandler");
+    std::shared_ptr<cserve::RequestHandler> ping_handler = ping_loader.get_instance();
+
+    //
     // read the configuration parameters. The parameters can be defined in
     // 1) a lua configuration parameter file
     // 2) environment variables
@@ -106,25 +126,72 @@ int main(int argc, char *argv[]) {
     // The configuration file parameters (lowest priority) are superseeded by the environment variables are
     // superseeded by the command line parameters (highest priority)
     //
-    CserverConf config(argc, argv);
+    CserverConf config;
+
+    config.add_config("config", "./config", "Configuration file for web server.");
+    config.add_config("handlerdir", "./handler", "Path to dirctory containing the handler plugins.");
+    config.add_config("userid", "", "Username to use to run cserver. Mus be launched as root to use this option");
+    config.add_config("port", 8080, "HTTP port to be used [default=8080]");
+    config.add_config("sslport", 8443, "SHTTP port to be used (SLL) [default=8443]");
+    config.add_config("sslcert", "./certificate/certificate.pem", "Path to SSL certificate.");
+    config.add_config("sslkey", "./certificate/key.pem", "Path to the SSL key file.");
+    config.add_config("jwtkey", "UP4014, the biggest steam engine", "The secret for generating JWT's (JSON Web Tokens) (exactly 42 characters).");
+    config.add_config("nthreads", static_cast<int>(std::thread::hardware_concurrency()), "Number of worker threads to be used by cserver");
+    config.add_config("tmpdir", "./tmp", "Path to the temporary directory (e.g. for uploads etc.).");
+    config.add_config("keepalive", 5, "Number of seconds for the keep-alive option of HTTP 1.1.");
+    config.add_config("maxpost", cserve::DataSize("50MB"), "A string indicating the maximal size of a POST request, e.g. '100M'.");
+    config.add_config("initscript", "", "Path to LUA init script.");
+    config.add_config("logfile", "./cserver.log", "Name of the logfile.");
+    config.add_config("loglevel", spdlog::level::debug, "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.");
+
+    //
+    // file server stuff
+    //
+    config.add_config("docroot", "./docroot", "Path to document root for file server.");
+    config.add_config("wwwroute", "/", "Route root for file server.");
+
+    //
+    // script handler stuff
+    //
+    config.add_config("scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
+    config.add_config("routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"");
+
+
+
     if (config.serverconf_ok() != 0) return config.serverconf_ok();
 
     logger->set_level(config.loglevel());
 
-    cserve::Server server(config.port(), config.nthreads(), config.userid()); // instantiate the server
+    int port = config.get_int("port").value();
+    int nthreads = config.get_int("nthreads").value();
+    std::string userid = config.get_string("userid").value();
+    cserve::Server server(port, static_cast<unsigned>(nthreads), userid); // instantiate the server
 
     std::cout << cserve::Server::version_string() << std::endl;
 
-    server.ssl_port(config.ssl_port()); // set the secure connection port (-1 means no ssl socket)
-    if (!config.ssl_certificate().empty()) server.ssl_certificate(config.ssl_certificate());
-    if (!config.ssl_key().empty()) server.ssl_key(config.ssl_key());
-    server.jwt_secret(config.jwt_secret());
-    server.tmpdir(config.tmpdir()); // set the directory for storing temporary files during upload
-    server.scriptdir(config.scriptdir()); // set the directory where the Lua scripts are found for the "Lua"-routes
-    if (!config.initscript().empty()) server.initscript(config.initscript());
-    server.max_post_size(config.max_post_size()); // set the maximal post size
+    server.ssl_port(config.get_int("sslport").value()); // set the secure connection port (-1 means no ssl socket)
+
+    std::string ssl_certificate = config.get_string("sslcert").value();
+    if (!ssl_certificate.empty()) server.ssl_certificate(ssl_certificate);
+
+    std::string ssl_key = config.get_string("sslkey").value();
+    if (!ssl_key.empty()) server.ssl_key(ssl_key);
+
+    server.jwt_secret(config.get_string("jwtkey").value());
+
+    server.tmpdir(config.get_string("tmpdir").value());
+
+    server.scriptdir(config.get_string("scriptdir").value());
+
+    std::string initscript = config.get_string("initscript").value();
+
+    if (!initscript.empty()) server.initscript(initscript);
+
+    server.max_post_size(config.get_datasize("maxpost").value().as_size_t()); // set the maximal post size
+
+    server.keep_alive_timeout(config.get_int("keepalive").value()); // set the keep alive timeout
+
     server.luaRoutes(config.routes());
-    server.keep_alive_timeout(config.keep_alive()); // set the keep alive timeout
 
     //
     // initialize Lua with some "extensions" and global variables
@@ -136,30 +203,15 @@ int main(int argc, char *argv[]) {
     //
     // now we set the routes for the normal HTTP server file handling
     //
-    if (!config.docroot().empty()) {
-        std::pair <std::string, std::string> tmp = config.filehandler_info();
-        auto file_handler = std::make_shared<cserve::FileHandler>(tmp.first, tmp.second);
-        server.addRoute(cserve::Connection::GET, tmp.first, file_handler);
-        server.addRoute(cserve::Connection::POST, tmp.first, file_handler);
+    std::string wwwroute = config.get_string("wwwroute").value();
+    std::string docroot = config.get_string("docroot").value();
+    if (!docroot.empty()) {
+        auto file_handler = std::make_shared<cserve::FileHandler>(wwwroute, docroot);
+        server.addRoute(cserve::Connection::GET, wwwroute, file_handler);
+        server.addRoute(cserve::Connection::POST, wwwroute, file_handler);
     }
 
-    //
-    // Test handler (should be removed for production system)
-    //
-    std::filesystem::path testhandler_path(config.handlerdir());
-    testhandler_path /= "testhandler.so";
-    cserve::RequestHandlerLoader test_loader(testhandler_path,
-                                             "createTestHandler",
-                                             "destroyTestHandler");
-    std::shared_ptr<cserve::RequestHandler> test_handler = test_loader.get_instance();
     server.addRoute(cserve::Connection::GET, "/test", test_handler);
-
-    std::filesystem::path pinghandler_path(config.handlerdir());
-    pinghandler_path /= "pinghandler.so";
-    cserve::RequestHandlerLoader ping_loader(pinghandler_path,
-                                             "createPingHandler",
-                                             "destroyPingHandler");
-    std::shared_ptr<cserve::RequestHandler> ping_handler = ping_loader.get_instance();
     server.addRoute(cserve::Connection::GET, "/ping", ping_handler);
 
     serverptr = &server;

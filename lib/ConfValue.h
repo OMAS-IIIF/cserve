@@ -108,9 +108,76 @@ namespace cserve {
         [[nodiscard]] inline DataType get_type() const { return _value_type; }
 
         [[nodiscard]] inline std::optional<int> get_int() const {
-            if (_value_type == INTEGER)
+            if (_value_type == INTEGER) {
                 return _int_value;
-            else return {};
+            }
+            else {
+                return {};
+            }
+        }
+
+        [[nodiscard]] inline std::optional<float> get_float() const {
+            if (_value_type == FLOAT) {
+                return _float_value;
+            }
+            else {
+                return {};
+            }
+        }
+
+        [[nodiscard]] inline std::optional<std::string> get_string() const {
+            if (_value_type == STRING) {
+                return _string_value;
+            }
+            else {
+                return {};
+            }
+        }
+
+        [[nodiscard]] inline std::optional<DataSize> get_datasize() const {
+            if (_value_type == DATASIZE) {
+                return _datasize_value;
+            }
+            else {
+                return {};
+            }
+        }
+
+        [[nodiscard]] inline std::optional<spdlog::level::level_enum> get_loglevel() const {
+            if (_value_type == LOGLEVEL) {
+                return _loglevel_value;
+            }
+            else {
+                return {};
+            }
+        }
+
+        [[nodiscard]] inline std::optional<std::string> get_loglevel_as_string() const {
+            if (_value_type == LOGLEVEL) {
+                std::unordered_map<spdlog::level::level_enum, std::string> log_level_map{
+                        {spdlog::level::trace, "TRACE"},
+                        {spdlog::level::debug, "DEBUG"},
+                        {spdlog::level::info, "INFO"},
+                        {spdlog::level::warn, "WARN"},
+                        {spdlog::level::err, "ERR"},
+                        {spdlog::level::critical, "CRITICAL"},
+                        {spdlog::level::off, "OFF"}
+                };
+                return log_level_map.at(_loglevel_value);
+            }
+            else {
+                return {};
+            }
+        }
+
+
+        inline std::optional<std::vector<LuaRoute>> get_routes() const {
+            if (_value_type == LUAROUTES) {
+                return _luaroutes_value;
+            }
+            else {
+                return {};
+            }
         }
 
         inline void set_value(int ival) {
@@ -118,21 +185,9 @@ namespace cserve {
             _value_type = INTEGER;
         }
 
-        [[nodiscard]] inline std::optional<float> get_float() const {
-            if (_value_type == FLOAT)
-                return _float_value;
-            else return {};
-        }
-
         inline void set_value(float fval) {
             _float_value = fval;
             _value_type = FLOAT;
-        }
-
-        [[nodiscard]] inline std::optional<std::string> get_string() const {
-            if (_value_type == STRING)
-                return _string_value;
-            else return {};
         }
 
         inline void set_value(const std::string &strval) {
@@ -140,30 +195,14 @@ namespace cserve {
             _value_type = STRING;
         }
 
-        [[nodiscard]] inline std::optional<DataSize> get_datasize() const {
-            if (_value_type == DATASIZE)
-                return _datasize_value;
-            else return {};
-        }
-
         inline void set_value(const DataSize &dsval) {
             _datasize_value = dsval;
             _value_type = DATASIZE;
         }
 
-        [[nodiscard]] inline std::optional<spdlog::level::level_enum> get_loglevel() const {
-            if (_value_type == LOGLEVEL)return _loglevel_value; else return {};
-        }
-
         inline void set_value(spdlog::level::level_enum loglevel_val) {
             _loglevel_value = loglevel_val;
             _value_type = LOGLEVEL;
-        }
-
-        inline std::optional<std::vector<LuaRoute>> get_routes() const {
-            if (_value_type == LUAROUTES)
-                return _luaroutes_value;
-            else return {};
         }
 
         inline void set_value(const std::vector<LuaRoute> &luaroutes_val) {
