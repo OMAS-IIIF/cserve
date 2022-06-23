@@ -5,7 +5,7 @@ include(CheckStructHasMember)
 include(CheckIncludeFiles)
 include(FindPackageHandleStandardArgs)
 
-project(cserver VERSION 1.1.3)
+project(cserver VERSION 2.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

@@ -24,7 +24,10 @@ target_link_libraries(tests_00
 
 
 add_test(NAME tests_00 COMMAND tests_00 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_test(NAME e2e COMMAND pytest -s --cserver=${CSERVER_EXE} --handlerdir=${PROJECT_BINARY_DIR}/handler WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_test(NAME e2e
+        COMMAND pytest -s --cserver=${CSERVER_EXE} --handlerdir=${PROJECT_BINARY_DIR}/handler
+        WORKING_DIRECTORY  ${PROJECT_SOURCE_DIR}/tests)
 
 
 enable_testing()

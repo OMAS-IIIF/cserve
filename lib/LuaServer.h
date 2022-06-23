@@ -62,6 +62,7 @@ namespace cserve {
         std::string script;
         LuaRoute() = default;
         LuaRoute(const std::string &lua_route_str);
+        std::string method_as_string() const;
         std::string to_string() const;
         inline bool empty() { return route.empty() || script.empty(); }
     } LuaRoute;

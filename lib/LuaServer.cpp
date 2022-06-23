@@ -263,7 +263,7 @@ namespace cserve {
         script = rinfo[2];
     }
 
-    std::string LuaRoute::to_string() const {
+    std::string LuaRoute::method_as_string() const {
         std::unordered_map<Connection::HttpMethod, std::string> method_map = {
                 {cserve::Connection::HttpMethod::GET, "GET"},
                 {cserve::Connection::HttpMethod::PUT, "PUT"},
@@ -281,9 +281,12 @@ namespace cserve {
         catch(const std::out_of_range &err) {
             throw Error(file_, __LINE__, fmt::format("No valid method: {}", method));
         }
-        return fmt::format("{}:{}:{}", method_str, route, script);
+        return method_str;
     }
 
+    std::string LuaRoute::to_string() const {
+        return fmt::format("{}:{}:{}", method_as_string(), route, script);
+    }
 
     /*!
      * Instantiates a Lua server

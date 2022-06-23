@@ -28,7 +28,7 @@ private:
     std::vector<cserve::LuaRoute> _routes; // ToDo: is this necessary??
     spdlog::level::level_enum _loglevel = spdlog::level::debug;
 
-    std::unordered_map<std::string, cserve::ConfValue> _values;
+    std::unordered_map<std::string, std::shared_ptr<cserve::ConfValue>> _values;
     std::shared_ptr<CLI::App> _cserverOpts;
 
 public:
@@ -69,7 +69,7 @@ public:
      */
     [[nodiscard]] inline bool serverconf_ok() const { return _serverconf_ok; }
 
-    inline const std::unordered_map<std::string, cserve::ConfValue> &get_values() { return _values; }
+    inline const std::unordered_map<std::string, std::shared_ptr<cserve::ConfValue>> &get_values() { return _values; }
 
     std::optional<int> get_int(const std::string &name);
 

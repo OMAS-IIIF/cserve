@@ -83,6 +83,14 @@ int main(int argc, char *argv[]) {
     logger->info(cserve::Server::version_string());
     setlogmask(old_ll);
 
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        logger->info("Current working dir: {}", cwd);
+    } else {
+        logger->error("getcwd() error");
+        return 1;
+    }
+
     std::string handlerdir("./handler");
 
     if (const char* env_p = std::getenv("CSERVER_HANDLERDIR")) {
@@ -128,8 +136,8 @@ int main(int argc, char *argv[]) {
     //
     CserverConf config;
 
-    config.add_config("config", "./config", "Configuration file for web server.");
     config.add_config("handlerdir", "./handler", "Path to dirctory containing the handler plugins.");
+    config.add_config("config", "./config", "Configuration file for web server.");
     config.add_config("userid", "", "Username to use to run cserver. Mus be launched as root to use this option");
     config.add_config("port", 8080, "HTTP port to be used [default=8080]");
     config.add_config("sslport", 8443, "SHTTP port to be used (SLL) [default=8443]");
@@ -154,44 +162,46 @@ int main(int argc, char *argv[]) {
     // script handler stuff
     //
     config.add_config("scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
-    config.add_config("routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"");
+    //config.add_config("routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"");
+
+    config.parse_cmdline_args(argc, argv);
+
+    std::cerr << "==========> docroot=" << config.get_string("docroot").value() << " <==================" << std::endl;
+
+    //if (config.serverconf_ok() != 0) return config.serverconf_ok();
 
 
-
-    if (config.serverconf_ok() != 0) return config.serverconf_ok();
 
     logger->set_level(config.loglevel());
 
     int port = config.get_int("port").value();
     int nthreads = config.get_int("nthreads").value();
     std::string userid = config.get_string("userid").value();
+
     cserve::Server server(port, static_cast<unsigned>(nthreads), userid); // instantiate the server
 
-    std::cout << cserve::Server::version_string() << std::endl;
 
     server.ssl_port(config.get_int("sslport").value()); // set the secure connection port (-1 means no ssl socket)
-
     std::string ssl_certificate = config.get_string("sslcert").value();
     if (!ssl_certificate.empty()) server.ssl_certificate(ssl_certificate);
-
     std::string ssl_key = config.get_string("sslkey").value();
     if (!ssl_key.empty()) server.ssl_key(ssl_key);
-
     server.jwt_secret(config.get_string("jwtkey").value());
-
     server.tmpdir(config.get_string("tmpdir").value());
-
     server.scriptdir(config.get_string("scriptdir").value());
-
     std::string initscript = config.get_string("initscript").value();
-
     if (!initscript.empty()) server.initscript(initscript);
-
     server.max_post_size(config.get_datasize("maxpost").value().as_size_t()); // set the maximal post size
-
     server.keep_alive_timeout(config.get_int("keepalive").value()); // set the keep alive timeout
-
     server.luaRoutes(config.routes());
+
+
+    //
+    // now we set the routes for the normal HTTP server file handling
+    //
+    std::string wwwroute = config.get_string("wwwroute").value();
+    std::string docroot = config.get_string("docroot").value();
+
 
     //
     // initialize Lua with some "extensions" and global variables
@@ -200,11 +210,8 @@ int main(int argc, char *argv[]) {
     server.add_lua_globals_func(cserve::sqliteGlobals, &server);
     server.add_lua_globals_func(new_lua_func); // add new lua function "gaga"
 
-    //
-    // now we set the routes for the normal HTTP server file handling
-    //
-    std::string wwwroute = config.get_string("wwwroute").value();
-    std::string docroot = config.get_string("docroot").value();
+
+
     if (!docroot.empty()) {
         auto file_handler = std::make_shared<cserve::FileHandler>(wwwroute, docroot);
         server.addRoute(cserve::Connection::GET, wwwroute, file_handler);
