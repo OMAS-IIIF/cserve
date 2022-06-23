@@ -214,19 +214,10 @@ namespace cserve {
 
         inline std::string get_envname() { return _envname; }
 
-        inline friend std::ostream & operator<<(std::ostream &os, const std::shared_ptr<ConfValue>& p) {
-            switch (p->_value_type) {
-                case DataType::INTEGER: return os << "INTEGER: " << p->get_int().value_or(9999);
-                case DataType::FLOAT: return os << "FLOAT: " << p->get_float().value_or(9999.9999);
-                case DataType::STRING: return os << "STRING: " << p->get_string().value_or("--UNDEFINED--");
-                case DataType::DATASIZE: return os << "DATASIZE: " << p->get_datasize().value_or(DataSize("0B")).as_string();
-                case DataType::LOGLEVEL: return os << "LOGLEVEL: " << p->get_loglevel_as_string().value_or("--UNDEFINED--");
-                case DataType::LUAROUTES: return os << "LUAROUTES: " << "p->get_luaroutes().value_or(std::vector<LuaRoute>{}";
-            }
-        }
+        friend std::ostream & operator<<(std::ostream &os, const std::shared_ptr<ConfValue>& p);
     };
 
-
+    std::ostream & operator<<(std::ostream &os, const std::shared_ptr<ConfValue>& p);
 } // cserve
 
 #endif //CSERVER_CONFVALUE_H

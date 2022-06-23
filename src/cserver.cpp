@@ -162,15 +162,13 @@ int main(int argc, char *argv[]) {
     // script handler stuff
     //
     config.add_config("scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
-    //config.add_config("routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"");
+    config.add_config("routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"");
 
     config.parse_cmdline_args(argc, argv);
 
     std::cerr << "==========> docroot=" << config.get_string("docroot").value() << " <==================" << std::endl;
 
     //if (config.serverconf_ok() != 0) return config.serverconf_ok();
-
-
 
     logger->set_level(config.loglevel());
 

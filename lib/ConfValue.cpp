@@ -121,4 +121,21 @@ namespace cserve {
                 ->envname(_envname);
     }
 
+    std::ostream & operator<<(std::ostream &os, const std::shared_ptr<ConfValue>& p) {
+        switch (p->_value_type) {
+            case ConfValue::DataType::INTEGER: return os << "INTEGER: " << p->get_int().value_or(9999);
+            case ConfValue::DataType::FLOAT: return os << "FLOAT: " << p->get_float().value_or(9999.9999);
+            case ConfValue::DataType::STRING: return os << "STRING: " << p->get_string().value_or("--UNDEFINED--");
+            case ConfValue::DataType::DATASIZE: return os << "DATASIZE: " << p->get_datasize().value_or(DataSize("0B")).as_string();
+            case ConfValue::DataType::LOGLEVEL: return os << "LOGLEVEL: " << p->get_loglevel_as_string().value_or("--UNDEFINED--");
+            case ConfValue::DataType::LUAROUTES: {
+                std::string routes;
+                for (auto& r: p->get_luaroutes().value_or(std::vector<LuaRoute>{})) {
+                    routes += r.method_as_string() + ":" + r.route + ":" + r.script + " ";
+                }
+                return os << "LUAROUTES: " << routes;
+            }
+        }
+    }
+
 } // cserve
