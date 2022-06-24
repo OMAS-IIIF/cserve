@@ -1,5 +1,6 @@
 import pytest
 import os
+import pprint
 
 def test_ping(manager):
     """
@@ -113,6 +114,7 @@ def test_servervariables(manager):
     :return: None
     """
     variables = manager.get_json('servervariables', params={'param': 'all'})
+    pprint.pprint(variables)
     assert variables.get('status') == 'OK'
     assert variables.get('config') is not None
     assert variables['config'].get('port') == 8080

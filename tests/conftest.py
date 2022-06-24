@@ -50,7 +50,11 @@ class CserverProcessManager:
             "CSERVER_KEEPALIVE": "5",
             "CSERVER_MAXPOSTSIZE": "1M",
             "CSERVER_LOGLEVEL": "TRACE",
-            "CSERVER_ROUTES": "GET:/servervariables:servervariables.lua GET:/filefunctions:filefunctions.lua GET:/misc:misc.lua;POST:/upload:upload.lua GET:/sqlite3:sqlite3.lua"
+            "CSERVER_ROUTES": "GET:/servervariables:servervariables.lua;"
+                              "GET:/filefunctions:filefunctions.lua;"
+                              "GET:/misc:misc.lua;"
+                              "POST:/upload:upload.lua;"
+                              "GET:/sqlite3:sqlite3.lua"
         }
         self.cserver_ready = False
         self.inlines = []

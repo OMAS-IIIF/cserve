@@ -25,9 +25,6 @@ class CserverConf {
 private:
     int _serverconf_ok;
 
-    std::vector<cserve::LuaRoute> _routes; // ToDo: is this necessary??
-    spdlog::level::level_enum _loglevel = spdlog::level::debug;
-
     std::unordered_map<std::string, std::shared_ptr<cserve::ConfValue>> _values;
     std::shared_ptr<CLI::App> _cserverOpts;
 
@@ -79,13 +76,9 @@ public:
 
     std::optional<cserve::DataSize> get_datasize(const std::string &name);
 
-    inline void routes(const std::vector<cserve::LuaRoute> &routes) { _routes = routes; }
+    std::optional<std::vector<cserve::LuaRoute>> get_luaroutes(const std::string &name);
 
-    inline std::vector<cserve::LuaRoute> routes() { return _routes; }
-
-    inline void loglevel(spdlog::level::level_enum loglevel) { _loglevel = loglevel; }
-
-    inline spdlog::level::level_enum loglevel() { return _loglevel; }
+    std::optional<spdlog::level::level_enum> get_loglevel(const std::string &name);
 };
 
 

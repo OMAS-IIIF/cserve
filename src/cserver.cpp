@@ -136,6 +136,7 @@ int main(int argc, char *argv[]) {
     //
     CserverConf config;
 
+    config.add_config("gaga", 5, "Number of seconds for the keep-alive option of HTTP 1.1.");
     config.add_config("handlerdir", "./handler", "Path to dirctory containing the handler plugins.");
     config.add_config("config", "./config", "Configuration file for web server.");
     config.add_config("userid", "", "Username to use to run cserver. Mus be launched as root to use this option");
@@ -166,11 +167,9 @@ int main(int argc, char *argv[]) {
 
     config.parse_cmdline_args(argc, argv);
 
-    std::cerr << "==========> docroot=" << config.get_string("docroot").value() << " <==================" << std::endl;
-
     //if (config.serverconf_ok() != 0) return config.serverconf_ok();
 
-    logger->set_level(config.loglevel());
+    logger->set_level(config.get_loglevel("loglevel").value());
 
     int port = config.get_int("port").value();
     int nthreads = config.get_int("nthreads").value();
@@ -191,7 +190,7 @@ int main(int argc, char *argv[]) {
     if (!initscript.empty()) server.initscript(initscript);
     server.max_post_size(config.get_datasize("maxpost").value().as_size_t()); // set the maximal post size
     server.keep_alive_timeout(config.get_int("keepalive").value()); // set the keep alive timeout
-    server.luaRoutes(config.routes());
+    server.luaRoutes(config.get_luaroutes("routes").value_or(std::vector<cserve::LuaRoute>{}));
 
 
     //

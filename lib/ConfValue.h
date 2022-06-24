@@ -56,7 +56,7 @@ namespace cserve {
         std::string _string_value{};
         DataSize _datasize_value{};
         spdlog::level::level_enum _loglevel_value{};
-        std::vector<LuaRoute> _luaroutes_value{};
+        std::vector<std::string> _luaroutes_value{};
         std::string _optionname{};
         std::string _description{};
         std::string _envname{};
@@ -81,7 +81,7 @@ namespace cserve {
         ConfValue(std::string optionname, spdlog::level::level_enum loglevel, std::string description,
                   std::string envname, const std::shared_ptr<CLI::App> &app);
 
-        ConfValue(std::string optionname, std::vector<LuaRoute> lua_routes, std::string description,
+        ConfValue(std::string optionname, const std::vector<LuaRoute> &lua_routes, std::string description,
                   std::string envname, const std::shared_ptr<CLI::App> &app);
 
         inline ConfValue(const ConfValue &cv)
@@ -173,7 +173,18 @@ namespace cserve {
 
         inline std::optional<std::vector<LuaRoute>> get_luaroutes() const {
             if (_value_type == LUAROUTES) {
-                return _luaroutes_value;
+                std::vector<std::string> tmp_str_vec{};
+                if ((_luaroutes_value.size() == 1) && (_luaroutes_value[0].find(';'))) {
+                    tmp_str_vec = split(_luaroutes_value[0], ';');
+                }
+                else {
+                    tmp_str_vec = _luaroutes_value;
+                }
+                std::vector<LuaRoute> routes{};
+                for (auto& rstr: tmp_str_vec) {
+                    routes.push_back(LuaRoute(rstr));
+                }
+                return routes;
             }
             else {
                 return {};
@@ -205,8 +216,9 @@ namespace cserve {
             _value_type = LOGLEVEL;
         }
 
-        inline void set_value(const std::vector<LuaRoute> &luaroutes_val) {
-            _luaroutes_value = luaroutes_val;
+        inline void set_value(const std::vector<LuaRoute> &lua_routes) {
+            _luaroutes_value.clear();
+            for (auto &r: lua_routes) { _luaroutes_value.push_back(r.to_string()); }
             _value_type = LUAROUTES;
         }
 

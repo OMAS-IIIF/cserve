@@ -111,13 +111,12 @@ namespace cserve {
                 ->transform(CLI::CheckedTransformer(logLevelMap, CLI::ignore_case));
     }
 
-    ConfValue::ConfValue(std::string optionname, std::vector<LuaRoute> lua_routes, std::string description,
+    ConfValue::ConfValue(std::string optionname, const std::vector<LuaRoute> &lua_routes, std::string description,
                          std::string envname, const std::shared_ptr<CLI::App> &app)
-            : _optionname(optionname), _luaroutes_value(std::move(lua_routes)), _description(std::move(description)),
+            : _optionname(optionname), _description(std::move(description)),
               _envname(std::move(envname)), _value_type(LUAROUTES) {
-        std::vector<std::string> tmpstr;
-        for (auto &r: _luaroutes_value) { tmpstr.push_back(r.to_string()); }
-        app->add_option(std::move(optionname), tmpstr, _description)
+        for (auto &r: lua_routes) { _luaroutes_value.push_back(r.to_string()); }
+        app->add_option(std::move(optionname), _luaroutes_value, _description)
                 ->envname(_envname);
     }
 
