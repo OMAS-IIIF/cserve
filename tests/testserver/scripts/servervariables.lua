@@ -14,19 +14,22 @@ end
 
 result = {
     status = "OK",
-    config = {
-        userid = config.userid,
-        port = config.port,
-        ssl_port = config.ssl_port,
-        docroot = config.docroot,
-        tmpdir = config.tmodir,
-        scriptdir = config.scriptdir,
-        nthreads = config.nthreads,
-        keep_alive = config.keep_alive,
-        max_post_size = config.max_post_size,
-        loglevel = config.loglevel
-    },
-    server = {
+--[[
+config = {
+    userid = config.userid,
+    port = config.port,
+    ssl_port = config.ssl_port,
+    docroot = config.docroot,
+    tmpdir = config.tmodir,
+    scriptdir = config.scriptdir,
+    nthreads = config.nthreads,
+    keep_alive = config.keep_alive,
+    max_post_size = config.max_post_size,
+    loglevel = config.loglevel
+},
+]]
+    config = config,
+        server = {
         method = server.method,
         has_openssl = server.has_openssl,
         client_ip = server.client_ip,
@@ -42,10 +45,10 @@ result = {
 
 local success, jsonresult = server.table_to_json(result)
 if not success then
-    server.log("server.table_to_json failed: " .. errmsg, server.loglevel.LOG_ERR)
-    server.sendStatus(500)
-    print.print("server.table_to_json failed: " .. errmsg)
-    return false
+server.log("server.table_to_json failed: " .. errmsg, server.loglevel.LOG_ERR)
+server.sendStatus(500)
+print.print("server.table_to_json failed: " .. errmsg)
+return false
 end
 server.sendHeader('Content-type', 'application/json')
 server.sendStatus(200)

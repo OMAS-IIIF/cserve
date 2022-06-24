@@ -136,7 +136,6 @@ int main(int argc, char *argv[]) {
     //
     CserverConf config;
 
-    config.add_config("gaga", 5, "Number of seconds for the keep-alive option of HTTP 1.1.");
     config.add_config("handlerdir", "./handler", "Path to dirctory containing the handler plugins.");
     config.add_config("config", "./config", "Configuration file for web server.");
     config.add_config("userid", "", "Username to use to run cserver. Mus be launched as root to use this option");
@@ -148,7 +147,7 @@ int main(int argc, char *argv[]) {
     config.add_config("nthreads", static_cast<int>(std::thread::hardware_concurrency()), "Number of worker threads to be used by cserver");
     config.add_config("tmpdir", "./tmp", "Path to the temporary directory (e.g. for uploads etc.).");
     config.add_config("keepalive", 5, "Number of seconds for the keep-alive option of HTTP 1.1.");
-    config.add_config("maxpost", cserve::DataSize("50MB"), "A string indicating the maximal size of a POST request, e.g. '100M'.");
+    config.add_config("maxpost", cserve::DataSize("1MB"), "A string indicating the maximal size of a POST request, e.g. '100M'.");
     config.add_config("initscript", "", "Path to LUA init script.");
     config.add_config("logfile", "./cserver.log", "Name of the logfile.");
     config.add_config("loglevel", spdlog::level::debug, "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.");

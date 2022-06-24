@@ -136,7 +136,7 @@ def test_servervariables(manager):
     assert variables['server']['get'].get('param') == 'all'
     assert variables['server'].get('has_openssl') is not None
     if variables['server']['has_openssl']:
-        assert variables['config'].get('ssl_port') == 8443
+        assert variables['config'].get('sslport') == 8443
     assert variables['server'].get('header') is not None
     assert variables['server']['header'].get('accept') == '*/*'
     assert variables['server']['header'].get('connection') == 'keep-alive'

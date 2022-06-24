@@ -522,12 +522,8 @@ namespace cserve {
         //
         // now we are adding the lua routes
         //
-        std::cerr << ">>>@@@@@@@@@@@@@@@@@@@@@@@@@@<<<" << std::endl;
         for (auto &route : _lua_routes) {
             route.script = _scriptdir + "/" + route.script;
-            std::cerr << "@@@@@@@@@@@@@@@@@@@@@@@@@@" << std::endl;
-            std::cerr << "script=" << route.script << " method=" << route.method << std::endl;
-            std::cerr << "@@@@@@@@@@@@@@@@@@@@@@@@@@" << std::endl;
 
             std::shared_ptr<ScriptHandler> handler = std::make_shared<ScriptHandler>(route.script);
             addRoute(route.method, route.route, handler);
@@ -844,17 +840,11 @@ namespace cserve {
             // includes Lua files in the Lua script directory
             std::string lua_scriptdir = _scriptdir + "/?.lua";
 
-            std::cerr << "#################### lua_scriptdir=" << lua_scriptdir <<  " _initscript=" << _initscript << std::endl;
-
             LuaServer luaserver(conn, _initscript, true, lua_scriptdir);
 
-            std::cerr << "---------------------------------------------------------------" << std::endl;
             for (auto &global_func : lua_globals) {
-                std::cerr << "-1-1-1-1-1-1-1-1-1-1-1-1-1-1-" << std::endl;
                 global_func.func(luaserver.lua(), conn, global_func.func_dataptr);
             }
-            std::cerr << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-
 
             try {
                 std::shared_ptr<RequestHandler> req_handler = getHandler(conn);

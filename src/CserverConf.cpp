@@ -18,67 +18,27 @@ static const char file_[] = __FILE__;
 void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data) {
     auto *conf = (CserverConf *) user_data;
     const auto values = conf->get_values();
-    lua_newtable(L); // table1
-//    lua_pushstring(L, "userid");
-//    lua_pushinteger(L, 1111);
-//    lua_rawset(L, -3); // table1
-
-    lua_pushstring(L, "port");
-    lua_pushinteger(L, 2222);
-    lua_rawset(L, -3);
-    lua_setglobal(L, "config");
-    return;
+    lua_createtable(L, 0, values.size());
     for (auto const& [name, val] : values) {
-        if (name == "userid") continue;
-        if (name == "docroot") continue;
-        if (name == "loglevel") continue;
-        if (name == "nthreads") continue;
-        //if (name == "port") continue;
-        if (name == "config") continue;
-        if (name == "jwtkey") continue;
-        if (name == "initscript") continue;
-        if (name == "sslkey") continue;
-        if (name == "sslport") continue;
-        if (name == "sslcert") continue;
-        // if (name == "keepalive") continue;
-        if (name == "tmpdir") continue;
-        if (name == "scriptdir") continue;
-        if (name == "logfile") continue;
-        if (name == "routes") continue;
-        if (name == "maxpost") continue;
-        if (name == "handlerdir") continue;
-        if (name == "docroot") continue;
-        if (name == "wwwroute") continue;
-
         lua_pushstring(L, name.c_str()); // table1 - "index_L1"
         auto vtype = val->get_type();
         switch (vtype) {
             case cserve::ConfValue::INTEGER:
                 lua_pushinteger(L, val->get_int().value_or(-1)); // "table1 - index_L1 - value_L1"
-                std::cerr << "   ++++++++INTEGER> " << name << "->" << val->get_int().value_or(-1) <<  std::endl;
                 break;
             case cserve::ConfValue::FLOAT:
                 lua_pushnumber(L, val->get_float().value_or(0.0)); // "table1 - index_L1 - value_L1"
-                std::cerr << "   ++++++++FLOAT> " << name << "->"  << val->get_float().value_or(0.0) <<  std::endl;
                 break;
             case cserve::ConfValue::STRING:
-                //lua_pushstring(L, val->get_string().value_or("").c_str()); // "table1 - index_L1 - value_L1"
-                lua_pushstring(L, "...A STRING..."); // "table1 - index_L1 - value_L1"
-                std::cerr << "   ++++++++STRING> " << name << "->"  << val->get_string().value_or("") <<  std::endl;
+                lua_pushstring(L, val->get_string().value_or("").c_str()); // "table1 - index_L1 - value_L1"
                 break;
             case cserve::ConfValue::DATASIZE:
                 lua_pushstring(L, val->get_datasize().value_or(cserve::DataSize()).as_string().c_str()); // "table1 - index_L1 - value_L1"
-                std::cerr << "   ++++++++DATASIZE> " << name << "->"  << val->get_datasize().value_or(cserve::DataSize()).as_string() <<  std::endl;
                 break;
             case cserve::ConfValue::LOGLEVEL:
                 lua_pushstring(L, val->get_loglevel_as_string().value_or("OFF").c_str()); // "table1 - index_L1 - value_L1"
-                std::cerr << "   ++++++++LOGLEVEL> " << name << "->"  << val->get_loglevel_as_string().value_or("OFF") <<  std::endl;
                 break;
             case cserve::ConfValue::LUAROUTES:
-                lua_pushstring(L, "GAGAGAGAGAGAA");
-                std::cerr << "   ++++++++LUAROUTES> " << name << "->"  << "GAGAGAGAGAGAA" <<  std::endl;
-                break;
-                /*
                 std::vector<cserve::LuaRoute> routes = val->get_luaroutes().value();
                 lua_createtable(L, routes.size(), 0);  // "table1 - index_L1 - table2"
                 int index = 0;
@@ -86,22 +46,16 @@ void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data)
                     lua_createtable(L, 0, 3); // "table1 - index_L1 - table2 - table3"
                     lua_pushstring(L, "method"); // "table1 - index_L1 - table2 - table3 - "method"
                     lua_pushstring(L, route.method_as_string().c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
-                    std::cerr << "   ++++++++method> " << route.method_as_string() <<  std::endl;
                     lua_settable(L, -3); // "table1 - index_L1 - table2 - table3"
                     lua_pushstring(L, "route"); // "table1 - index_L1 - table2 - table3 - "route"
                     lua_pushstring(L, route.route.c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
-                    std::cerr << "   ++++++++route> " << route.route <<  std::endl;
                     lua_settable(L, -3); // "table1 - index_L1 - table2 - table3"
                     lua_pushstring(L, "script"); // "table1 - index_L1 - table2 - table3 - "route"
                     lua_pushstring(L, route.script.c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
-                    std::cerr << "   ++++++++script> " << route.script <<  std::endl;
                     lua_settable(L, -3); // "table1 - index_L1 - table2 - table3"
                     lua_rawseti(L, -2, index++); // "table1 - index_L1 - table2"
                 }
                 break;
-                 */
-            default:
-                std::cerr << "--------------->" << name << std::endl;
         }
         lua_rawset(L, -3); // table1
     }
