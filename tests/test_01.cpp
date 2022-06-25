@@ -9,6 +9,22 @@
 
 #include "ConfValue.h"
 
+TEST_CASE("DataSize class", "DataSize") {
+    cserve::DataSize ds1(100);
+    REQUIRE(ds1.as_size_t() == 100);
+    cserve::DataSize ds2("100");
+    REQUIRE(ds2.as_size_t() == 100);
+    cserve::DataSize ds3("100KB");
+    REQUIRE(ds3.as_size_t() == 100*1024);
+    cserve::DataSize ds4("100MB");
+    REQUIRE(ds4.as_size_t() == 100*1024*1024);
+    cserve::DataSize ds5("100GB");
+    REQUIRE(ds5.as_size_t() == 100ll*1024ll*1024ll*1024ll);
+    cserve::DataSize ds6("100TB");
+    REQUIRE(ds6.as_size_t() == 100ll*1024ll*1024ll*1024ll*1024ll);
+    cserve::DataSize ds7("100GAGA");
+    REQUIRE(ds7.as_size_t() == 100ll);
+}
 
 TEST_CASE("Testing ConfValue class", "[ConfValue]") {
     SECTION("Integer testing") {

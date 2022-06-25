@@ -24,13 +24,13 @@ namespace cserve {
             ll = 2;
         }
         if (c == 'K') {
-            data_volume = stoll(volstr.substr(0, l - ll)) * 1024;
+            data_volume = stoll(volstr.substr(0, l - ll)) * 1024ll;
         } else if (c == 'M') {
-            data_volume = stoll(volstr.substr(0, l - ll)) * 1024 * 1024;
+            data_volume = stoll(volstr.substr(0, l - ll)) * 1024ll * 1024ll;
         } else if (c == 'G') {
-            data_volume = stoll(volstr.substr(0, l - ll)) * 1024 * 1024 * 1024;
+            data_volume = stoll(volstr.substr(0, l - ll)) * 1024ll * 1024ll * 1024ll;
         } else if (c == 'T') {
-            data_volume = stoll(volstr.substr(0, l - ll)) * 1024 * 1024 * 1024 * 1024;
+            data_volume = stoll(volstr.substr(0, l - ll)) * 1024ll * 1024ll * 1024ll * 1024ll;
         } else {
             data_volume = stoll(volstr);
         }
@@ -39,7 +39,7 @@ namespace cserve {
 
     extern std::string data_volume(size_t size) {
         std::string size_str;
-        if (size / (1024ll * 1024 * 1024ll * 1024ll) > 0) {
+        if (size / (1024ll * 1024ll * 1024ll * 1024ll) > 0) {
             size_str = fmt::format("{:.2}TB", (float) size / (float) (1024ll * 1024ll * 1024ll * 1024ll));
         } else if (size / (1024ll * 1024ll * 1024ll) > 0) {
             size_str = fmt::format("{:.2}GB", (float) size / (float) (1024ll * 1024ll * 1024ll));
