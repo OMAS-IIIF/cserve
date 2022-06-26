@@ -132,4 +132,26 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         REQUIRE_THROWS_AS(sval.get_luaroutes().value(), std::bad_optional_access);
     }
 
+    SECTION("loglevel testing") {
+        std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>();
+        std::string description = "This is a description";
+        std::string envname = "LLTEST";
+        spdlog::level::level_enum lldefval(spdlog::level::level_enum::critical);
+        auto sval = cserve::ConfValue("lltest", lldefval, description, envname, app);
+        REQUIRE(sval.get_loglevel().value() == lldefval);
+        REQUIRE(sval.get_loglevel_as_string().value() == std::string("CRITICAL"));
+        REQUIRE(sval.get_description() == description);
+        REQUIRE(sval.get_envname() == envname);
+        int argc = 2;
+        char const *argv[] = {"--loglevel", "INFO"};
+        app->parse(argc, argv);
+        REQUIRE(sval.get_loglevel().value() == spdlog::level::level_enum::info);
+        REQUIRE(sval.get_loglevel_as_string().value() == std::string("INFO"));
+        REQUIRE_THROWS_AS(sval.get_int().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(sval.get_float().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(sval.get_string().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(sval.get_datasize().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(sval.get_luaroutes().value(), std::bad_optional_access);
+    }
+
 }
