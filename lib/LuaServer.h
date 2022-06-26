@@ -65,6 +65,7 @@ namespace cserve {
         std::string method_as_string() const;
         std::string to_string() const;
         inline bool empty() { return route.empty() || script.empty(); }
+        inline bool operator==(const LuaRoute &lr) const { return method == lr.method && route == lr.route && script == lr.script; }
     } LuaRoute;
 
     [[maybe_unused]] typedef std::unordered_map<std::string, LuaValstruct> LuaKeyValStore;

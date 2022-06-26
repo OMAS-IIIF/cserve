@@ -36,7 +36,7 @@ namespace cserve {
 
         inline explicit DataSize(const std::string &size_str) { size = data_volume(size_str); }
 
-        inline bool operator==(const DataSize &other) { return size == other.size; }
+        inline bool operator==(const DataSize &other) const { return size == other.size; }
 
         [[nodiscard]] inline std::string as_string() const { return data_volume(size); }
 
