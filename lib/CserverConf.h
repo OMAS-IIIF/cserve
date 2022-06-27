@@ -24,7 +24,7 @@ namespace cserve {
     class CserverConf {
     private:
         int _serverconf_ok;
-
+        std::string lua_global_name;
         std::unordered_map<std::string, std::shared_ptr<cserve::ConfValue>> _values;
         std::shared_ptr<CLI::App> _cserverOpts;
 
@@ -40,7 +40,7 @@ namespace cserve {
          * @param argc From main() arguments
          * @param argv From main() arguments
          */
-        CserverConf();
+        CserverConf(std::string lua_global_name = "config");
 
         void add_config(const std::string &prefix, const std::string &name, int defaultval, const std::string &description);
 
@@ -65,6 +65,7 @@ namespace cserve {
          * @return 0 on success, non-zero on failure
          */
         [[nodiscard]] inline bool serverconf_ok() const { return _serverconf_ok; }
+        inline std::string get_lua_global_name() const { return lua_global_name; }
 
         inline const std::unordered_map<std::string, std::shared_ptr<cserve::ConfValue>> &get_values() { return _values; }
 

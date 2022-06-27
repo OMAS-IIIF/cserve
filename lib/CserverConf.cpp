@@ -59,7 +59,7 @@ namespace cserve {
             }
             lua_rawset(L, -3); // table1
         }
-        lua_setglobal(L, "config");
+        lua_setglobal(L, conf->get_lua_global_name().c_str());
     }
 
     std::optional<int> CserverConf::get_int(const std::string &name) {
@@ -122,7 +122,7 @@ namespace cserve {
         }
     }
 
-    CserverConf::CserverConf() {
+    CserverConf::CserverConf(std::string lua_global_name) : lua_global_name(std::move(lua_global_name)) {
         //
         // first we set the hardcoded defaults that are used if nothing else has been defined
         //

@@ -1680,6 +1680,7 @@ void Connection::send_header(size_t n) {
 
 
 void Connection::finalize() {
+    if (os == nullptr) return;
     if (_chunked_transfer_out && !_finished) {
         *os << "0\r\n\r\n";
         if (os->eof() || os->fail()) throw InputFailure(OUTPUT_WRITE_FAIL);

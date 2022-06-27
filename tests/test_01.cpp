@@ -426,9 +426,9 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
 }
 
 TEST_CASE("Testing CserverConf class", "[LuaGlobals]") {
-    //cserve::Connection conn;
+    cserve::Connection conn;
     lua_State *L = luaL_newstate();
-    cserve::CserverConf config;
+    cserve::CserverConf config("config");
     const std::string prefix{"cserve"};
     config.add_config(prefix, "config", "", "Config file");
     config.add_config(prefix, "itest", 4711, "Test integer parameter [default=4711]");
@@ -442,6 +442,22 @@ TEST_CASE("Testing CserverConf class", "[LuaGlobals]") {
     };
     config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
 
-    //cserverConfGlobals(L, conn, &config);
+    cserverConfGlobals(L, conn, &config);
+
+    REQUIRE(lua_getglobal(L, "config") == LUA_TTABLE); // config
+
+    REQUIRE(lua_getfield(L, -1, "itest") == LUA_TNUMBER); // config – itest-value
+    REQUIRE(lua_tointeger(L, -1) == 4711);
+    //lua_pop(L, 1); // config
+
+    REQUIRE(lua_getfield(L, -1, "ftest") == LUA_TNUMBER); // config – itest-value
+    REQUIRE(lua_tonumber(L, -1) == 3.1415f);
+    //lua_pop(L, -1);
+
+    lua_getfield(L, -1, "stest");
+    //REQUIRE_FALSE(lua_isnil(L, -1));
+    //REQUIRE(lua_isstring(L, -1));
+    //REQUIRE(strcmp(lua_tostring(L, -1), "test") == 0);
+    //lua_pop(L, -1);
 
 }
