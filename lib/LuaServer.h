@@ -66,6 +66,7 @@ namespace cserve {
         std::string to_string() const;
         inline bool empty() { return route.empty() || script.empty(); }
         inline bool operator==(const LuaRoute &lr) const { return method == lr.method && route == lr.route && script == lr.script; }
+        inline friend std::ostream &operator<<(std::ostream &os, const LuaRoute &rhs) { return os << "ROUTE METHOD=" << rhs.method << " ROUTE=" << rhs.route << " SCRIPT=" << rhs.script; };
     } LuaRoute;
 
     [[maybe_unused]] typedef std::unordered_map<std::string, LuaValstruct> LuaKeyValStore;
@@ -162,7 +163,7 @@ namespace cserve {
                 const std::string &variable,
                 const std::map<std::string,std::string> &defval);
 
-        std::vector<LuaRoute> configRoute(const std::string& routetable);
+        std::vector<LuaRoute> configRoute(const std::string& table, const std::string& variable, const std::vector<cserve::LuaRoute> &defval);
 
         /*!
         * Add path to the lua package path for "require"

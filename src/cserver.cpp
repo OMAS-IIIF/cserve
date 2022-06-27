@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
 
     std::string handlerdir("./handler");
 
-    if (const char* env_p = std::getenv("CSERVER_HANDLERDIR")) {
+    if (const char* env_p = std::getenv("CSERVE_HANDLERDIR")) {
         handlerdir = env_p;
     }
     for (int i = 1; i < argc; ++i) {
@@ -134,37 +134,38 @@ int main(int argc, char *argv[]) {
     // The configuration file parameters (lowest priority) are superseeded by the environment variables are
     // superseeded by the command line parameters (highest priority)
     //
-    CserverConf config;
+    cserve::CserverConf config;
+    const std::string prefix{"cserve"};
 
-    config.add_config("handlerdir", "./handler", "Path to dirctory containing the handler plugins.");
-    config.add_config("config", "./config", "Configuration file for web server.");
-    config.add_config("userid", "", "Username to use to run cserver. Mus be launched as root to use this option");
-    config.add_config("port", 8080, "HTTP port to be used [default=8080]");
-    config.add_config("sslport", 8443, "SHTTP port to be used (SLL) [default=8443]");
-    config.add_config("sslcert", "./certificate/certificate.pem", "Path to SSL certificate.");
-    config.add_config("sslkey", "./certificate/key.pem", "Path to the SSL key file.");
-    config.add_config("jwtkey", "UP4014, the biggest steam engine", "The secret for generating JWT's (JSON Web Tokens) (exactly 42 characters).");
-    config.add_config("nthreads", static_cast<int>(std::thread::hardware_concurrency()), "Number of worker threads to be used by cserver");
-    config.add_config("tmpdir", "./tmp", "Path to the temporary directory (e.g. for uploads etc.).");
-    config.add_config("keepalive", 5, "Number of seconds for the keep-alive option of HTTP 1.1.");
-    config.add_config("maxpost", cserve::DataSize("1MB"), "A string indicating the maximal size of a POST request, e.g. '100M'.");
-    config.add_config("initscript", "", "Path to LUA init script.");
-    config.add_config("logfile", "./cserver.log", "Name of the logfile.");
-    config.add_config("loglevel", spdlog::level::debug, "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.");
+    config.add_config(prefix, "handlerdir", "./handler", "Path to dirctory containing the handler plugins.");
+    config.add_config(prefix, "config", "./config", "Configuration file for web server.");
+    config.add_config(prefix, "userid", "", "Username to use to run cserver. Mus be launched as root to use this option");
+    config.add_config(prefix, "port", 8080, "HTTP port to be used [default=8080]");
+    config.add_config(prefix, "sslport", 8443, "SHTTP port to be used (SLL) [default=8443]");
+    config.add_config(prefix, "sslcert", "./certificate/certificate.pem", "Path to SSL certificate.");
+    config.add_config(prefix, "sslkey", "./certificate/key.pem", "Path to the SSL key file.");
+    config.add_config(prefix, "jwtkey", "UP4014, the biggest steam engine", "The secret for generating JWT's (JSON Web Tokens) (exactly 42 characters).");
+    config.add_config(prefix, "nthreads", static_cast<int>(std::thread::hardware_concurrency()), "Number of worker threads to be used by cserver");
+    config.add_config(prefix, "tmpdir", "./tmp", "Path to the temporary directory (e.g. for uploads etc.).");
+    config.add_config(prefix, "keepalive", 5, "Number of seconds for the keep-alive option of HTTP 1.1.");
+    config.add_config(prefix, "maxpost", cserve::DataSize("1MB"), "A string indicating the maximal size of a POST request, e.g. '100M'.");
+    config.add_config(prefix, "initscript", "", "Path to LUA init script.");
+    config.add_config(prefix, "logfile", "./cserver.log", "Name of the logfile.");
+    config.add_config(prefix, "loglevel", spdlog::level::debug, "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.");
 
     //
     // file server stuff
     //
-    config.add_config("docroot", "./docroot", "Path to document root for file server.");
-    config.add_config("wwwroute", "/", "Route root for file server.");
+    config.add_config(prefix, "docroot", "./docroot", "Path to document root for file server.");
+    config.add_config(prefix, "wwwroute", "/", "Route root for file server.");
 
     //
     // script handler stuff
     //
-    config.add_config("scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
-    config.add_config("routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"");
+    config.add_config(prefix, "scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
+    config.add_config(prefix, "routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"");
 
-    config.parse_cmdline_args(argc, argv);
+    config.parse_cmdline_args(argc, (const char **) argv);
 
     //if (config.serverconf_ok() != 0) return config.serverconf_ok();
 
@@ -202,7 +203,7 @@ int main(int argc, char *argv[]) {
     //
     // initialize Lua with some "extensions" and global variables
     //
-    server.add_lua_globals_func(cserverConfGlobals, &config);
+    server.add_lua_globals_func(cserve::cserverConfGlobals, &config);
     server.add_lua_globals_func(cserve::sqliteGlobals, &server);
     server.add_lua_globals_func(new_lua_func); // add new lua function "gaga"
 

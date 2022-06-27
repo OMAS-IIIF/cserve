@@ -8,6 +8,7 @@
 #include "Global.h"
 
 #include "ConfValue.h"
+#include "CserverConf.h"
 
 TEST_CASE("DataSize class", "DataSize") {
     cserve::DataSize ds1(100);
@@ -255,7 +256,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "LLTEST";
         spdlog::level::level_enum lldefval = spdlog::level::level_enum::info;
-        auto dsval = cserve::ConfValue("dstest", lldefval, description, envname, app);
+        auto dsval = cserve::ConfValue("lltest", lldefval, description, envname, app);
         putenv((char *) "LLTEST=ERR");
         int argc = 1;
         char const *argv[] = {"program"};
@@ -272,14 +273,153 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
                 cserve::LuaRoute("PUT:/gugus:gugus.lua"),
         };
         auto lrval = cserve::ConfValue("lrtest", lrdefval, description, envname, app);
-        putenv((char *) "LRTEST=POST:/hoppla:hoppla.lua;DELETE:/delme/delme.lua");
+        putenv((char *) "LRTEST=POST:/hoppla:hoppla.lua;DELETE:/delme:delme.lua");
         int argc = 1;
         char const *argv[] = {"program"};
         app->parse(argc, argv);
         auto result = lrval.get_luaroutes().value();
         REQUIRE(result.size() == 2);
         REQUIRE(result[0] == cserve::LuaRoute("POST:/hoppla:hoppla.lua"));
-        REQUIRE(result[1] == cserve::LuaRoute("DELETE:/delme/delme.lua"));
+        REQUIRE(result[1] == cserve::LuaRoute("DELETE:/delme:delme.lua"));
+    }
+}
+
+TEST_CASE("Testing CserverConf class", "[CserverConf]") {
+    SECTION("Command line params testing with default values") {
+        cserve::CserverConf config;
+        const std::string prefix{"cserve"};
+        config.add_config(prefix, "config", "", "Config file");
+        config.add_config(prefix, "itest", 4711, "Test integer parameter [default=4711]");
+        config.add_config(prefix, "ftest", 3.1415f, "Test float parameter [default=3.1415]");
+        config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
+        config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
+        config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
+        std::vector<cserve::LuaRoute> lrdefval {
+                cserve::LuaRoute("GET:/gaga:gaga.lua"),
+                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        };
+        config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
+
+        int argc = 1;
+        const char *argv[] = { "test"};
+        config.parse_cmdline_args(argc, argv);
+
+        REQUIRE(config.get_int("itest").value() == 4711);
+        REQUIRE(config.get_float("ftest").value() == 3.1415f);
+        REQUIRE(config.get_string("stest").value() == std::string("test"));
+        REQUIRE(config.get_datasize("dstest").value() == cserve::DataSize("1MB"));
+        REQUIRE(config.get_loglevel("lltest").value() == spdlog::level::level_enum::info);
+        auto result = config.get_luaroutes("lrtest").value();
+        REQUIRE(result.size() == 2);
+        REQUIRE(result[0] == cserve::LuaRoute("GET:/gaga:gaga.lua"));
+        REQUIRE(result[1] == cserve::LuaRoute("PUT:/gugus:gugus.lua"));
     }
 
+    SECTION("Command line params testing with cmdline options") {
+        cserve::CserverConf config;
+        const std::string prefix{"cserve"};
+        config.add_config(prefix, "config", "", "Config file");
+        config.add_config(prefix, "itest", 4711, "Test integer parameter [default=4711]");
+        config.add_config(prefix, "ftest", 3.1415f, "Test float parameter [default=3.1415]");
+        config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
+        config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
+        config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
+        std::vector<cserve::LuaRoute> lrdefval {
+                cserve::LuaRoute("GET:/gaga:gaga.lua"),
+                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        };
+        config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
+
+        int argc = 14;
+        const char *argv[] = { "test",
+                               "--itest", "42",
+                               "--ftest", "2.71",
+                               "--stest", "Waseliwas soll das?",
+                               "--dstest", "2TB",
+                               "--lltest", "ERR",
+                               "--lrtest", "POST:/upload:upload_file.lua", "DELETE:/delete:delete.lua"};
+        config.parse_cmdline_args(argc, argv);
+
+        REQUIRE(config.get_int("itest").value() == 42);
+        REQUIRE(config.get_float("ftest").value() == 2.71f);
+        REQUIRE(config.get_string("stest").value() == std::string("Waseliwas soll das?"));
+        REQUIRE(config.get_datasize("dstest").value() == cserve::DataSize("2TB"));
+        REQUIRE(config.get_loglevel("lltest").value() == spdlog::level::level_enum::err);
+        auto result = config.get_luaroutes("lrtest").value();
+        REQUIRE(result.size() == 2);
+        REQUIRE(result[0] == cserve::LuaRoute("POST:/upload:upload_file.lua"));
+        REQUIRE(result[1] == cserve::LuaRoute("DELETE:/delete:delete.lua"));
+    }
+
+    SECTION("Command line params testing with environmant variables") {
+        cserve::CserverConf config;
+        const std::string prefix{"cserve"};
+        config.add_config(prefix, "config", "", "Config file");
+        config.add_config(prefix, "itest", 4711, "Test integer parameter [default=4711]");
+        config.add_config(prefix, "ftest", 3.1415f, "Test float parameter [default=3.1415]");
+        config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
+        config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
+        config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
+        std::vector<cserve::LuaRoute> lrdefval {
+                cserve::LuaRoute("GET:/gaga:gaga.lua"),
+                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        };
+        config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
+
+        putenv((char *) "CSERVE_ITEST=42");
+        putenv((char *) "CSERVE_FTEST=2.71");
+        putenv((char *) "CSERVE_STEST=Waseliwas soll das?");
+        putenv((char *) "CSERVE_DSTEST=2TB");
+        putenv((char *) "CSERVE_LLTEST=ERR");
+        putenv((char *) "CSERVE_LRTEST=POST:/upload:upload_file.lua;DELETE:/delete:delete.lua");
+        int argc = 1;
+        const char *argv[] = { "test"};
+        config.parse_cmdline_args(argc, argv);
+
+        REQUIRE(config.get_int("itest").value() == 42);
+        REQUIRE(config.get_float("ftest").value() == 2.71f);
+        REQUIRE(config.get_string("stest").value() == std::string("Waseliwas soll das?"));
+        REQUIRE(config.get_datasize("dstest").value() == cserve::DataSize("2TB"));
+        REQUIRE(config.get_loglevel("lltest").value() == spdlog::level::level_enum::err);
+        auto result = config.get_luaroutes("lrtest").value();
+        REQUIRE(result.size() == 2);
+        REQUIRE(result[0] == cserve::LuaRoute("POST:/upload:upload_file.lua"));
+        REQUIRE(result[1] == cserve::LuaRoute("DELETE:/delete:delete.lua"));
+        unsetenv((char *) "CSERVE_ITEST");
+        unsetenv((char *) "CSERVE_FTEST");
+        unsetenv((char *) "CSERVE_STEST");
+        unsetenv((char *) "CSERVE_DSTEST");
+        unsetenv((char *) "CSERVE_LLTEST");
+        unsetenv((char *) "CSERVE_LRTEST");
+    }
+
+    SECTION("Command line params testing with lua config script options") {
+        cserve::CserverConf config;
+        const std::string prefix{"cserve"};
+        config.add_config(prefix, "config", "", "Config file");
+        config.add_config(prefix, "itest", 4711, "Test integer parameter [default=4711]");
+        config.add_config(prefix, "ftest", 3.1415f, "Test float parameter [default=3.1415]");
+        config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
+        config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
+        config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
+        std::vector<cserve::LuaRoute> lrdefval {
+                cserve::LuaRoute("GET:/gaga:gaga.lua"),
+                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        };
+        config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
+
+        int argc = 3;
+        const char *argv[] = { "test",
+                               "--config", "./testdata/test-config.lua"};
+        config.parse_cmdline_args(argc, argv);
+
+        REQUIRE(config.get_int("itest").value() == 1234);
+        REQUIRE(config.get_float("ftest").value() == 0.123f);
+        REQUIRE(config.get_string("stest").value() == std::string("from lua"));
+        REQUIRE(config.get_datasize("dstest").value() == cserve::DataSize("8KB"));
+        REQUIRE(config.get_loglevel("lltest").value() == spdlog::level::level_enum::off);
+        auto result = config.get_luaroutes("lrtest").value();
+        REQUIRE(result.size() == 1);
+        REQUIRE(result[0] == cserve::LuaRoute("GET:/lualua:lualua.lua"));
+    }
 }

@@ -3188,7 +3188,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
  * @param routetable A table name containing route info
  * @return Route info
  */
-    std::__1::vector<cserve::LuaRoute> cserve::LuaServer::configRoute(const std::string& routetable) {
+    std::vector<cserve::LuaRoute> cserve::LuaServer::configRoute(const std::string& table, const std::string& variable, const std::vector<cserve::LuaRoute> &defval) {
         static struct {
             const char *name;
             int type;
@@ -3199,10 +3199,21 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         std::__1::vector<LuaRoute> routes;
 
-        lua_getglobal(L, routetable.c_str());
+        if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
+            lua_pop(L, 1);
+            return defval;
+        }
+
+
+        lua_getfield(L, -1, variable.c_str());
+
+        if (lua_isnil(L, -1)) {
+            lua_pop(L, 2);
+            return defval;
+        }
 
         if (!lua_istable(L, -1)) {
-            throw Error(file_, __LINE__, "Value '" + routetable + "' in config file must be a table");
+            throw Error(file_, __LINE__, "Value '" + variable + "' in config file must be a table");
         }
 
         for (int i = 1;; i++) {

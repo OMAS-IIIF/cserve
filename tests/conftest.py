@@ -36,25 +36,25 @@ class CserverProcessManager:
     def __init__(self, cserver_exe, cserver_handlerdir):
         self.cserver_exe = cserver_exe
         self.cserver_config = {
-            "CSERVER_HANDLERDIR": cserver_handlerdir,
-            "CSERVER_PORT": "8080",
-            "CSERVER_SSLPORT": "8443",
-            "CSERVER_SSLCERT": './testserver/certificate/certificate.pem',
-            "CSERVER_SSLKEY": './testserver/certificate/key.pem',
-            "CSERVER_JWTKEY": 'UP4014, the biggest steam engine',
-            "CSERVER_DOCROOT": "./testserver/docroot",
-            "CSERVER_WWWROUTE": '/',
-            "CSERVER_TMPDIR": "./testserver/tmp",
-            "CSERVER_SCRIPTDIR": "./testserver/scripts",
-            "CSERVER_NTHREADS": "4",
-            "CSERVER_KEEPALIVE": "5",
-            "CSERVER_MAXPOSTSIZE": "1M",
-            "CSERVER_LOGLEVEL": "TRACE",
-            "CSERVER_ROUTES": "GET:/servervariables:servervariables.lua;"
-                              "GET:/filefunctions:filefunctions.lua;"
-                              "GET:/misc:misc.lua;"
-                              "POST:/upload:upload.lua;"
-                              "GET:/sqlite3:sqlite3.lua"
+            "CSERVE_HANDLERDIR": cserver_handlerdir,
+            "CSERVE_PORT": "8080",
+            "CSERVE_SSLPORT": "8443",
+            "CSERVE_SSLCERT": './testserver/certificate/certificate.pem',
+            "CSERVE_SSLKEY": './testserver/certificate/key.pem',
+            "CSERVE_JWTKEY": 'UP4014, the biggest steam engine',
+            "CSERVE_DOCROOT": "./testserver/docroot",
+            "CSERVE_WWWROUTE": '/',
+            "CSERVE_TMPDIR": "./testserver/tmp",
+            "CSERVE_SCRIPTDIR": "./testserver/scripts",
+            "CSERVE_NTHREADS": "4",
+            "CSERVE_KEEPALIVE": "5",
+            "CSERVE_MAXPOSTSIZE": "1M",
+            "CSERVE_LOGLEVEL": "TRACE",
+            "CSERVE_ROUTES": "GET:/servervariables:servervariables.lua;"
+                             "GET:/filefunctions:filefunctions.lua;"
+                             "GET:/misc:misc.lua;"
+                             "POST:/upload:upload.lua;"
+                             "GET:/sqlite3:sqlite3.lua"
         }
         self.cserver_ready = False
         self.inlines = []
