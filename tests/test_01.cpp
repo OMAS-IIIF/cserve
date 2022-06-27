@@ -436,11 +436,12 @@ TEST_CASE("Testing CserverConf class", "[LuaGlobals]") {
     config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
     config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
     config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
-    std::vector<cserve::LuaRoute> lrdefval {
+    std::vector<cserve::LuaRoute> lrdefval{
             cserve::LuaRoute("GET:/gaga:gaga.lua"),
             cserve::LuaRoute("PUT:/gugus:gugus.lua"),
     };
-    config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
+    config.add_config(prefix, "lrtest", lrdefval,
+                      "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
 
     cserverConfGlobals(L, conn, &config);
 
@@ -448,16 +449,46 @@ TEST_CASE("Testing CserverConf class", "[LuaGlobals]") {
 
     REQUIRE(lua_getfield(L, -1, "itest") == LUA_TNUMBER); // config – itest-value
     REQUIRE(lua_tointeger(L, -1) == 4711);
-    //lua_pop(L, 1); // config
+    lua_pop(L, -2); // config
 
-    REQUIRE(lua_getfield(L, -1, "ftest") == LUA_TNUMBER); // config – itest-value
+    REQUIRE(lua_getfield(L, -1, "ftest") == LUA_TNUMBER); // config – ftest-value
     REQUIRE(lua_tonumber(L, -1) == 3.1415f);
-    //lua_pop(L, -1);
+    lua_pop(L, -2); // config
 
-    lua_getfield(L, -1, "stest");
-    //REQUIRE_FALSE(lua_isnil(L, -1));
-    //REQUIRE(lua_isstring(L, -1));
-    //REQUIRE(strcmp(lua_tostring(L, -1), "test") == 0);
-    //lua_pop(L, -1);
+    REQUIRE(lua_getfield(L, -1, "stest") == LUA_TSTRING); // config - stest
+    REQUIRE(strcmp(lua_tostring(L, -1), "test") == 0);
+    lua_pop(L, -2); // config
 
+    REQUIRE(lua_getfield(L, -1, "dstest") == LUA_TSTRING); // config - dstest
+    REQUIRE(strcmp(lua_tostring(L, -1), "1MB") == 0);
+    lua_pop(L, -2); // config
+
+    REQUIRE(lua_getfield(L, -1, "lltest") == LUA_TSTRING); // config - lltest
+    REQUIRE(strcmp(lua_tostring(L, -1), "INFO") == 0);
+    lua_pop(L, -2); // config
+
+    REQUIRE(lua_getfield(L, -1, "lrtest") == LUA_TTABLE);  // config - lrtest
+    REQUIRE(lua_rawgeti(L, -1, 0) == LUA_TTABLE);          // config - lrtest - route1_table
+    REQUIRE(lua_getfield(L, -1, "method") == LUA_TSTRING); // config - lrtest - route1_table - method_value
+    REQUIRE(strcmp(lua_tostring(L, -1), "GET") == 0);
+    lua_pop(L, 1);                                              // config - lrtest - route1_table
+    REQUIRE(lua_getfield(L, -1, "route") == LUA_TSTRING); // config - lrtest - route1_table - route_value
+    REQUIRE(strcmp(lua_tostring(L, -1), "/gaga") == 0);
+    lua_pop(L, 1);  // config - lrtest
+    REQUIRE(lua_getfield(L, -1, "script") == LUA_TSTRING); // config - lrtest - route1 - script_value
+    REQUIRE(strcmp(lua_tostring(L, -1), "gaga.lua") == 0);
+    lua_pop(L, 2);  // config - lrtest
+
+    REQUIRE(lua_rawgeti(L, -1, 1) == LUA_TTABLE);          // config - lrtest - route2_table
+    REQUIRE(lua_getfield(L, -1, "method") == LUA_TSTRING); // config - lrtest - route2_table - method_value
+    REQUIRE(strcmp(lua_tostring(L, -1), "PUT") == 0);
+    lua_pop(L, 1);                                              // config - lrtest - route2_table
+    REQUIRE(lua_getfield(L, -1, "route") == LUA_TSTRING); // config - lrtest - route2_table - route_value
+    REQUIRE(strcmp(lua_tostring(L, -1), "/gugus") == 0);
+    lua_pop(L, 1);  // config - lrtest
+    REQUIRE(lua_getfield(L, -1, "script") == LUA_TSTRING); // config - lrtest - route2 - script_value
+    REQUIRE(strcmp(lua_tostring(L, -1), "gugus.lua") == 0);
+    lua_pop(L, 4);
+
+    lua_close(L);
 }
