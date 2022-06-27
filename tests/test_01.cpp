@@ -6,6 +6,7 @@
 #include "CLI11.hpp"
 #include "LuaServer.h"
 #include "Global.h"
+#include "Connection.h"
 
 #include "ConfValue.h"
 #include "CserverConf.h"
@@ -422,4 +423,25 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
         REQUIRE(result.size() == 1);
         REQUIRE(result[0] == cserve::LuaRoute("GET:/lualua:lualua.lua"));
     }
+}
+
+TEST_CASE("Testing CserverConf class", "[LuaGlobals]") {
+    //cserve::Connection conn;
+    lua_State *L = luaL_newstate();
+    cserve::CserverConf config;
+    const std::string prefix{"cserve"};
+    config.add_config(prefix, "config", "", "Config file");
+    config.add_config(prefix, "itest", 4711, "Test integer parameter [default=4711]");
+    config.add_config(prefix, "ftest", 3.1415f, "Test float parameter [default=3.1415]");
+    config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
+    config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
+    config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
+    std::vector<cserve::LuaRoute> lrdefval {
+            cserve::LuaRoute("GET:/gaga:gaga.lua"),
+            cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+    };
+    config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
+
+    //cserverConfGlobals(L, conn, &config);
+
 }
