@@ -72,7 +72,8 @@ add_library(cserve
         ScriptHandler.cpp ScriptHandler.h
         CserveVersion.h
         RequestHandlerLoader.cpp RequestHandlerLoader.h
-        ConfValue.cpp ConfValue.h)
+        ConfValue.cpp ConfValue.h
+        CserverConf.cpp CserverConf.h)
 
 add_dependencies(cserve
         spdlog

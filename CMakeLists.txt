@@ -117,8 +117,7 @@ include_directories(
 )
 
 add_executable(cserver
-        ${COMMON_SOURCE_FILES_DIR}/cserver.cpp
-        ${COMMON_SOURCE_FILES_DIR}/CserverConf.cpp ${COMMON_SOURCE_FILES_DIR}/CserverConf.h )
+        ${COMMON_SOURCE_FILES_DIR}/cserver.cpp)
 
 configure_file(${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h.in ${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h)
 
