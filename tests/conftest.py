@@ -54,7 +54,8 @@ class CserverProcessManager:
                              "GET:/filefunctions:filefunctions.lua;"
                              "GET:/misc:misc.lua;"
                              "POST:/upload:upload.lua;"
-                             "GET:/sqlite3:sqlite3.lua"
+                             "GET:/sqlite3:sqlite3.lua",
+            "PINGHANDLER_ECHO": "PINGPONG"
         }
         self.cserver_ready = False
         self.inlines = []

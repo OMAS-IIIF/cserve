@@ -9,8 +9,8 @@ def test_ping(manager):
     :return: None
     """
     response = manager.get('ping')
-    assert response.text == 'PONG'
-    assert response.headers['Content-Length'] ==  '4'
+    assert response.text == 'PINGPONG'
+    assert response.headers['Content-Length'] == '8'
 
 
 def test_get_html(manager):

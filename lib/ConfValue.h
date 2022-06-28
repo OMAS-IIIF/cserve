@@ -113,6 +113,8 @@ namespace cserve {
             return *this;
         }
 
+        inline std::string get_prefix() const { return _prefix; }
+
         inline std::string get_optionname() const { return _optionname; }
 
         [[nodiscard]] inline DataType get_type() const { return _value_type; }

@@ -202,25 +202,25 @@ namespace cserve {
 
             for (auto const& [name, val] : _values) {
                 auto vtype = val->get_type();
-                //auto prefix = val->get
+                //auto prefix = val->get_
                 switch (vtype) {
                     case cserve::ConfValue::INTEGER:
-                        valmap.emplace(name, luacfg.configInteger("cserve", name, val->get_int().value()));
+                        valmap.emplace(name, luacfg.configInteger(val->get_prefix(), name, val->get_int().value()));
                         break;
                     case cserve::ConfValue::FLOAT:
-                        valmap.emplace(name, luacfg.configFloat("cserve", name, val->get_float().value()));
+                        valmap.emplace(name, luacfg.configFloat(val->get_prefix(), name, val->get_float().value()));
                         break;
                     case cserve::ConfValue::STRING:
-                        valmap.emplace(name, luacfg.configString("cserve", name, val->get_string().value()));
+                        valmap.emplace(name, luacfg.configString(val->get_prefix(), name, val->get_string().value()));
                         break;
                     case cserve::ConfValue::DATASIZE:
-                        valmap.emplace(name, DataSize(luacfg.configString("cserve", name, val->get_datasize().value().as_string())));
+                        valmap.emplace(name, DataSize(luacfg.configString(val->get_prefix(), name, val->get_datasize().value().as_string())));
                         break;
                     case cserve::ConfValue::LOGLEVEL:
-                        valmap.emplace(name, luacfg.configLoglevel("cserve", name, val->get_loglevel().value()));
+                        valmap.emplace(name, luacfg.configLoglevel(val->get_prefix(), name, val->get_loglevel().value()));
                         break;
                     case cserve::ConfValue::LUAROUTES:
-                        valmap.emplace(name, luacfg.configRoute("cserve", name, val->get_luaroutes().value()));
+                        valmap.emplace(name, luacfg.configRoute(val->get_prefix(), name, val->get_luaroutes().value()));
                         break;
                 }
             }
