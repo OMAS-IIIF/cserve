@@ -14,9 +14,12 @@ namespace cserve {
 
     class ScriptHandler: public RequestHandler {
     private:
+        const static std::string _name;
         std::string _scriptpath;
     public:
         explicit ScriptHandler(std::string  scriptpath) : RequestHandler(), _scriptpath(std::move(scriptpath)) {}
+
+        const std::string& name() const override;
 
         void handler(Connection& conn, LuaServer &lua, void *user_data) override;
 

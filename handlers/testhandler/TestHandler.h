@@ -10,10 +10,19 @@
 namespace cserve {
 
     class TestHandler : public RequestHandler {
+    private:
+        const static std::string _name;
+        std::string _message{};
     public:
         TestHandler() : RequestHandler() {}
 
+        const std::string& name() const override;
+
         void handler(Connection& conn, LuaServer& lua, void* user_data) override;
+
+        void set_config_variables(CserverConf &conf) override;
+
+        void get_config_variables(const CserverConf &conf) override;
 
     };
 

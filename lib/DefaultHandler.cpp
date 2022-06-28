@@ -8,6 +8,12 @@
 
 namespace cserve {
 
+    const std::string DefaultHandler::_name = "ping_handler";
+
+    const std::string& DefaultHandler::name() const {
+        return _name;
+    }
+
     void DefaultHandler::handler(Connection &conn, LuaServer &lua, void *user_data) {
         conn.status(Connection::NOT_FOUND);
         conn.header("Content-Type", "text/text");

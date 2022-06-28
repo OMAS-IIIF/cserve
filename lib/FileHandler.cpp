@@ -14,6 +14,12 @@ static const char file_[] = __FILE__;
 
 namespace cserve {
 
+    const std::string FileHandler::_name = "file_handler";
+
+    const std::string& FileHandler::name() const {
+        return _name;
+    }
+
     /*!
      * This is the normal file handler that just sends the contents of the file.
      * It is being activated in the main program (e.g. in shttps.cpp or sipi.cpp)

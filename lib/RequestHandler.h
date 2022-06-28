@@ -7,6 +7,7 @@
 
 #include "Connection.h"
 #include "LuaServer.h"
+#include "CserverConf.h"
 
 namespace cserve {
 
@@ -14,6 +15,7 @@ namespace cserve {
      * Abstract class for defining a request handler
      */
     class RequestHandler {
+    private:
         std::string route;
         std::string basepath;
     public:
@@ -28,7 +30,7 @@ namespace cserve {
          */
         virtual ~RequestHandler() = default;
 
-        inline virtual std::string name() { return std::string("RequestHandler"); }
+        virtual const std::string& name() const = 0;
 
         inline void set_route(const std::string &route_p) { route = route_p; }
 
@@ -41,6 +43,10 @@ namespace cserve {
          * @param user_data Additional unspecified data that can be given to the handler
          */
         virtual void handler(Connection& conn, LuaServer& lua, void* user_data) = 0;
+
+        virtual inline void set_config_variables(CserverConf &conf) {}
+
+        virtual inline void get_config_variables(const CserverConf &conf) {}
     };
 
 } // cserve

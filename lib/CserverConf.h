@@ -69,17 +69,17 @@ namespace cserve {
 
         inline const std::unordered_map<std::string, std::shared_ptr<cserve::ConfValue>> &get_values() { return _values; }
 
-        std::optional<int> get_int(const std::string &name);
+        std::optional<int> get_int(const std::string &name) const;
 
-        std::optional<float> get_float(const std::string &name);
+        std::optional<float> get_float(const std::string &name) const;
 
-        std::optional<std::string> get_string(const std::string &name);
+        std::optional<std::string> get_string(const std::string &name) const;
 
-        std::optional<cserve::DataSize> get_datasize(const std::string &name);
+        std::optional<cserve::DataSize> get_datasize(const std::string &name) const;
 
-        std::optional<std::vector<cserve::LuaRoute>> get_luaroutes(const std::string &name);
+        std::optional<std::vector<cserve::LuaRoute>> get_luaroutes(const std::string &name) const;
 
-        std::optional<spdlog::level::level_enum> get_loglevel(const std::string &name);
+        std::optional<spdlog::level::level_enum> get_loglevel(const std::string &name) const;
     };
 
 }

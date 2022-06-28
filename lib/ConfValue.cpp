@@ -51,51 +51,63 @@ namespace cserve {
         return size_str;
     }
 
-    ConfValue::ConfValue(std::string optionname, int ivalue, std::string description, std::string envname,
+    ConfValue::ConfValue(std::string prefix, std::string optionname, int ivalue, std::string description,
+                         std::string envname,
                          const std::shared_ptr<CLI::App> &app)
-            : _optionname(optionname), _int_value(ivalue), _description(std::move(description)),
+            : _prefix(std::move(prefix)), _optionname(optionname), _int_value(ivalue),
+              _description(std::move(description)),
               _envname(std::move(envname)), _value_type(INTEGER) {
         app->add_option(std::move(optionname), _int_value, _description)
                 ->envname(_envname)
                 ->check(CLI::TypeValidator<int>());
     }
 
-    ConfValue::ConfValue(std::string optionname, float fvalue, std::string description, std::string envname,
+    ConfValue::ConfValue(std::string prefix, std::string optionname, float fvalue, std::string description,
+                         std::string envname,
                          const std::shared_ptr<CLI::App> &app)
-            : _optionname(optionname), _float_value(fvalue), _description(std::move(description)),
+            : _prefix(std::move(prefix)), _optionname(optionname), _float_value(fvalue),
+              _description(std::move(description)),
               _envname(std::move(envname)), _value_type(FLOAT) {
         app->add_option(std::move(optionname), _float_value, _description)
                 ->envname(_envname)
                 ->check(CLI::Number);
     }
 
-    ConfValue::ConfValue(std::string optionname, const char *cstr, std::string description, std::string envname,
+    ConfValue::ConfValue(std::string prefix, std::string optionname, const char *cstr, std::string description,
+                         std::string envname,
                          const std::shared_ptr<CLI::App> &app)
-            : _optionname(optionname), _string_value(cstr), _description(std::move(description)),
+            : _prefix(std::move(prefix)), _optionname(optionname), _string_value(cstr),
+              _description(std::move(description)),
               _envname(std::move(envname)), _value_type(STRING) {
         app->add_option(std::move(optionname), _string_value, _description)
                 ->envname(_envname);
     }
 
-    ConfValue::ConfValue(std::string optionname, std::string str, std::string description, std::string envname,
+    ConfValue::ConfValue(std::string prefix, std::string optionname, std::string str, std::string description,
+                         std::string envname,
                          const std::shared_ptr<CLI::App> &app)
-            : _optionname(optionname), _string_value(std::move(str)), _description(std::move(description)),
+            : _prefix(std::move(prefix)), _optionname(optionname), _string_value(std::move(str)),
+              _description(std::move(description)),
               _envname(std::move(envname)), _value_type(STRING) {
         app->add_option(std::move(optionname), _string_value, _description)
                 ->envname(_envname);
     }
 
-    ConfValue::ConfValue(std::string optionname, const DataSize &ds, std::string description, std::string envname,
+    ConfValue::ConfValue(std::string prefix, std::string optionname, const DataSize &ds, std::string description,
+                         std::string envname,
                          const std::shared_ptr<CLI::App> &app)
-            : _optionname(optionname), _datasize_value(ds), _description(std::move(description)),
+            : _prefix(std::move(prefix)), _optionname(optionname), _datasize_value(ds),
+              _description(std::move(description)),
               _envname(std::move(envname)), _value_type(DATASIZE) {
         app->add_option(std::move(optionname), _datasize_value.size_ref(), _description)
                 ->envname(_envname)->transform(CLI::AsSizeValue(0));
     }
 
-    ConfValue::ConfValue(std::string optionname, spdlog::level::level_enum loglevel, std::string description,
+    ConfValue::ConfValue(std::string prefix, std::string optionname, spdlog::level::level_enum loglevel,
+                         std::string description,
                          std::string envname, const std::shared_ptr<CLI::App> &app)
-            : _optionname(optionname), _loglevel_value(loglevel), _description(std::move(description)),
+            : _prefix(std::move(prefix)), _optionname(optionname), _loglevel_value(loglevel),
+              _description(std::move(description)),
               _envname(std::move(envname)), _value_type(LOGLEVEL) {
         std::vector<std::pair<std::string, spdlog::level::level_enum>> logLevelMap{
                 {"TRACE",    spdlog::level::trace},
@@ -111,9 +123,10 @@ namespace cserve {
                 ->transform(CLI::CheckedTransformer(logLevelMap, CLI::ignore_case));
     }
 
-    ConfValue::ConfValue(std::string optionname, const std::vector<LuaRoute> &lua_routes, std::string description,
+    ConfValue::ConfValue(std::string prefix, std::string optionname, const std::vector<LuaRoute> &lua_routes,
+                         std::string description,
                          std::string envname, const std::shared_ptr<CLI::App> &app)
-            : _optionname(optionname), _description(std::move(description)),
+            : _prefix(std::move(prefix)), _optionname(optionname), _description(std::move(description)),
               _envname(std::move(envname)), _value_type(LUAROUTES) {
         for (auto &r: lua_routes) { _luaroutes_value.push_back(r.to_string()); }
         app->add_option(std::move(optionname), _luaroutes_value, _description)

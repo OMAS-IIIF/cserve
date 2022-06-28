@@ -24,17 +24,41 @@ include_directories(
         /usr/local/include
 )
 
-
 add_library(testhandler MODULE
         TestHandler.cpp TestHandler.h )
 
 set_target_properties(testhandler PROPERTIES PREFIX "")
 
-target_link_libraries(testhandler PRIVATE cserve)
+target_link_libraries(testhandler PRIVATE
+        cserve
+        magic
+        lua
+        sqlite3
+        jwtcpp
+        spdlog
+        curl
+        ssl
+        crypto
+        zlib
+        xz
+        bzip2
+        Threads::Threads
+        ${CMAKE_DL_LIBS})
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(testhandler PRIVATE ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
+endif()
+
 
 add_custom_command(TARGET testhandler POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:testhandler>
         ${PROJECT_BINARY_DIR}/handler/$<TARGET_FILE_NAME:testhandler>)
+
+add_custom_command(TARGET testhandler POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:testhandler>
+        ${CMAKE_SOURCE_DIR}/serverroot/handler/$<TARGET_FILE_NAME:testhandler>)
+
 
 install(TARGETS testhandler DESTINATION ${COMMON_LOCAL}/share/cserver/)

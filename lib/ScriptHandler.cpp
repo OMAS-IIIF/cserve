@@ -10,6 +10,13 @@
 
 namespace cserve {
 
+    const std::string ScriptHandler::_name = "script_handler";
+
+    const std::string& ScriptHandler::name() const {
+        return _name;
+    }
+
+
     /**
      * This is the handler that is used to execute pure lua scripts (e.g. implementing
      * RESTful services based on Lua. The file must have the extention ".lua" or

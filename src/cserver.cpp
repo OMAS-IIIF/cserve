@@ -4,14 +4,13 @@
 #include <csignal>
 #include <utility>
 #include <dlfcn.h>
-
+#include <filesystem>
 
 #include "Cserve.h"
 #include "LuaServer.h"
 #include "LuaSqlite.h"
 #include "CserverConf.h"
 #include "RequestHandler.h"
-#include "PingHandler.h"
 
 #include "RequestHandlerLoader.h"
 
@@ -78,6 +77,7 @@ void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *u
 */
 int main(int argc, char *argv[]) {
     auto logger = cserve::Server::create_logger();
+    std::unordered_map<std::string, std::shared_ptr<cserve::RequestHandler>> handlers;
 
     int old_ll = setlogmask(LOG_MASK(LOG_INFO));
     logger->info(cserve::Server::version_string());
@@ -107,24 +107,19 @@ int main(int argc, char *argv[]) {
     }
 
     //
-    // Load test handler (should be removed for production system)
+    // load the plugin handlers (*.so files)
     //
-    std::filesystem::path testhandler_path(handlerdir);
-    testhandler_path /= "testhandler.so";
-    cserve::RequestHandlerLoader test_loader(testhandler_path,
-                                             "createTestHandler",
-                                             "destroyTestHandler");
-    std::shared_ptr<cserve::RequestHandler> test_handler = test_loader.get_instance();
-
-    //
-    // Load ping handler
-    //
-    std::filesystem::path pinghandler_path(handlerdir);
-    pinghandler_path /= "pinghandler.so";
-    cserve::RequestHandlerLoader ping_loader(pinghandler_path,
-                                             "createPingHandler",
-                                             "destroyPingHandler");
-    std::shared_ptr<cserve::RequestHandler> ping_handler = ping_loader.get_instance();
+    std::filesystem::path handler_path(handlerdir);
+    for (const auto & entry : std::filesystem::directory_iterator(handler_path)) {
+        if (entry.is_regular_file() && (entry.path().extension() == ".so")) {
+            logger->info("Loading handler plugin \"{}\" ...", entry.path().string());
+            std::string handler_name =  entry.path().stem().string();
+            std::string allocator_symbol = "create_" + handler_name;
+            std::string deleter_symbol = "destroy_" + handler_name;
+            cserve::RequestHandlerLoader loader(entry.path(), allocator_symbol, deleter_symbol);
+            handlers[handler_name] = loader.get_instance();
+        }
+    }
 
     //
     // read the configuration parameters. The parameters can be defined in
@@ -164,6 +159,13 @@ int main(int argc, char *argv[]) {
     //
     config.add_config(prefix, "scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
     config.add_config(prefix, "routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"");
+
+    //
+    // load the configuration variables of the plugin handlers
+    //
+    for (auto & [name, handler]: handlers) {
+        handler->set_config_variables(config);
+    }
 
     config.parse_cmdline_args(argc, (const char **) argv);
 
@@ -215,8 +217,17 @@ int main(int argc, char *argv[]) {
         server.addRoute(cserve::Connection::POST, wwwroute, file_handler);
     }
 
-    server.addRoute(cserve::Connection::GET, "/test", test_handler);
-    server.addRoute(cserve::Connection::GET, "/ping", ping_handler);
+    //
+    // setup the routes for the plugin handlers
+    //
+    for (auto & [name, handler]: handlers) {
+        handler->get_config_variables(config);
+        std::string routeopt = handler->name() + "_route";
+        auto routes = config.get_luaroutes(routeopt).value();
+        for (auto & route: routes) {
+            server.addRoute(route.method, route.route, handler);
+        }
+    }
 
     serverptr = &server;
     old_sighandler = signal(SIGINT, sighandler);

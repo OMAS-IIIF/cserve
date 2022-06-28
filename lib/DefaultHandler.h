@@ -11,8 +11,11 @@
 namespace cserve {
 
     class DefaultHandler : public RequestHandler {
+        const static std::string _name;
     public:
         DefaultHandler() : RequestHandler() {}
+
+        const std::string& name() const override;
 
         void handler(Connection& conn, LuaServer &lua, void *user_data) override;
     };

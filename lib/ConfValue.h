@@ -52,6 +52,7 @@ namespace cserve {
             INTEGER, FLOAT, STRING, DATASIZE, LOGLEVEL, LUAROUTES
         };
     private:
+        std::string _prefix;
         DataType _value_type{};
         int _int_value{};
         float _float_value{};
@@ -65,34 +66,41 @@ namespace cserve {
     public:
         inline ConfValue() = default;
 
-        ConfValue(std::string optionname, int ivalue, std::string description, std::string envname,
+        ConfValue(std::string prefix, std::string optionname, int ivalue, std::string description, std::string envname,
                   const std::shared_ptr<CLI::App> &app);
 
-        ConfValue(std::string optionname, float fvalue, std::string description, std::string envname,
+        ConfValue(std::string prefix, std::string optionname, float fvalue, std::string description,
+                  std::string envname,
                   const std::shared_ptr<CLI::App> &app);
 
-        ConfValue(std::string optionname, const char *cstr, std::string description, std::string envname,
+        ConfValue(std::string prefix, std::string optionname, const char *cstr, std::string description,
+                  std::string envname,
                   const std::shared_ptr<CLI::App> &app);
 
-        ConfValue(std::string optionname, std::string str, std::string description, std::string envname,
+        ConfValue(std::string prefix, std::string optionname, std::string str, std::string description,
+                  std::string envname,
                   const std::shared_ptr<CLI::App> &app);
 
-        ConfValue(std::string optionname, const DataSize &ds, std::string description, std::string envname,
+        ConfValue(std::string prefix, std::string optionname, const DataSize &ds, std::string description,
+                  std::string envname,
                   const std::shared_ptr<CLI::App> &app);
 
-        ConfValue(std::string optionname, spdlog::level::level_enum loglevel, std::string description,
+        ConfValue(std::string prefix, std::string optionname, spdlog::level::level_enum loglevel,
+                  std::string description,
                   std::string envname, const std::shared_ptr<CLI::App> &app);
 
-        ConfValue(std::string optionname, const std::vector<LuaRoute> &lua_routes, std::string description,
+        ConfValue(std::string prefix, std::string optionname, const std::vector<LuaRoute> &lua_routes,
+                  std::string description,
                   std::string envname, const std::shared_ptr<CLI::App> &app);
 
         inline ConfValue(const ConfValue &cv)
-                : _value_type(cv._value_type), _int_value(cv._int_value), _float_value(cv._float_value),
+                : _prefix(cv._prefix), _value_type(cv._value_type), _int_value(cv._int_value), _float_value(cv._float_value),
                   _string_value(cv._string_value),
                   _datasize_value(cv._datasize_value), _loglevel_value(cv._loglevel_value),
                   _luaroutes_value(cv._luaroutes_value), _description(cv._description), _envname(cv._envname) {}
 
         inline ConfValue &operator=(const ConfValue &cv) {
+            _prefix = cv._prefix;
             _value_type = cv._value_type;
             _int_value = cv._int_value;
             _float_value = cv._float_value;

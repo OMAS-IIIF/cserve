@@ -22,10 +22,13 @@ namespace cserve {
      */
      class FileHandler: public RequestHandler {
     private:
-        std::string _route;
-        std::string _docroot;
+         const static std::string _name;
+         std::string _route;
+         std::string _docroot;
     public:
         [[maybe_unused]] FileHandler(std::string route, std::string docroot) : RequestHandler(), _route(std::move(route)), _docroot(std::move(docroot)) {}
+
+         const std::string& name() const override;
 
         void handler(Connection& conn, LuaServer &lua, void *user_data) override;
 
