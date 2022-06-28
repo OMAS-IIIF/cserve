@@ -338,14 +338,14 @@ namespace cserve {
         /*!
         * Returns the routes defined for being handletd by Lua scripts
         *
-        * \returns Vector of Lua route infos
+        * \returns Vector of Lua _route infos
         */
         [[maybe_unused]] inline std::vector<cserve::LuaRoute> luaRoutes() { return _lua_routes; }
 
         /*!
          * set the routes that should be handled by Lua scripts
          *
-         * \param[in] Vector of lua route infos
+         * \param[in] Vector of lua _route infos
          */
         inline void luaRoutes(const std::vector<cserve::LuaRoute> &lua_routes_p) { _lua_routes = lua_routes_p; }
 
@@ -400,11 +400,11 @@ namespace cserve {
         }
 
         /*!
-         * Add a request handler for the given request method and route
+         * Add a request handler for the given request method and _route
          *
          * \param[in] method_p Request method (GET, PUT, POST etc.)
          * \param[in] path Route that this handler should serve
-         * \param[in] handler_p Handler function which serves this method/route combination.
+         * \param[in] handler_p Handler function which serves this method/_route combination.
          *            The handler has the form
          *
          *      void (*RequestHandler)(Connection::Connection &, void *);

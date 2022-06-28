@@ -69,7 +69,6 @@ add_library(cserve
         RequestHandler.h
         DefaultHandler.cpp DefaultHandler.h
         FileHandler.cpp FileHandler.h
-        ScriptHandler.cpp ScriptHandler.h
         CserveVersion.h
         RequestHandlerLoader.cpp RequestHandlerLoader.h
         ConfValue.cpp ConfValue.h

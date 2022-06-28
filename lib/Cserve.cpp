@@ -35,7 +35,7 @@
 #include "LuaServer.h"
 #include "makeunique.h"
 #include "DefaultHandler.h"
-#include "ScriptHandler.h"
+#include "../handlers/scripthandler/ScriptHandler.h"
 
 #include "CserveVersion.h"
 
@@ -529,7 +529,7 @@ namespace cserve {
             addRoute(route.method, route.route, handler);
 
             old_ll = setlogmask(LOG_MASK(LOG_INFO));
-            Server::logger()->info("Added route '{}' with script '{}'", route.route.c_str(), route.script.c_str());
+            Server::logger()->info("Added _route '{}' with script '{}'", route.route.c_str(), route.script.c_str());
             setlogmask(old_ll);
         }
 

@@ -7,23 +7,28 @@
 
 #include <utility>
 
-#include "LuaServer.h"
-#include "RequestHandler.h"
+#include "../../lib/LuaServer.h"
+#include "../../lib/RequestHandler.h"
 
 namespace cserve {
 
     class ScriptHandler: public RequestHandler {
     private:
         const static std::string _name;
-        std::string _scriptpath;
+        std::string _scriptdir{};
+        std::string _scriptname{};
     public:
-        explicit ScriptHandler(std::string  scriptpath) : RequestHandler(), _scriptpath(std::move(scriptpath)) {}
+        explicit ScriptHandler() : RequestHandler() {}
 
         const std::string& name() const override;
 
         void handler(Connection& conn, LuaServer &lua, void *user_data) override;
 
-        std::string scriptpath() { return _scriptpath; }
+        std::string scriptpath() { return _scriptname; }
+
+        void set_config_variables(CserverConf &conf) override;
+
+        void get_config_variables(const CserverConf &conf) override;
     };
 
 }

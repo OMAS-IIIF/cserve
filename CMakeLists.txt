@@ -105,6 +105,8 @@ add_subdirectory(${EXT_PROJECTS_DIR}/catch2)
 add_subdirectory(lib)
 add_subdirectory(handlers/testhandler)
 add_subdirectory(handlers/pinghandler)
+add_subdirectory(handlers/scripthandler)
+
 
 link_directories(
         ${CONFIGURE_LIBDIR}

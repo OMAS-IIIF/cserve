@@ -16,7 +16,7 @@ namespace cserve {
      */
     class RequestHandler {
     private:
-        std::string route;
+        std::string _route;
         std::string basepath;
     public:
 
@@ -32,9 +32,9 @@ namespace cserve {
 
         virtual const std::string& name() const = 0;
 
-        inline void set_route(const std::string &route_p) { route = route_p; }
+        inline void set_route(const std::string &route_p) { _route = route_p; }
 
-        inline std::string get_route() { return route; }
+        inline std::string get_route() { return _route; }
 
         /*!
          * Pure virtual function that gives the template for implementing a request handler

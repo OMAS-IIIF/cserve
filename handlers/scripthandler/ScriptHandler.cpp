@@ -5,17 +5,16 @@
 #include <unistd.h>
 
 #include "ScriptHandler.h"
-#include "LuaServer.h"
-#include "Cserve.h"
+#include "../../lib/LuaServer.h"
+#include "../../lib/Cserve.h"
 
 namespace cserve {
 
-    const std::string ScriptHandler::_name = "script_handler";
+    const std::string ScriptHandler::_name = "scripthandler";
 
     const std::string& ScriptHandler::name() const {
         return _name;
     }
-
 
     /**
      * This is the handler that is used to execute pure lua scripts (e.g. implementing
@@ -32,7 +31,7 @@ namespace cserve {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
 
-        if (_scriptpath.empty()) {
+        if (_scriptname.empty()) {
             conn.setBuffer();
             conn.status(Connection::INTERNAL_SERVER_ERROR);
             conn.header("Content-Type", "text/text; charset=utf-8");
@@ -42,32 +41,32 @@ namespace cserve {
             return;
         }
 
-        if (access(_scriptpath.c_str(), R_OK) != 0) { // test, if file exists
+        if (access(_scriptname.c_str(), R_OK) != 0) { // test, if file exists
             conn.status(Connection::NOT_FOUND);
             conn.header("Content-Type", "text/text; charset=utf-8");
             conn << "File not found\n";
             conn.flush();
-            Server::logger()->error("ScriptHandler '{}' not readable", _scriptpath);
+            Server::logger()->error("ScriptHandler '{}' not readable", _scriptname);
             return;
         }
 
-        size_t extpos = _scriptpath.find_last_of('.');
+        size_t extpos = _scriptname.find_last_of('.');
         std::string extension;
 
         if (extpos != std::string::npos) {
-            extension = _scriptpath.substr(extpos + 1);
+            extension = _scriptname.substr(extpos + 1);
         }
 
         try {
             if (extension == "lua") { // pure lua
                 std::ifstream inf;
-                inf.open(_scriptpath); //open the input file
+                inf.open(_scriptname); //open the input file
                 std::stringstream sstr;
                 sstr << inf.rdbuf(); //read the file
                 std::string luacode = sstr.str();//str holds the content of the file
 
                 try {
-                    if (lua.executeChunk(luacode, _scriptpath) < 0) {
+                    if (lua.executeChunk(luacode, _scriptname) < 0) {
                         conn.flush();
                         return;
                     }
@@ -89,7 +88,7 @@ namespace cserve {
             } else if (extension == "elua") { // embedded lua <lua> .... </lua>
                 conn.setBuffer();
                 std::ifstream inf;
-                inf.open(_scriptpath);//open the input file
+                inf.open(_scriptname);//open the input file
 
                 std::stringstream sstr;
                 sstr << inf.rdbuf();//read the file
@@ -114,7 +113,7 @@ namespace cserve {
                     }
 
                     try {
-                        if (lua.executeChunk(luastr, _scriptpath) < 0) {
+                        if (lua.executeChunk(luastr, _scriptname) < 0) {
                             conn.flush();
                             return;
                         }
@@ -160,5 +159,14 @@ namespace cserve {
         }
     }
 
+    void ScriptHandler::set_config_variables(CserverConf &conf) {
+        std::vector<LuaRoute> routes = {};
+        std::string routeopt = _name + "_route";        conf.add_config(_name, routeopt,routes, "Route for handler");
+        conf.add_config(_name, "scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
+    }
+
+    void ScriptHandler::get_config_variables(const CserverConf &conf) {
+        _scriptdir = conf.get_string("scriptdir").value_or("-- no scriptdir --");
+    }
 
 }

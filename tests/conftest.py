@@ -45,11 +45,11 @@ class CserverProcessManager:
             "CSERVE_DOCROOT": "./testserver/docroot",
             "CSERVE_WWWROUTE": '/',
             "CSERVE_TMPDIR": "./testserver/tmp",
-            "CSERVE_SCRIPTDIR": "./testserver/scripts",
             "CSERVE_NTHREADS": "4",
             "CSERVE_KEEPALIVE": "5",
             "CSERVE_MAXPOSTSIZE": "1M",
             "CSERVE_LOGLEVEL": "TRACE",
+            "CSERVE_SCRIPTDIR": "./testserver/scripts",
             "CSERVE_ROUTES": "GET:/servervariables:servervariables.lua;"
                              "GET:/filefunctions:filefunctions.lua;"
                              "GET:/misc:misc.lua;"

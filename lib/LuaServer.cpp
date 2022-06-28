@@ -231,7 +231,7 @@ namespace cserve {
     }
 
     LuaRoute::LuaRoute(const std::string &lua_route_str) {
-        // ToDo: Better error handling, if route is invalid!
+        // ToDo: Better error handling, if _route is invalid!
         std::vector<std::string> rinfo = cserve::split(lua_route_str, ':');
         if (rinfo.size() < 3) {
             method = cserve::Connection::HttpMethod::OTHER;
@@ -3183,9 +3183,9 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
     }
 
 /*!
- * Read a route definition (containing "method", "route", "script" keys)
+ * Read a _route definition (containing "method", "_route", "script" keys)
  *
- * @param routetable A table name containing route info
+ * @param routetable A table name containing _route info
  * @return Route info
  */
     std::vector<cserve::LuaRoute> cserve::LuaServer::configRoute(const std::string& table, const std::string& variable, const std::vector<cserve::LuaRoute> &defval) {
@@ -3193,7 +3193,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             const char *name;
             int type;
         } fields[] = {{"method", LUA_TSTRING},
-                      {"route",  LUA_TSTRING},
+                      {"_route",  LUA_TSTRING},
                       {"script", LUA_TSTRING},
                       {nullptr, 0}};
 

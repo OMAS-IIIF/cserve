@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
     // script handler stuff
     //
     config.add_config(prefix, "scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
-    config.add_config(prefix, "routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<route>:<script>\"");
+    config.add_config(prefix, "routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<_route>:<script>\"");
 
     //
     // load the configuration variables of the plugin handlers

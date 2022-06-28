@@ -472,7 +472,7 @@ TEST_CASE("Testing CserverConf class", "[LuaGlobals]") {
     REQUIRE(lua_getfield(L, -1, "method") == LUA_TSTRING); // config - lrtest - route1_table - method_value
     REQUIRE(strcmp(lua_tostring(L, -1), "GET") == 0);
     lua_pop(L, 1);                                              // config - lrtest - route1_table
-    REQUIRE(lua_getfield(L, -1, "route") == LUA_TSTRING); // config - lrtest - route1_table - route_value
+    REQUIRE(lua_getfield(L, -1, "_route") == LUA_TSTRING); // config - lrtest - route1_table - route_value
     REQUIRE(strcmp(lua_tostring(L, -1), "/gaga") == 0);
     lua_pop(L, 1);  // config - lrtest
     REQUIRE(lua_getfield(L, -1, "script") == LUA_TSTRING); // config - lrtest - route1 - script_value
@@ -483,7 +483,7 @@ TEST_CASE("Testing CserverConf class", "[LuaGlobals]") {
     REQUIRE(lua_getfield(L, -1, "method") == LUA_TSTRING); // config - lrtest - route2_table - method_value
     REQUIRE(strcmp(lua_tostring(L, -1), "PUT") == 0);
     lua_pop(L, 1);                                              // config - lrtest - route2_table
-    REQUIRE(lua_getfield(L, -1, "route") == LUA_TSTRING); // config - lrtest - route2_table - route_value
+    REQUIRE(lua_getfield(L, -1, "_route") == LUA_TSTRING); // config - lrtest - route2_table - route_value
     REQUIRE(strcmp(lua_tostring(L, -1), "/gugus") == 0);
     lua_pop(L, 1);  // config - lrtest
     REQUIRE(lua_getfield(L, -1, "script") == LUA_TSTRING); // config - lrtest - route2 - script_value
