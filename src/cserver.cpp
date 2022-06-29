@@ -179,7 +179,6 @@ int main(int argc, char *argv[]) {
 
     cserve::Server server(port, static_cast<unsigned>(nthreads), userid); // instantiate the server
 
-
     server.ssl_port(config.get_int("sslport").value()); // set the secure connection port (-1 means no ssl socket)
     std::string ssl_certificate = config.get_string("sslcert").value();
     if (!ssl_certificate.empty()) server.ssl_certificate(ssl_certificate);
@@ -194,13 +193,11 @@ int main(int argc, char *argv[]) {
     server.keep_alive_timeout(config.get_int("keepalive").value()); // set the keep alive timeout
     server.luaRoutes(config.get_luaroutes("routes").value_or(std::vector<cserve::LuaRoute>{}));
 
-
     //
     // now we set the routes for the normal HTTP server file handling
     //
     std::string wwwroute = config.get_string("wwwroute").value();
     std::string docroot = config.get_string("docroot").value();
-
 
     //
     // initialize Lua with some "extensions" and global variables
@@ -226,6 +223,10 @@ int main(int argc, char *argv[]) {
         auto routes = config.get_luaroutes(routeopt).value();
         for (auto & route: routes) {
             server.addRoute(route.method, route.route, handler);
+            handler->add_route_data(route.route, route.script);
+            old_ll = setlogmask(LOG_MASK(LOG_INFO));
+            logger->info("Added route: method: '{}', route: '{}' route data: '{}'", route.method_as_string(), route.route, route.script);
+            setlogmask(old_ll);
         }
     }
 

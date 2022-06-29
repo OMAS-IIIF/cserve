@@ -16,8 +16,10 @@ namespace cserve {
      */
     class RequestHandler {
     private:
+        std::unordered_map<std::string,std::string> routedata;
+
+    protected:
         std::string _route;
-        std::string basepath;
     public:
 
         /*!
@@ -32,7 +34,11 @@ namespace cserve {
 
         virtual const std::string& name() const = 0;
 
-        inline void set_route(const std::string &route_p) { _route = route_p; }
+        inline void set_route(const std::string &route) { _route = route; }
+
+        inline void add_route_data(const std::string &route, const std::string &data) {
+            routedata[route] = data;
+        }
 
         inline std::string get_route() { return _route; }
 
@@ -42,7 +48,7 @@ namespace cserve {
          * @param lua Lua interpreter
          * @param user_data Additional unspecified data that can be given to the handler
          */
-        virtual void handler(Connection& conn, LuaServer& lua, void* user_data) = 0;
+        virtual void handler(Connection& conn, LuaServer& lua, const std::string &route, void* user_data) = 0;
 
         virtual inline void set_config_variables(CserverConf &conf) {}
 

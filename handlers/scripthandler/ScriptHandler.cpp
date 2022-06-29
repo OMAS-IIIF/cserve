@@ -27,7 +27,7 @@ namespace cserve {
      * @param user_data
      * @param hd Pointer to string object containing the lua script file name
      */
-    void ScriptHandler::handler(cserve::Connection &conn, LuaServer &lua, void *user_data) {
+    void ScriptHandler::handler(cserve::Connection &conn, LuaServer &lua, const std::string &route, void *user_data) {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
 

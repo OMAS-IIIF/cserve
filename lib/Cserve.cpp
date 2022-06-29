@@ -192,7 +192,7 @@ namespace cserve {
      * @param handler_data_p Returns the pointer to the handler data
      * @return The appropriate handler for this request.
      */
-    std::shared_ptr<RequestHandler> Server::getHandler(Connection &conn) {
+    std::tuple<std::shared_ptr<RequestHandler>, std::string> Server::get_handler(Connection &conn) {
         std::map<std::string, RequestHandler>::reverse_iterator item;
 
         size_t max_match_len = 0;
@@ -212,9 +212,9 @@ namespace cserve {
 
         if (max_match_len > 0) {
             //handler_data = handler_data[conn.method()][matching_path];
-            return matching_handler;
+            return std::make_tuple(matching_handler, matching_path);
         }
-        return default_handler;
+        return std::make_tuple(default_handler, "");
     }
     //=============================================================================
 
@@ -522,16 +522,16 @@ namespace cserve {
         //
         // now we are adding the lua routes
         //
-        for (auto &route : _lua_routes) {
-            route.script = _scriptdir + "/" + route.script;
-
-            std::shared_ptr<ScriptHandler> handler = std::make_shared<ScriptHandler>(route.script);
-            addRoute(route.method, route.route, handler);
-
-            old_ll = setlogmask(LOG_MASK(LOG_INFO));
-            Server::logger()->info("Added _route '{}' with script '{}'", route.route.c_str(), route.script.c_str());
-            setlogmask(old_ll);
-        }
+//        for (auto &route : _lua_routes) {
+//            route.script = _scriptdir + "/" + route.script;
+//
+//            std::shared_ptr<ScriptHandler> handler = std::make_shared<ScriptHandler>(route.script);
+//            addRoute(route.method, route.route, handler);
+//
+//            old_ll = setlogmask(LOG_MASK(LOG_INFO));
+//            Server::logger()->info("Added _route '{}' with script '{}'", route.route.c_str(), route.script.c_str());
+//            setlogmask(old_ll);
+//        }
 
         _sockfd = prepare_socket(_port);
         old_ll = setlogmask(LOG_MASK(LOG_INFO));
@@ -788,7 +788,6 @@ namespace cserve {
 
         void *res;
         pthread_join(sighandler_thread, &res);
-        std::cerr << "*******" << res << std::endl;
         old_ll = setlogmask(LOG_MASK(LOG_INFO));
         Server::logger()->info("Server shutting down");
         setlogmask(old_ll);
@@ -847,8 +846,10 @@ namespace cserve {
             }
 
             try {
-                std::shared_ptr<RequestHandler> req_handler = getHandler(conn);
-                req_handler->handler(conn, luaserver, _user_data);
+                std::shared_ptr<RequestHandler> req_handler;
+                std::string route;
+                std::tie(req_handler, route) = get_handler(conn);
+                req_handler->handler(conn, luaserver, route, _user_data);
             } catch (InputFailure &iofail) {
                 Server::logger()->error("Possibly socket closed by peer");
                 return CLOSE; // or CLOSE ??

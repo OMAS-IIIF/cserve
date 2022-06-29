@@ -195,7 +195,7 @@ namespace cserve {
         std::vector<GlobalFunc> lua_globals;
         size_t _max_post_size;
 
-        std::shared_ptr<RequestHandler> getHandler(Connection &conn);
+        std::tuple<std::shared_ptr<RequestHandler>, std::string> get_handler(Connection &conn);
 
         SocketControl::SocketInfo accept_connection(int sock, bool ssl = false);
 

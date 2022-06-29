@@ -12,7 +12,7 @@ namespace cserve {
         return _name;
     }
 
-    void PingHandler::handler(cserve::Connection &conn, cserve::LuaServer &lua, void *user_data) {
+    void PingHandler::handler(cserve::Connection &conn, cserve::LuaServer &lua, const std::string &route, void *user_data) {
         conn.header("Content-Type", "text/html; charset=utf-8");
         conn.setBuffer();
         conn << _echo << cserve::Connection::flush_data;

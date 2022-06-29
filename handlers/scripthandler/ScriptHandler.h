@@ -6,6 +6,7 @@
 #define CSERVER_SCRIPTHANDLER_H
 
 #include <utility>
+#include <unordered_map>
 
 #include "../../lib/LuaServer.h"
 #include "../../lib/RequestHandler.h"
@@ -22,7 +23,7 @@ namespace cserve {
 
         const std::string& name() const override;
 
-        void handler(Connection& conn, LuaServer &lua, void *user_data) override;
+        void handler(Connection& conn, LuaServer &lua, const std::string &route, void *user_data) override;
 
         std::string scriptpath() { return _scriptname; }
 
