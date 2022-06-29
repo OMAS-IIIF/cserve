@@ -49,12 +49,12 @@ class CserverProcessManager:
             "CSERVE_KEEPALIVE": "5",
             "CSERVE_MAXPOSTSIZE": "1M",
             "CSERVE_LOGLEVEL": "TRACE",
-            "CSERVE_SCRIPTDIR": "./testserver/scripts",
-            "CSERVE_ROUTES": "GET:/servervariables:servervariables.lua;"
-                             "GET:/filefunctions:filefunctions.lua;"
-                             "GET:/misc:misc.lua;"
-                             "POST:/upload:upload.lua;"
-                             "GET:/sqlite3:sqlite3.lua",
+            "SCRIPTHANDLER_SCRIPTDIR": "./testserver/scripts",
+            "SCRIPTHANDLER_ROUTES": "GET:/servervariables:servervariables.lua;"
+                                    "GET:/filefunctions:filefunctions.lua;"
+                                    "GET:/misc:misc.lua;"
+                                    "POST:/upload:upload.lua;"
+                                    "GET:/sqlite3:sqlite3.lua",
             "PINGHANDLER_ECHO": "PINGPONG"
         }
         self.cserver_ready = False

@@ -35,11 +35,12 @@ namespace cserve {
     }
 
     void TestHandler::set_config_variables(CserverConf &conf) {
-        std::vector<LuaRoute> routes = {
-                LuaRoute("GET:/test:C++"),
+        //conf.append_route(RouteInfo("GET:/test:C++"))
+        std::vector<RouteInfo> routes = {
+                RouteInfo("GET:/test:C++"),
         };
-        std::string routeopt = _name + "_route";
-        conf.add_config(_name, routeopt,routes, "Route for handler");
+        //std::string routeopt = _name + "_route";
+        conf.add_config(_name, "routes",routes, "Route for handler");
         conf.add_config(_name, "message", "Hello World", "Message to display");
     }
 

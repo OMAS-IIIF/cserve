@@ -177,9 +177,9 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>();
         std::string description = "This is a description";
         std::string envname = "LRTEST";
-        std::vector<cserve::LuaRoute> lrdefval {
-                cserve::LuaRoute("GET:/gaga:gaga.lua"),
-                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        std::vector<cserve::RouteInfo> lrdefval {
+                cserve::RouteInfo("GET:/gaga:gaga.lua"),
+                cserve::RouteInfo("PUT:/gugus:gugus.lua"),
         };
         auto sval = cserve::ConfValue("cserve", "lrtest", lrdefval, description, envname, app);
         REQUIRE(sval.get_luaroutes().value() == lrdefval);
@@ -190,8 +190,8 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         app->parse(argc, argv);
         auto result = sval.get_luaroutes().value();
         REQUIRE(result.size() == 2);
-        REQUIRE(result[0] == cserve::LuaRoute("GET:/hello:hello.lua"));
-        REQUIRE(result[1] == cserve::LuaRoute("PUT:/byebye:byebye.lua"));
+        REQUIRE(result[0] == cserve::RouteInfo("GET:/hello:hello.lua"));
+        REQUIRE(result[1] == cserve::RouteInfo("PUT:/byebye:byebye.lua"));
         REQUIRE_THROWS_AS(sval.get_int().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_float().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_string().value(), std::bad_optional_access);
@@ -269,9 +269,9 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>();
         std::string description = "This is a description";
         std::string envname = "LRTEST";
-        std::vector<cserve::LuaRoute> lrdefval {
-                cserve::LuaRoute("GET:/gaga:gaga.lua"),
-                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        std::vector<cserve::RouteInfo> lrdefval {
+                cserve::RouteInfo("GET:/gaga:gaga.lua"),
+                cserve::RouteInfo("PUT:/gugus:gugus.lua"),
         };
         auto lrval = cserve::ConfValue("cserve", "lrtest", lrdefval, description, envname, app);
         putenv((char *) "LRTEST=POST:/hoppla:hoppla.lua;DELETE:/delme:delme.lua");
@@ -280,8 +280,8 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         app->parse(argc, argv);
         auto result = lrval.get_luaroutes().value();
         REQUIRE(result.size() == 2);
-        REQUIRE(result[0] == cserve::LuaRoute("POST:/hoppla:hoppla.lua"));
-        REQUIRE(result[1] == cserve::LuaRoute("DELETE:/delme:delme.lua"));
+        REQUIRE(result[0] == cserve::RouteInfo("POST:/hoppla:hoppla.lua"));
+        REQUIRE(result[1] == cserve::RouteInfo("DELETE:/delme:delme.lua"));
     }
 }
 
@@ -295,9 +295,9 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
         config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
         config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
         config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
-        std::vector<cserve::LuaRoute> lrdefval {
-                cserve::LuaRoute("GET:/gaga:gaga.lua"),
-                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        std::vector<cserve::RouteInfo> lrdefval {
+                cserve::RouteInfo("GET:/gaga:gaga.lua"),
+                cserve::RouteInfo("PUT:/gugus:gugus.lua"),
         };
         config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
 
@@ -310,10 +310,10 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
         REQUIRE(config.get_string("stest").value() == std::string("test"));
         REQUIRE(config.get_datasize("dstest").value() == cserve::DataSize("1MB"));
         REQUIRE(config.get_loglevel("lltest").value() == spdlog::level::level_enum::info);
-        auto result = config.get_luaroutes("lrtest").value();
+        auto result = config.get_luaroutes(prefix, "lrtest").value();
         REQUIRE(result.size() == 2);
-        REQUIRE(result[0] == cserve::LuaRoute("GET:/gaga:gaga.lua"));
-        REQUIRE(result[1] == cserve::LuaRoute("PUT:/gugus:gugus.lua"));
+        REQUIRE(result[0] == cserve::RouteInfo("GET:/gaga:gaga.lua"));
+        REQUIRE(result[1] == cserve::RouteInfo("PUT:/gugus:gugus.lua"));
     }
 
     SECTION("Command line params testing with cmdline options") {
@@ -325,9 +325,9 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
         config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
         config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
         config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
-        std::vector<cserve::LuaRoute> lrdefval {
-                cserve::LuaRoute("GET:/gaga:gaga.lua"),
-                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        std::vector<cserve::RouteInfo> lrdefval {
+                cserve::RouteInfo("GET:/gaga:gaga.lua"),
+                cserve::RouteInfo("PUT:/gugus:gugus.lua"),
         };
         config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
 
@@ -338,7 +338,7 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
                                "--stest", "Waseliwas soll das?",
                                "--dstest", "2TB",
                                "--lltest", "ERR",
-                               "--lrtest", "POST:/upload:upload_file.lua", "DELETE:/delete:delete.lua"};
+                               "--cserve_lrtest", "POST:/upload:upload_file.lua", "DELETE:/delete:delete.lua"};
         config.parse_cmdline_args(argc, argv);
 
         REQUIRE(config.get_int("itest").value() == 42);
@@ -346,10 +346,10 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
         REQUIRE(config.get_string("stest").value() == std::string("Waseliwas soll das?"));
         REQUIRE(config.get_datasize("dstest").value() == cserve::DataSize("2TB"));
         REQUIRE(config.get_loglevel("lltest").value() == spdlog::level::level_enum::err);
-        auto result = config.get_luaroutes("lrtest").value();
+        auto result = config.get_luaroutes(prefix, "lrtest").value();
         REQUIRE(result.size() == 2);
-        REQUIRE(result[0] == cserve::LuaRoute("POST:/upload:upload_file.lua"));
-        REQUIRE(result[1] == cserve::LuaRoute("DELETE:/delete:delete.lua"));
+        REQUIRE(result[0] == cserve::RouteInfo("POST:/upload:upload_file.lua"));
+        REQUIRE(result[1] == cserve::RouteInfo("DELETE:/delete:delete.lua"));
     }
 
     SECTION("Command line params testing with environmant variables") {
@@ -361,9 +361,9 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
         config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
         config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
         config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
-        std::vector<cserve::LuaRoute> lrdefval {
-                cserve::LuaRoute("GET:/gaga:gaga.lua"),
-                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        std::vector<cserve::RouteInfo> lrdefval {
+                cserve::RouteInfo("GET:/gaga:gaga.lua"),
+                cserve::RouteInfo("PUT:/gugus:gugus.lua"),
         };
         config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
 
@@ -382,10 +382,10 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
         REQUIRE(config.get_string("stest").value() == std::string("Waseliwas soll das?"));
         REQUIRE(config.get_datasize("dstest").value() == cserve::DataSize("2TB"));
         REQUIRE(config.get_loglevel("lltest").value() == spdlog::level::level_enum::err);
-        auto result = config.get_luaroutes("lrtest").value();
+        auto result = config.get_luaroutes(prefix, "lrtest").value();
         REQUIRE(result.size() == 2);
-        REQUIRE(result[0] == cserve::LuaRoute("POST:/upload:upload_file.lua"));
-        REQUIRE(result[1] == cserve::LuaRoute("DELETE:/delete:delete.lua"));
+        REQUIRE(result[0] == cserve::RouteInfo("POST:/upload:upload_file.lua"));
+        REQUIRE(result[1] == cserve::RouteInfo("DELETE:/delete:delete.lua"));
         unsetenv((char *) "CSERVE_ITEST");
         unsetenv((char *) "CSERVE_FTEST");
         unsetenv((char *) "CSERVE_STEST");
@@ -403,9 +403,9 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
         config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
         config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
         config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
-        std::vector<cserve::LuaRoute> lrdefval {
-                cserve::LuaRoute("GET:/gaga:gaga.lua"),
-                cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+        std::vector<cserve::RouteInfo> lrdefval {
+                cserve::RouteInfo("GET:/gaga:gaga.lua"),
+                cserve::RouteInfo("PUT:/gugus:gugus.lua"),
         };
         config.add_config(prefix, "lrtest", lrdefval, "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
 
@@ -419,9 +419,9 @@ TEST_CASE("Testing CserverConf class", "[CserverConf]") {
         REQUIRE(config.get_string("stest").value() == std::string("from lua"));
         REQUIRE(config.get_datasize("dstest").value() == cserve::DataSize("8KB"));
         REQUIRE(config.get_loglevel("lltest").value() == spdlog::level::level_enum::off);
-        auto result = config.get_luaroutes("lrtest").value();
-        REQUIRE(result.size() == 1);
-        REQUIRE(result[0] == cserve::LuaRoute("GET:/lualua:lualua.lua"));
+//        auto result = config.get_luaroutes(prefix, "lrtest").value();
+//        REQUIRE(result.size() == 1);
+//        REQUIRE(result[0] == cserve::RouteInfo("GET:/lualua:lualua.lua"));
     }
 }
 
@@ -436,9 +436,9 @@ TEST_CASE("Testing CserverConf class", "[LuaGlobals]") {
     config.add_config(prefix, "stest", "test", "Test string parameter [default=test]");
     config.add_config(prefix, "dstest", cserve::DataSize("1MB"), "Test datasize parameter [default=1MB]");
     config.add_config(prefix, "lltest", spdlog::level::level_enum::info, "Test datasize parameter [default=INFO]");
-    std::vector<cserve::LuaRoute> lrdefval{
-            cserve::LuaRoute("GET:/gaga:gaga.lua"),
-            cserve::LuaRoute("PUT:/gugus:gugus.lua"),
+    std::vector<cserve::RouteInfo> lrdefval{
+            cserve::RouteInfo("GET:/gaga:gaga.lua"),
+            cserve::RouteInfo("PUT:/gugus:gugus.lua"),
     };
     config.add_config(prefix, "lrtest", lrdefval,
                       "Test datasize parameter [default=\"GET:/gaga:gaga.lua\" \"PUT:/gugus:gugus.lua\"]");
@@ -467,7 +467,7 @@ TEST_CASE("Testing CserverConf class", "[LuaGlobals]") {
     REQUIRE(strcmp(lua_tostring(L, -1), "INFO") == 0);
     lua_pop(L, -2); // config
 
-    REQUIRE(lua_getfield(L, -1, "lrtest") == LUA_TTABLE);  // config - lrtest
+    REQUIRE(lua_getfield(L, -1, "cserve_lrtest") == LUA_TTABLE);  // config - lrtest
     REQUIRE(lua_rawgeti(L, -1, 0) == LUA_TTABLE);          // config - lrtest - route1_table
     REQUIRE(lua_getfield(L, -1, "method") == LUA_TSTRING); // config - lrtest - route1_table - method_value
     REQUIRE(strcmp(lua_tostring(L, -1), "GET") == 0);

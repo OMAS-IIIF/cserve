@@ -151,7 +151,8 @@ target_include_directories(cserver PUBLIC
 
 add_dependencies(cserver
         testhandler
-        pinghandler)
+        pinghandler
+        scripthandler)
 
 add_custom_command(TARGET cserver POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy

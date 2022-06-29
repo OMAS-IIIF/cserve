@@ -8,7 +8,7 @@
 
 namespace cserve {
 
-    const std::string DefaultHandler::_name = "ping_handler";
+    const std::string DefaultHandler::_name = "defaulthandler";
 
     const std::string& DefaultHandler::name() const {
         return _name;

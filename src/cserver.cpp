@@ -157,8 +157,8 @@ int main(int argc, char *argv[]) {
     //
     // script handler stuff
     //
-    config.add_config(prefix, "scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
-    config.add_config(prefix, "routes", std::vector<cserve::LuaRoute>{}, "Lua routes in the form \"<http-type>:<_route>:<script>\"");
+    //config.add_config(prefix, "scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
+    //config.add_config(prefix, "routes", std::vector<cserve::RouteInfo>{}, "Lua routes in the form \"<http-type>:<_route>:<script>\"");
 
     //
     // load the configuration variables of the plugin handlers
@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
     if (!initscript.empty()) server.initscript(initscript);
     server.max_post_size(config.get_datasize("maxpost").value().as_size_t()); // set the maximal post size
     server.keep_alive_timeout(config.get_int("keepalive").value()); // set the keep alive timeout
-    server.luaRoutes(config.get_luaroutes("routes").value_or(std::vector<cserve::LuaRoute>{}));
+    //server.luaRoutes(config.get_luaroutes("routes").value_or(std::vector<cserve::RouteInfo>{}));
 
     //
     // now we set the routes for the normal HTTP server file handling
@@ -219,13 +219,13 @@ int main(int argc, char *argv[]) {
     //
     for (auto & [name, handler]: handlers) {
         handler->get_config_variables(config);
-        std::string routeopt = handler->name() + "_route";
-        auto routes = config.get_luaroutes(routeopt).value();
+        //std::string routeopt = handler->name() + "_routes";
+        auto routes = config.get_luaroutes(handler->name(), "routes").value();
         for (auto & route: routes) {
             server.addRoute(route.method, route.route, handler);
-            handler->add_route_data(route.route, route.script);
+            handler->add_route_data(route.route, route.additional_data);
             old_ll = setlogmask(LOG_MASK(LOG_INFO));
-            logger->info("Added route: method: '{}', route: '{}' route data: '{}'", route.method_as_string(), route.route, route.script);
+            logger->info("Added route: method: '{}', route: '{}' route data: '{}'", route.method_as_string(), route.route, route.additional_data);
             setlogmask(old_ll);
         }
     }

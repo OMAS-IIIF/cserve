@@ -39,7 +39,7 @@ namespace cserve {
                     lua_pushstring(L, val->get_loglevel_as_string().value_or("OFF").c_str()); // "table1 - index_L1 - value_L1"
                     break;
                 case cserve::ConfValue::LUAROUTES:
-                    std::vector<cserve::LuaRoute> routes = val->get_luaroutes().value();
+                    std::vector<cserve::RouteInfo> routes = val->get_luaroutes().value();
                     lua_createtable(L, routes.size(), 0);  // "table1 - index_L1 - table2"
                     int index = 0;
                     for (auto& route: routes) {
@@ -51,7 +51,7 @@ namespace cserve {
                         lua_pushstring(L, route.route.c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
                         lua_settable(L, -3); // "table1 - index_L1 - table2 - table3"
                         lua_pushstring(L, "script"); // "table1 - index_L1 - table2 - table3 - "_route"
-                        lua_pushstring(L, route.script.c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
+                        lua_pushstring(L, route.additional_data.c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
                         lua_settable(L, -3); // "table1 - index_L1 - table2 - table3"
                         lua_rawseti(L, -2, index++); // "table1 - index_L1 - table2"
                     }
@@ -102,9 +102,9 @@ namespace cserve {
         }
     }
 
-    std::optional<std::vector<cserve::LuaRoute>> CserverConf::get_luaroutes(const std::string &name) const {
+    std::optional<std::vector<cserve::RouteInfo>> CserverConf::get_luaroutes(const std::string &prefix, const std::string &name) const {
         try {
-            auto val = _values.at(name);
+            auto val = _values.at(prefix + "_" + name);
             return val->get_luaroutes();
         }
         catch (std::out_of_range &err) {
@@ -178,11 +178,16 @@ namespace cserve {
                                                             envname, _cserverOpts);
     }
 
-    void CserverConf::add_config(const std::string &prefix, std::string name, std::vector<cserve::LuaRoute> defaultval,
+    void CserverConf::add_config(const std::string &prefix, std::string name, std::vector<cserve::RouteInfo> defaultval,
                                  const std::string &description) {
-        std::string optionname = "--" + name;
+        //
+        // routes automatically prepend the prefix to the option name (which usually ist just "routes". Thus
+        // the composed name will be something as "myhandler_routes"
+        //
+        std::string fullname = prefix + "_" + name;
+        std::string optionname = "--" + fullname;
         std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
-        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, std::move(defaultval),
+        _values[fullname] = std::make_shared<cserve::ConfValue>(prefix, optionname, std::move(defaultval),
                                                             std::move(description), envname, _cserverOpts);
     }
 
@@ -197,7 +202,7 @@ namespace cserve {
 
         if (!_cserverOpts->get_option("--config")->empty()) {
             cserve::LuaServer luacfg = cserve::LuaServer(_values["config"]->get_string().value());
-            typedef std::variant<int, float, std::string, cserve::DataSize, spdlog::level::level_enum, std::vector<cserve::LuaRoute>> UnionDataType;
+            typedef std::variant<int, float, std::string, cserve::DataSize, spdlog::level::level_enum, std::vector<cserve::RouteInfo>> UnionDataType;
             std::unordered_map<std::string, UnionDataType> valmap;
 
             for (auto const& [name, val] : _values) {
@@ -244,7 +249,7 @@ namespace cserve {
                             _values[name]->set_value(std::get<spdlog::level::level_enum>(valmap[name]));
                             break;
                         case cserve::ConfValue::LUAROUTES:
-                            _values[name]->set_value(std::get<std::vector<cserve::LuaRoute>>(valmap[name]));
+                            _values[name]->set_value(std::get<std::vector<cserve::RouteInfo>>(valmap[name]));
                             break;
                     }
                 }

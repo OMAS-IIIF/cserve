@@ -16,8 +16,8 @@ namespace cserve {
     class ScriptHandler: public RequestHandler {
     private:
         const static std::string _name;
-        std::string _scriptdir{};
-        std::string _scriptname{};
+        std::filesystem::path _scriptdir{};
+        //std::string _scriptname{};
     public:
         explicit ScriptHandler() : RequestHandler() {}
 
@@ -25,7 +25,7 @@ namespace cserve {
 
         void handler(Connection& conn, LuaServer &lua, const std::string &route, void *user_data) override;
 
-        std::string scriptpath() { return _scriptname; }
+        //std::string scriptpath() { return _scriptname; }
 
         void set_config_variables(CserverConf &conf) override;
 

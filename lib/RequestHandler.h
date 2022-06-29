@@ -15,10 +15,8 @@ namespace cserve {
      * Abstract class for defining a request handler
      */
     class RequestHandler {
-    private:
-        std::unordered_map<std::string,std::string> routedata;
-
     protected:
+        std::unordered_map<std::string,std::string> routedata;
         std::string _route;
     public:
 

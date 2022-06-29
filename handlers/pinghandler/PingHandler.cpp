@@ -19,11 +19,10 @@ namespace cserve {
     }
 
     void PingHandler::set_config_variables(CserverConf &conf) {
-        std::vector<LuaRoute> routes = {
-                LuaRoute("GET:/ping:C++"),
+        std::vector<RouteInfo> routes = {
+                RouteInfo("GET:/ping:C++"),
         };
-        std::string routeopt = _name + "_route";
-        conf.add_config(_name, routeopt,routes, "Route for handler");
+        conf.add_config(_name, "routes",routes, "Route for handler");
         conf.add_config(_name, "echo", "PONG", "Message to echo");
     }
 

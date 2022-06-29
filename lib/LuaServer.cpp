@@ -230,7 +230,7 @@ namespace cserve {
         return ret;
     }
 
-    LuaRoute::LuaRoute(const std::string &lua_route_str) {
+    RouteInfo::RouteInfo(const std::string &lua_route_str) {
         // ToDo: Better error handling, if _route is invalid!
         std::vector<std::string> rinfo = cserve::split(lua_route_str, ':');
         if (rinfo.size() < 3) {
@@ -260,10 +260,10 @@ namespace cserve {
             return;
         }
         route = rinfo[1];
-        script = rinfo[2];
+        additional_data = rinfo[2];
     }
 
-    std::string LuaRoute::method_as_string() const {
+    std::string RouteInfo::method_as_string() const {
         std::unordered_map<Connection::HttpMethod, std::string> method_map = {
                 {cserve::Connection::HttpMethod::GET, "GET"},
                 {cserve::Connection::HttpMethod::PUT, "PUT"},
@@ -285,8 +285,8 @@ namespace cserve {
     }
 
 
-    std::string LuaRoute::to_string() const {
-        return fmt::format("{}:{}:{}", method_as_string(), route, script);
+    std::string RouteInfo::to_string() const {
+        return fmt::format("{}:{}:{}", method_as_string(), route, additional_data);
     }
 
     /*!
@@ -2293,7 +2293,6 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             return 2;
         }
 
-        std::cerr << "#" << __LINE__ << " jsonobj=" << jsonobj << std::endl;
         lua_settop(L, 0); // clear stack
         lua_pushboolean(L, true);
         try {
@@ -2305,7 +2304,6 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             lua_pushstring(L, tmpstr.c_str());
             return 2;
         }
-        std::cerr << "#" << __LINE__ << std::endl;
 
         return 2;
     }
@@ -2584,28 +2582,28 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                 break; // table1 - "index_L1" - "value_L1"
             case Connection::GET:
                 lua_pushstring(L, "GET");
-                break;
+                break; // table1 - "index_L1" - "value_L1"
             case Connection::HEAD:
                 lua_pushstring(L, "HEAD");
-                break;
+                break; // table1 - "index_L1" - "value_L1"
             case Connection::POST:
                 lua_pushstring(L, "POST");
-                break;
+                break; // table1 - "index_L1" - "value_L1"
             case Connection::PUT:
                 lua_pushstring(L, "PUT");
-                break;
+                break; // table1 - "index_L1" - "value_L1"
             case Connection::DELETE:
                 lua_pushstring(L, "DELETE");
-                break;
+                break; // table1 - "index_L1" - "value_L1"
             case Connection::TRACE:
                 lua_pushstring(L, "TRACE");
-                break;
+                break; // table1 - "index_L1" - "value_L1"
             case Connection::CONNECT:
                 lua_pushstring(L, "CONNECT");
-                break;
+                break; // table1 - "index_L1" - "value_L1"
             case Connection::OTHER:
                 lua_pushstring(L, "OTHER");
-                break;
+                break; // table1 - "index_L1" - "value_L1"
         }
 
         lua_rawset(L, -3); // table1
@@ -3188,24 +3186,21 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
  * @param routetable A table name containing _route info
  * @return Route info
  */
-    std::vector<cserve::LuaRoute> cserve::LuaServer::configRoute(const std::string& table, const std::string& variable, const std::vector<cserve::LuaRoute> &defval) {
+    std::vector<cserve::RouteInfo> cserve::LuaServer::configRoute(const std::string& table, const std::string& variable, const std::vector<cserve::RouteInfo> &defval) {
         static struct {
             const char *name;
             int type;
         } fields[] = {{"method", LUA_TSTRING},
-                      {"_route",  LUA_TSTRING},
+                      {"route",  LUA_TSTRING},
                       {"script", LUA_TSTRING},
                       {nullptr, 0}};
 
-        std::__1::vector<LuaRoute> routes;
-
-        if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
+        std::vector<RouteInfo> routes;
+        if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) { // table
             lua_pop(L, 1);
             return defval;
         }
-
-
-        lua_getfield(L, -1, variable.c_str());
+        lua_getfield(L, -1, variable.c_str()); // table - routestable
 
         if (lua_isnil(L, -1)) {
             lua_pop(L, 2);
@@ -3217,7 +3212,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         for (int i = 1;; i++) {
-            lua_rawgeti(L, -1, i);
+            lua_rawgeti(L, -1, i); // table - routestable - route
 
             if (lua_isnil(L, -1)) {
                 lua_pop(L, 1);
@@ -3227,18 +3222,21 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             // an element of the 'listen' table should now be at the top of the stack
             luaL_checktype(L, -1, LUA_TTABLE);
             int field_index;
-            LuaRoute route;
+            RouteInfo route;
 
             for (field_index = 0; fields[field_index].name != nullptr; field_index++) {
-                lua_getfield(L, -1, fields[field_index].name);
+                lua_getfield(L, -1, fields[field_index].name); // table - routestable - route - fieldval
                 luaL_checktype(L, -1, fields[field_index].type);
+                if (lua_isnil(L, -1)) {
+                    throw Error(file_, __LINE__, "Excpected field in route not found");
+                }
 
                 std::string method;
                 // you should probably use a function pointer in the fields table.
                 // I am using a simple switch/case here
                 switch (field_index) {
                     case 0:
-                        method = lua_tostring(L, -1);
+                        method = lua_tostring(L, -1); // table - routestable - route - fieldval
                         if (method == "GET") {
                             route.method = Connection::GET;
                         } else if (method == "PUT") {
@@ -3260,20 +3258,19 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                         }
                         break;
                     case 1:
-                        route.route = lua_tostring(L, -1);
+                        route.route = lua_tostring(L, -1); // table - routestable - route - fieldval
                         break;
                     case 2:
-                        route.script = lua_tostring(L, -1);
+                        route.additional_data = lua_tostring(L, -1); // table - routestable - route - fieldval
                         break;
                 }
                 // remove the field value from the top of the stack
-                lua_pop(L, 1);
+                lua_pop(L, 1); // table - routestable - route
             }
 
-            lua_pop(L, 1);
+            lua_pop(L, 1);  // table - routestable
             routes.push_back(route);
         }
-
         return routes;
     }
 

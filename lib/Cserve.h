@@ -191,7 +191,7 @@ namespace cserve {
         std::shared_ptr<RequestHandler> default_handler;
         void *_user_data; //!< Some opaque user data that can be given to the Connection (for use within the handler)
         std::string _initscript;
-        std::vector<cserve::LuaRoute> _lua_routes; //!< This vector holds the routes that are served by lua scripts
+        std::vector<cserve::RouteInfo> _lua_routes; //!< This vector holds the routes that are served by lua scripts
         std::vector<GlobalFunc> lua_globals;
         size_t _max_post_size;
 
@@ -340,14 +340,14 @@ namespace cserve {
         *
         * \returns Vector of Lua _route infos
         */
-        [[maybe_unused]] inline std::vector<cserve::LuaRoute> luaRoutes() { return _lua_routes; }
+        [[maybe_unused]] inline std::vector<cserve::RouteInfo> luaRoutes() { return _lua_routes; }
 
         /*!
          * set the routes that should be handled by Lua scripts
          *
          * \param[in] Vector of lua _route infos
          */
-        inline void luaRoutes(const std::vector<cserve::LuaRoute> &lua_routes_p) { _lua_routes = lua_routes_p; }
+        inline void luaRoutes(const std::vector<cserve::RouteInfo> &lua_routes_p) { _lua_routes = lua_routes_p; }
 
         /*!
          * Run the server handling requests in an infinite loop

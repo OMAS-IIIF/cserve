@@ -123,7 +123,7 @@ namespace cserve {
                 ->transform(CLI::CheckedTransformer(logLevelMap, CLI::ignore_case));
     }
 
-    ConfValue::ConfValue(std::string prefix, std::string optionname, const std::vector<LuaRoute> &lua_routes,
+    ConfValue::ConfValue(std::string prefix, std::string optionname, const std::vector<RouteInfo> &lua_routes,
                          std::string description,
                          std::string envname, const std::shared_ptr<CLI::App> &app)
             : _prefix(std::move(prefix)), _optionname(optionname), _description(std::move(description)),
@@ -142,8 +142,8 @@ namespace cserve {
             case ConfValue::DataType::LOGLEVEL: return os << "LOGLEVEL: " << p->get_loglevel_as_string().value_or("--UNDEFINED--");
             case ConfValue::DataType::LUAROUTES: {
                 std::string routes;
-                for (auto& r: p->get_luaroutes().value_or(std::vector<LuaRoute>{})) {
-                    routes += r.method_as_string() + ":" + r.route + ":" + r.script + " ";
+                for (auto& r: p->get_luaroutes().value_or(std::vector<RouteInfo>{})) {
+                    routes += r.method_as_string() + ":" + r.route + ":" + r.additional_data + " ";
                 }
                 return os << "LUAROUTES: " << routes;
             }

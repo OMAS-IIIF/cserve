@@ -29,9 +29,21 @@ namespace cserve {
      */
     void ScriptHandler::handler(cserve::Connection &conn, LuaServer &lua, const std::string &route, void *user_data) {
         std::vector<std::string> headers = conn.header();
-        std::string uri = conn.uri();
+        std::string scriptname{};
+        try {
+            scriptname = routedata.at(route);
+        }
+        catch(std::out_of_range &err) {
+            conn.setBuffer();
+            conn.status(Connection::INTERNAL_SERVER_ERROR);
+            conn.header("Content-Type", "text/text; charset=utf-8");
+            conn << "Error in ScriptHandler: No script route defined.\r\n";
+            conn.flush();
+            Server::logger()->error("Error in ScriptHandler: No script route defined.");
+            return;
+        }
 
-        if (_scriptname.empty()) {
+        if (scriptname.empty()) {
             conn.setBuffer();
             conn.status(Connection::INTERNAL_SERVER_ERROR);
             conn.header("Content-Type", "text/text; charset=utf-8");
@@ -41,32 +53,39 @@ namespace cserve {
             return;
         }
 
-        if (access(_scriptname.c_str(), R_OK) != 0) { // test, if file exists
+        std::filesystem::path scriptpath(_scriptdir);
+        scriptpath /= scriptname;
+
+        std::error_code ec; // For noexcept overload usage.
+        if (!std::filesystem::exists(scriptpath, ec) && !ec) {
             conn.status(Connection::NOT_FOUND);
             conn.header("Content-Type", "text/text; charset=utf-8");
             conn << "File not found\n";
             conn.flush();
-            Server::logger()->error("ScriptHandler '{}' not readable", _scriptname);
+            Server::logger()->error("Error in ScriptHandler: Script '{}' not existing", scriptpath.string());
+            return;
+        }
+        if (access(scriptpath.c_str(), R_OK) != 0) { // test, if file exists
+            conn.status(Connection::NOT_FOUND);
+            conn.header("Content-Type", "text/text; charset=utf-8");
+            conn << "File not found\n";
+            conn.flush();
+            Server::logger()->error("Error in ScriptHandler: Script '{}' not readable", scriptpath.string());
             return;
         }
 
-        size_t extpos = _scriptname.find_last_of('.');
-        std::string extension;
-
-        if (extpos != std::string::npos) {
-            extension = _scriptname.substr(extpos + 1);
-        }
+        std::string extension = scriptpath.extension();
 
         try {
-            if (extension == "lua") { // pure lua
+            if (extension == ".lua") { // pure lua
                 std::ifstream inf;
-                inf.open(_scriptname); //open the input file
+                inf.open(scriptpath); //open the input file
                 std::stringstream sstr;
                 sstr << inf.rdbuf(); //read the file
                 std::string luacode = sstr.str();//str holds the content of the file
-
+                inf.close();
                 try {
-                    if (lua.executeChunk(luacode, _scriptname) < 0) {
+                    if (lua.executeChunk(luacode, scriptpath.c_str()) < 0) {
                         conn.flush();
                         return;
                     }
@@ -85,14 +104,15 @@ namespace cserve {
                     return;
                 }
                 conn.flush();
-            } else if (extension == "elua") { // embedded lua <lua> .... </lua>
+            } else if (extension == ".elua") { // embedded lua <lua> .... </lua>
                 conn.setBuffer();
                 std::ifstream inf;
-                inf.open(_scriptname);//open the input file
+                inf.open(scriptpath);//open the input file
 
                 std::stringstream sstr;
-                sstr << inf.rdbuf();//read the file
+                sstr << inf.rdbuf(); //read the file
                 std::string eluacode = sstr.str(); // eluacode holds the content of the file
+                inf.close();
 
                 size_t pos;
                 size_t end = 0; // end of last lua code (including </lua>)
@@ -113,7 +133,7 @@ namespace cserve {
                     }
 
                     try {
-                        if (lua.executeChunk(luastr, _scriptname) < 0) {
+                        if (lua.executeChunk(luastr, scriptpath) < 0) {
                             conn.flush();
                             return;
                         }
@@ -160,8 +180,8 @@ namespace cserve {
     }
 
     void ScriptHandler::set_config_variables(CserverConf &conf) {
-        std::vector<LuaRoute> routes = {};
-        std::string routeopt = _name + "_route";        conf.add_config(_name, routeopt,routes, "Route for handler");
+        std::vector<RouteInfo> routes = {};
+        conf.add_config(_name, "routes",routes, "Route for handler");
         conf.add_config(_name, "scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
     }
 
@@ -169,4 +189,12 @@ namespace cserve {
         _scriptdir = conf.get_string("scriptdir").value_or("-- no scriptdir --");
     }
 
+}
+
+extern "C" cserve::ScriptHandler * create_scripthandler() {
+    return new cserve::ScriptHandler();
+};
+
+extern "C" void destroy_scripthandler(cserve::ScriptHandler *handler) {
+    delete handler;
 }
