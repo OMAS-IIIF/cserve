@@ -837,8 +837,10 @@ namespace cserve {
             //
             // pattern to be added to the Lua package.path
             // includes Lua files in the Lua script directory
-            std::string lua_scriptdir = _scriptdir + "/?.lua";
+            //
+            std::string lua_scriptdir = _lua_include_path + "/?.lua";
 
+            std::cerr << "$$$$$$$$$$$$$$$$$$> lua_scriptdir=" << lua_scriptdir << std::endl;
             LuaServer luaserver(conn, _initscript, true, lua_scriptdir);
 
             for (auto &global_func : lua_globals) {

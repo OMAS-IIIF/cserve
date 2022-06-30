@@ -43,6 +43,7 @@ class CserverProcessManager:
             "CSERVE_SSLKEY": './testserver/certificate/key.pem',
             "CSERVE_JWTKEY": 'UP4014, the biggest steam engine',
             "CSERVE_TMPDIR": "./testserver/tmp",
+            "CSERVE_LUA_INCLUDE_PATH": "./testserver/scripts",
             "CSERVE_NTHREADS": "4",
             "CSERVE_KEEPALIVE": "5",
             "CSERVE_MAXPOSTSIZE": "1M",

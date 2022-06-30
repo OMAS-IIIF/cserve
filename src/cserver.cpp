@@ -143,6 +143,7 @@ int main(int argc, char *argv[]) {
     config.add_config(prefix, "tmpdir", "./tmp", "Path to the temporary directory (e.g. for uploads etc.).");
     config.add_config(prefix, "keepalive", 5, "Number of seconds for the keep-alive option of HTTP 1.1.");
     config.add_config(prefix, "maxpost", cserve::DataSize("1MB"), "A string indicating the maximal size of a POST request, e.g. '100M'.");
+    config.add_config(prefix, "lua_include_path", "./scripts", "Include path for Lua.");
     config.add_config(prefix, "initscript", "", "Path to LUA init script.");
     config.add_config(prefix, "logfile", "./cserver.log", "Name of the logfile.");
     config.add_config(prefix, "loglevel", spdlog::level::debug, "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.");
@@ -173,7 +174,7 @@ int main(int argc, char *argv[]) {
     if (!ssl_key.empty()) server.ssl_key(ssl_key);
     server.jwt_secret(config.get_string("jwtkey").value());
     server.tmpdir(config.get_string("tmpdir").value());
-    server.scriptdir(config.get_string("scriptdir").value());
+    server.lua_include_path(config.get_string("lua_include_path").value());
     std::string initscript = config.get_string("initscript").value();
     if (!initscript.empty()) server.initscript(initscript);
     server.max_post_size(config.get_datasize("maxpost").value().as_size_t()); // set the maximal post size

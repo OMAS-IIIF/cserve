@@ -182,7 +182,7 @@ namespace cserve {
         int stoppipe[2]{};
 
         std::string _tmpdir; //!< path to directory, where uplaods are being stored
-        std::string _scriptdir; //!< Path to directory, where scripts for the "Lua"-routes are found
+        std::string _lua_include_path; //!< Path to directory, where scripts for the "Lua"-routes are found
         unsigned _nthreads; //!< maximum number of parallel threads for processing requests
         std::map<pthread_t, SocketControl::SocketInfo> thread_ids; //!< Map of active worker threads
         int _keep_alive_timeout;
@@ -312,14 +312,14 @@ namespace cserve {
         *
         * \returns Path to directory for script directory
         */
-        [[maybe_unused]] inline std::string scriptdir() { return _scriptdir; }
+        [[maybe_unused]] inline std::string scriptdir() { return _lua_include_path; }
 
         /*!
          * set the path to the  directory where to store temporary files during uploads
          *
          * \param[in] path to directory without trailing '/'
          */
-        inline void scriptdir(const std::string &scriptdir_p) { _scriptdir = scriptdir_p; }
+        inline void lua_include_path(const std::string &lua_include_path) { _lua_include_path = lua_include_path; }
 
         /*!
          * Get the maximum size of a post request in bytes
