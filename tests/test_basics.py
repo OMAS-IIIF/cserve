@@ -25,7 +25,7 @@ def test_get_html(manager):
 
     response = manager.get('/test.html')
     assert response.text == str
-    assert response.headers['Content-Type'] ==  'text/html; charset=utf-8'
+    assert response.headers['Content-Type'] == 'text/html; charset=utf-8'
 
 def test_get_not_found(manager):
     """
@@ -114,13 +114,11 @@ def test_servervariables(manager):
     :return: None
     """
     variables = manager.get_json('servervariables', params={'param': 'all'})
-    pprint.pprint(variables)
     assert variables.get('status') == 'OK'
     assert variables.get('config') is not None
     assert variables['config'].get('port') == 8080
     assert variables['config'].get('scriptdir') == './testserver/scripts'
     assert variables['config'].get('docroot') == './testserver/docroot'
-    assert variables['config'].get('wwwroute') == '/'
     assert variables['config'].get('keepalive') == 5
     assert variables['config'].get('nthreads') == 4
     assert variables['config'].get('maxpost') == '1MB'

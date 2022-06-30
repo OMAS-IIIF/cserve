@@ -45,17 +45,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_ROOT}/Modules/")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 
-#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-#    message("Architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
-#    if (${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
-#        set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
-#    else()
-#        set(OPENSSL_ROOT_DIR /opt/homebrew/opt/openssl)
-#    endif()
-#endif()
-#include(FindOpenSSL REQUIRED)
-
-#add_definitions(${CMAKE_CXX_FLAGS} " -I${OPENSSL_INCLUDE_DIR}")
 add_definitions(${CMAKE_CXX_FLAGS} " -std=c++17")
 #
 # this is needed for curl...
@@ -106,6 +95,7 @@ add_subdirectory(lib)
 add_subdirectory(handlers/testhandler)
 add_subdirectory(handlers/pinghandler)
 add_subdirectory(handlers/scripthandler)
+add_subdirectory(handlers/filehandler)
 
 
 link_directories(
@@ -152,7 +142,8 @@ target_include_directories(cserver PUBLIC
 add_dependencies(cserver
         testhandler
         pinghandler
-        scripthandler)
+        scripthandler
+        filehandler)
 
 add_custom_command(TARGET cserver POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy

@@ -181,7 +181,7 @@ namespace cserve {
 
     void ScriptHandler::set_config_variables(CserverConf &conf) {
         std::vector<RouteInfo> routes = {};
-        conf.add_config(_name, "routes",routes, "Route for handler");
+        conf.add_config(_name, "routes",routes, "Route(s) for scripthandler");
         conf.add_config(_name, "scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
     }
 

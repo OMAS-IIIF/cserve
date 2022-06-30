@@ -6,15 +6,15 @@
 #include <filesystem>
 
 #include <vector>
-#include "Cserve.h"
+#include "../../lib/Cserve.h"
 #include "FileHandler.h"
-#include "Parsing.h"
+#include "../../lib/Parsing.h"
 
 static const char file_[] = __FILE__;
 
 namespace cserve {
 
-    const std::string FileHandler::_name = "file_handler";
+    const std::string FileHandler::_name = "filehandler";
 
     const std::string& FileHandler::name() const {
         return _name;
@@ -34,7 +34,7 @@ namespace cserve {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
 
-        if (_docroot.empty() || _route.empty()) {
+        if (_docroot.empty()) {
             conn.setBuffer();
             conn.status(Connection::INTERNAL_SERVER_ERROR);
             conn.header("Content-Type", "text/text; charset=utf-8");
@@ -45,12 +45,13 @@ namespace cserve {
         }
 
         lua.add_servertableentry("docroot", _docroot);
-        if (uri.find(_route) == 0) {
-            uri = uri.substr(_route.length());
+        if (uri.find(route) == 0) {
+            uri = uri.substr(route.length());
             if (uri[0] != '/') uri = "/" + uri;
         }
 
         std::filesystem::path path(_docroot + uri);
+
         //
         // if there is no filename given, check if there is something like "index.XXX"
         //
@@ -291,4 +292,27 @@ namespace cserve {
     }
     //=========================================================================
 
+    void FileHandler::set_config_variables(CserverConf &conf) {
+        std::vector<RouteInfo> routes = {
+                RouteInfo("GET:/:C++"),
+                RouteInfo("POST:/:C++"),
+                RouteInfo("PUT:/:C++"),
+        };
+        conf.add_config(_name, "routes",routes, "Route for filehandler");
+        conf.add_config(_name, "docroot", "./docroot", "Path to directory containing Lua scripts to implement routes.");
+    }
+
+    void FileHandler::get_config_variables(const CserverConf &conf) {
+        _docroot = conf.get_string("docroot").value_or("-- no scriptdir --");
+    }
+
 }
+
+extern "C" cserve::FileHandler * create_filehandler() {
+    return new cserve::FileHandler();
+};
+
+extern "C" void destroy_filehandler(cserve::FileHandler *handler) {
+    delete handler;
+}
+

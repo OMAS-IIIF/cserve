@@ -66,7 +66,7 @@
 
 #include "RequestHandlerData.h"
 
-#include "FileHandler.h"
+#include "../handlers/filehandler/FileHandler.h"
 
 #include "lua.hpp"
 

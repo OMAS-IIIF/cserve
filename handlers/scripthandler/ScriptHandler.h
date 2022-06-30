@@ -17,7 +17,6 @@ namespace cserve {
     private:
         const static std::string _name;
         std::filesystem::path _scriptdir{};
-        //std::string _scriptname{};
     public:
         explicit ScriptHandler() : RequestHandler() {}
 

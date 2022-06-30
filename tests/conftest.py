@@ -42,8 +42,6 @@ class CserverProcessManager:
             "CSERVE_SSLCERT": './testserver/certificate/certificate.pem',
             "CSERVE_SSLKEY": './testserver/certificate/key.pem',
             "CSERVE_JWTKEY": 'UP4014, the biggest steam engine',
-            "CSERVE_DOCROOT": "./testserver/docroot",
-            "CSERVE_WWWROUTE": '/',
             "CSERVE_TMPDIR": "./testserver/tmp",
             "CSERVE_NTHREADS": "4",
             "CSERVE_KEEPALIVE": "5",
@@ -55,6 +53,10 @@ class CserverProcessManager:
                                     "GET:/misc:misc.lua;"
                                     "POST:/upload:upload.lua;"
                                     "GET:/sqlite3:sqlite3.lua",
+            "FILEHANDLER_DOCROOT": "./testserver/docroot",
+            "FILEHANDLER_ROUTES": "GET:/:C++;"
+                                  "PUT:/:C++;"
+                                  "POST:/:C++",
             "PINGHANDLER_ECHO": "PINGPONG"
         }
         self.cserver_ready = False

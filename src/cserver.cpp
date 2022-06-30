@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <csignal>
 #include <utility>
-#include <dlfcn.h>
 #include <filesystem>
 
 #include "Cserve.h"
@@ -84,7 +83,7 @@ int main(int argc, char *argv[]) {
     setlogmask(old_ll);
 
     char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+    if (getcwd(cwd, sizeof(cwd)) != nullptr) {
         logger->info("Current working dir: {}", cwd);
     } else {
         logger->error("getcwd() error");
@@ -149,18 +148,6 @@ int main(int argc, char *argv[]) {
     config.add_config(prefix, "loglevel", spdlog::level::debug, "Logging level Value can be: 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERR', 'CRITICAL', 'OFF'.");
 
     //
-    // file server stuff
-    //
-    config.add_config(prefix, "docroot", "./docroot", "Path to document root for file server.");
-    config.add_config(prefix, "wwwroute", "/", "Route root for file server.");
-
-    //
-    // script handler stuff
-    //
-    //config.add_config(prefix, "scriptdir", "./scripts", "Path to directory containing Lua scripts to implement routes.");
-    //config.add_config(prefix, "routes", std::vector<cserve::RouteInfo>{}, "Lua routes in the form \"<http-type>:<_route>:<script>\"");
-
-    //
     // load the configuration variables of the plugin handlers
     //
     for (auto & [name, handler]: handlers) {
@@ -194,25 +181,11 @@ int main(int argc, char *argv[]) {
     //server.luaRoutes(config.get_luaroutes("routes").value_or(std::vector<cserve::RouteInfo>{}));
 
     //
-    // now we set the routes for the normal HTTP server file handling
-    //
-    std::string wwwroute = config.get_string("wwwroute").value();
-    std::string docroot = config.get_string("docroot").value();
-
-    //
     // initialize Lua with some "extensions" and global variables
     //
     server.add_lua_globals_func(cserve::cserverConfGlobals, &config);
     server.add_lua_globals_func(cserve::sqliteGlobals, &server);
     server.add_lua_globals_func(new_lua_func); // add new lua function "gaga"
-
-
-
-    if (!docroot.empty()) {
-        auto file_handler = std::make_shared<cserve::FileHandler>(wwwroute, docroot);
-        server.addRoute(cserve::Connection::GET, wwwroute, file_handler);
-        server.addRoute(cserve::Connection::POST, wwwroute, file_handler);
-    }
 
     //
     // setup the routes for the plugin handlers
@@ -225,7 +198,7 @@ int main(int argc, char *argv[]) {
             server.addRoute(route.method, route.route, handler);
             handler->add_route_data(route.route, route.additional_data);
             old_ll = setlogmask(LOG_MASK(LOG_INFO));
-            logger->info("Added route: method: '{}', route: '{}' route data: '{}'", route.method_as_string(), route.route, route.additional_data);
+            logger->info("Added route: handler: '{}' method: '{}', route: '{}' route data: '{}'", name, route.method_as_string(), route.route, route.additional_data);
             setlogmask(old_ll);
         }
     }

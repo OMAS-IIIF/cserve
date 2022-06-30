@@ -8,9 +8,9 @@
 
 #include <utility>
 
-#include "LuaServer.h"
-#include "RequestHandlerData.h"
-#include "RequestHandler.h"
+#include "../../lib/LuaServer.h"
+#include "../../lib/RequestHandlerData.h"
+#include "../../lib/RequestHandler.h"
 
 namespace cserve {
 
@@ -23,19 +23,23 @@ namespace cserve {
      class FileHandler: public RequestHandler {
     private:
          const static std::string _name;
-         std::string _route;
          std::string _docroot;
     public:
-        [[maybe_unused]] FileHandler(std::string route, std::string docroot) : RequestHandler(), _route(std::move(route)), _docroot(std::move(docroot)) {}
+        [[maybe_unused]] FileHandler() : RequestHandler() {}
 
          const std::string& name() const override;
 
         void handler(Connection& conn, LuaServer &lua, const std::string &route, void *user_data) override;
 
-        [[maybe_unused]] std::string route() { return _route; }
+        //[[maybe_unused]] std::string route() { return _route; }
 
-        [[maybe_unused]] std::string docroot() { return _docroot; }
-    };
+        //[[maybe_unused]] std::string docroot() { return _docroot; }
+
+         void set_config_variables(CserverConf &conf) override;
+
+         void get_config_variables(const CserverConf &conf) override;
+
+     };
 
 }
 
