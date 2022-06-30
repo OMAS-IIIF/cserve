@@ -30,7 +30,7 @@ namespace cserve {
      * @param lua Lua interpreter instance
      * @param user_data Hook to user data
      */
-    void FileHandler::handler(cserve::Connection &conn, LuaServer &lua, const std::string &route, void *user_data) {
+    void FileHandler::handler(cserve::Connection &conn, LuaServer &lua, const std::string &route) {
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
 

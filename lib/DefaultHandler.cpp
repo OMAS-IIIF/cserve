@@ -14,7 +14,7 @@ namespace cserve {
         return _name;
     }
 
-    void DefaultHandler::handler(Connection &conn, LuaServer &lua, const std::string &route, void *user_data) {
+    void DefaultHandler::handler(Connection &conn, LuaServer &lua, const std::string &route) {
         conn.status(Connection::NOT_FOUND);
         conn.header("Content-Type", "text/text");
         conn.setBuffer();

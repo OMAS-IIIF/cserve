@@ -106,7 +106,7 @@ namespace cserve {
     Server::Server(int port,
                    unsigned nthreads,
                    const std::string &userid_str) : _port(port), _nthreads(nthreads),
-                   _sockfd(-1), _ssl_sockfd(-1), _ssl_port(-1), _max_post_size(1024*1024), _user_data(nullptr),
+                   _sockfd(-1), _ssl_sockfd(-1), _ssl_port(-1), _max_post_size(1024*1024),
                    running(false), _keep_alive_timeout(20) {
         stoppipe[0] = -1;
         stoppipe[1] = -1;
@@ -840,7 +840,6 @@ namespace cserve {
             //
             std::string lua_scriptdir = _lua_include_path + "/?.lua";
 
-            std::cerr << "$$$$$$$$$$$$$$$$$$> lua_scriptdir=" << lua_scriptdir << std::endl;
             LuaServer luaserver(conn, _initscript, true, lua_scriptdir);
 
             for (auto &global_func : lua_globals) {
@@ -851,7 +850,7 @@ namespace cserve {
                 std::shared_ptr<RequestHandler> req_handler;
                 std::string route;
                 std::tie(req_handler, route) = get_handler(conn);
-                req_handler->handler(conn, luaserver, route, _user_data);
+                req_handler->handler(conn, luaserver, route);
             } catch (InputFailure &iofail) {
                 Server::logger()->error("Possibly socket closed by peer");
                 return CLOSE; // or CLOSE ??

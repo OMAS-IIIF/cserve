@@ -18,7 +18,7 @@ namespace cserve {
 
         const std::string& name() const override;
 
-        void handler(Connection& conn, LuaServer& lua, const std::string &route, void* user_data) override;
+        void handler(Connection& conn, LuaServer& lua, const std::string &route) override;
 
         void set_config_variables(CserverConf &conf) override;
 

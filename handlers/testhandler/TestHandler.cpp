@@ -13,7 +13,7 @@ namespace cserve {
         return _name;
     }
 
-    void TestHandler::handler(Connection &conn, LuaServer &lua, const std::string &route, void *user_data) {
+    void TestHandler::handler(Connection &conn, LuaServer &lua, const std::string &route) {
         conn.setBuffer();
         conn.setChunkedTransfer();
 

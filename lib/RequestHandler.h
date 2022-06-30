@@ -46,7 +46,7 @@ namespace cserve {
          * @param lua Lua interpreter
          * @param user_data Additional unspecified data that can be given to the handler
          */
-        virtual void handler(Connection& conn, LuaServer& lua, const std::string &route, void* user_data) = 0;
+        virtual void handler(Connection& conn, LuaServer& lua, const std::string &route) = 0;
 
         virtual inline void set_config_variables(CserverConf &conf) {}
 

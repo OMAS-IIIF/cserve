@@ -189,7 +189,7 @@ namespace cserve {
         bool running; //!< Main runloop should keep on going
         std::map<std::string, std::shared_ptr<RequestHandler>> handler[Connection::NumHttpMethods]; // request handlers for the different 9 request methods
         std::shared_ptr<RequestHandler> default_handler;
-        void *_user_data; //!< Some opaque user data that can be given to the Connection (for use within the handler)
+        // void *_user_data; //!< Some opaque user data that can be given to the Connection (for use within the handler)
         std::string _initscript;
         std::vector<cserve::RouteInfo> _lua_routes; //!< This vector holds the routes that are served by lua scripts
         std::vector<GlobalFunc> lua_globals;
@@ -429,14 +429,14 @@ namespace cserve {
         /*!
         * Return the user data that has been added previously
         */
-        inline void *user_data() { return _user_data; }
+        //inline void *user_data() { return _user_data; }
 
         /*!
         * Add a pointer to user data which will be made available to the handler
         *
         * \param[in] User data
         */
-        inline void user_data(void *user_data_p) { _user_data = user_data_p; }
+        //inline void user_data(void *user_data_p) { _user_data = user_data_p; }
 
         /*!
          * Stop the server gracefully (all destructors are called etc.) and the

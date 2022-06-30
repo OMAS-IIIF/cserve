@@ -4,6 +4,7 @@
 #include <csignal>
 #include <utility>
 #include <filesystem>
+#include <csignal>
 
 #include "Cserve.h"
 #include "LuaServer.h"
@@ -62,18 +63,6 @@ static void new_lua_func(lua_State *L, cserve::Connection &conn, [[maybe_unused]
 
 /*LUA TEST****************************************************************************/
 
-/*
-void RootHandler(cserve::Connection &conn, cserve::LuaServer &luaserver, void *user_data, std::shared_ptr<cserve::RequestHandlerData> request_data) {
-    conn.setBuffer();
-    std::vector <std::string> headers = conn.header();
-    for (auto & header : headers) {
-        conn << header << " : " << conn.header(header) << "\n";
-    }
-    conn << "URI: " << conn.uri() << "\n";
-    conn << "It works!" << cserve::Connection::flush_data;
-    return;
-}
-*/
 int main(int argc, char *argv[]) {
     auto logger = cserve::Server::create_logger();
     std::unordered_map<std::string, std::shared_ptr<cserve::RequestHandler>> handlers;
@@ -179,7 +168,6 @@ int main(int argc, char *argv[]) {
     if (!initscript.empty()) server.initscript(initscript);
     server.max_post_size(config.get_datasize("maxpost").value().as_size_t()); // set the maximal post size
     server.keep_alive_timeout(config.get_int("keepalive").value()); // set the keep alive timeout
-    //server.luaRoutes(config.get_luaroutes("routes").value_or(std::vector<cserve::RouteInfo>{}));
 
     //
     // initialize Lua with some "extensions" and global variables
@@ -205,10 +193,10 @@ int main(int argc, char *argv[]) {
     }
 
     serverptr = &server;
-    old_sighandler = signal(SIGINT, sighandler);
+    old_sighandler = std::signal(SIGINT, sighandler);
     old_broken_pipe_handler = signal(SIGPIPE, SIG_IGN);
     server.run();
     logger->info("CSERVE has finished it's service");
-    (void) signal(SIGINT, old_sighandler);
-    (void) signal(SIGPIPE, old_broken_pipe_handler);
+    (void) std::signal(SIGINT, old_sighandler);
+    (void) std::signal(SIGPIPE, old_broken_pipe_handler);
 }
