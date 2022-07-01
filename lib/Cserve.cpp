@@ -600,6 +600,8 @@ namespace cserve {
                                     // available threads.
                                     //
                                     debug_output(__LINE__, "A thread finished, but the socket should remain open");
+                                    socket_control.remove_from_working_socket(msg);
+                                    debug_output(__LINE__, fmt::format("1a:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                     msg.type = SocketControl::NOOP;
                                     socket_control.add_dyn_socket(msg); // add socket to list to pe polled ==> CHANGES open_sockets!!
                                     //
@@ -612,6 +614,8 @@ namespace cserve {
                                         //
                                         SocketControl::SocketInfo sockid = opt_sockid.value();
                                         sockid.type = SocketControl::PROCESS_REQUEST;
+                                        socket_control.add_to_working_socket(sockid);
+                                        debug_output(__LINE__, fmt::format("1b:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                         SocketControl::send_control_message(sockets[i].fd, sockid);
                                         debug_output(__LINE__, "We have a waiting socket. Get it and make the thread processing it");
                                     } else {
@@ -627,6 +631,8 @@ namespace cserve {
                                 }
                                 case SocketControl::FINISHED_AND_CLOSE: {
                                     debug_output(__LINE__, "A thread finished and expects the socket to be closed");
+                                    socket_control.remove_from_working_socket(msg);
+                                    debug_output(__LINE__, fmt::format("2a:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                     //
                                     // A thread finished and expects the socket to be closed
                                     //
@@ -641,6 +647,8 @@ namespace cserve {
                                         //
                                         SocketControl::SocketInfo sockid = opt_sockid.value();
                                         sockid.type = SocketControl::PROCESS_REQUEST;
+                                        socket_control.add_to_working_socket(sockid);
+                                        debug_output(__LINE__, fmt::format("2b:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                         SocketControl::send_control_message(sockets[i].fd, sockid);
                                         debug_output(__LINE__, "We have a waiting socket. Get it and make the thread processing it");
                                     } else {
@@ -671,7 +679,7 @@ namespace cserve {
                                     debug_output(__LINE__, "A thread sent an EXIT message –– should not happen!");
                                     break;
                                 }
-                                case SocketControl::ERROR: {std::cerr << "##### A worker thread sent an ERROR message! This should never happen!" << std::endl;
+                                case SocketControl::ERROR: {
                                     debug_output(__LINE__, "A worker thread sent an ERROR message! This should never happen!");
                                     Server::logger()->error("A worker thread sent an ERROR message! This should never happen!");
                                     // ToDo: React to this message
@@ -698,8 +706,9 @@ namespace cserve {
                             SocketControl::SocketInfo sockid;
                             (void) socket_control.remove(socket_control.get_http_socket_id()); // remove the HTTP socket
                             (void) socket_control.remove(socket_control.get_ssl_socket_id()); // remove the SSL socket
+                            debug_output(__LINE__, fmt::format("-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                             socket_control.close_all_dynsocks(close_socket);
-                            socket_control.broadcast_exit(); // broadcast EXIT to all worker threads
+                            socket_control.broadcast_exit(close_socket); // broadcast EXIT to all worker threads
                             running = false;
                         } else if (i == socket_control.get_http_socket_id()) {
                             //
@@ -729,6 +738,8 @@ namespace cserve {
                             if (thread_control.thread_pop(tinfo)) { // thread available
                                 SocketControl::SocketInfo sockid = socket_control.remove(i); //  ==> CHANGES open_sockets!!
                                 sockid.type = SocketControl::PROCESS_REQUEST;
+                                socket_control.add_to_working_socket(sockid);
+                                debug_output(__LINE__, fmt::format("3b:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                 ssize_t n = SocketControl::send_control_message(tinfo.control_pipe, sockid);
                                 if (n < 0) {
                                     Server::logger()->warn("Got something unexpected...");
@@ -748,6 +759,7 @@ namespace cserve {
                             // we close and remove it
                             //
                             SocketControl::SocketInfo sockid = socket_control.remove(i); //  ==> CHANGES open_sockets!!
+                            socket_control.remove_from_working_socket(sockid);
                             close_socket(sockid);
                         } else if (i < socket_control.get_n_msg_sockets()) {
                             //

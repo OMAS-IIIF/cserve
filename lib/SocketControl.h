@@ -122,10 +122,14 @@ namespace cserve {
             }
 
             struct socket_info_hash {
-                size_t operator()(SocketInfo const &sockid) const noexcept {
+                int operator()(const SocketInfo &sockid) const noexcept {
                     return (sockid.sid);
                 }
             };
+
+            bool operator==(SocketInfo const &sockid) const {
+                return sid == sockid.sid;
+            }
 
         };
 
@@ -183,7 +187,11 @@ namespace cserve {
 
         SocketInfo remove(int pos);
 
-        inline void working_socket_add(const SocketInfo &sockid) { working_sockets.insert(sockid); }
+        inline void add_to_working_socket(const SocketInfo &sockid) { working_sockets.insert(sockid); }
+
+        inline void remove_from_working_socket(const SocketInfo &sockid) { working_sockets.erase(sockid); }
+
+        inline int working_socket_number() { return working_sockets.size(); }
 
         void move_to_waiting(int pos);
 
@@ -193,7 +201,7 @@ namespace cserve {
 
         static SocketInfo receive_control_message(int pipe_id);
 
-        void broadcast_exit();
+        void broadcast_exit(int (*closefunc)(const SocketInfo&));
 
         void close_all_dynsocks(int (*closefunc)(const SocketInfo&));
 
