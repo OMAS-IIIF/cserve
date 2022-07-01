@@ -18,6 +18,7 @@
 #include <cerrno>
 #include <csignal>
 #include <cstdlib>
+#include <chrono>
 
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -35,7 +36,8 @@
 #include "LuaServer.h"
 #include "makeunique.h"
 #include "DefaultHandler.h"
-#include "../handlers/scripthandler/ScriptHandler.h"
+#include "Global.h"
+//#include "../handlers/scripthandler/ScriptHandler.h"
 
 #include "CserveVersion.h"
 
@@ -107,7 +109,7 @@ namespace cserve {
                    unsigned nthreads,
                    const std::string &userid_str) : _port(port), _nthreads(nthreads),
                    _sockfd(-1), _ssl_sockfd(-1), _ssl_port(-1), _max_post_size(1024*1024),
-                   running(false), _keep_alive_timeout(20) {
+                   running(false), _keep_alive_timeout(5) {
         stoppipe[0] = -1;
         stoppipe[1] = -1;
 
@@ -309,27 +311,29 @@ namespace cserve {
     }
     //=========================================================================
 
-    static void *process_request(void *arg) {
-        auto *tdata = static_cast<ThreadControl::ThreadChildData *>(arg);
+    static void process_request(ThreadControl::ThreadChildData &tdata) {
+        //auto *tdata = static_cast<ThreadControl::ThreadChildData *>(arg);
         //pthread_t my_tid = pthread_self();
 
 
         pollfd readfds[1];
-        readfds[0] = {tdata->control_pipe, POLLIN, 0};
+        readfds[0] = {tdata.control_pipe, POLLIN, 0};
 
         do {
             int poll_status = poll(readfds, 1, -1);
             if (poll_status < 0) {
                 Server::logger()->error("Blocking poll on control pipe failed at [{}: {}]", this_src_file, __LINE__);
-                tdata->result = -1;
-                return nullptr;
+                tdata.result = -1;
+                return;
             }
             if (readfds[0].revents == POLLIN) {
-                SocketControl::SocketInfo msg = SocketControl::receive_control_message(tdata->control_pipe);
+                SocketControl::SocketInfo msg = SocketControl::receive_control_message(tdata.control_pipe);
                 switch (msg.type) {
                     case SocketControl::ERROR:
+                        debug_output(__LINE__, "process_request: SocketControl::ERROR");
                         break; // should never happen!
                     case SocketControl::PROCESS_REQUEST: {
+                        debug_output(__LINE__, "process_request: SocketControl::PROCESS_REQUEST");
                         //
                         // here we process the request
                         //
@@ -348,13 +352,25 @@ namespace cserve {
                         cserve::ThreadStatus tstatus;
                         int keep_alive = 1;
                         std::string tmpstr(msg.peer_ip);
+                        debug_output(__LINE__, "---------> BEFORE processRequest...");
+
+                        using std::chrono::high_resolution_clock;
+                        using std::chrono::duration_cast;
+                        using std::chrono::duration;
+                        using std::chrono::milliseconds;
+
+                        auto t1 = high_resolution_clock::now();
                         if (msg.ssl_sid != nullptr) {
-                            tstatus = tdata->serv->processRequest(&ins, &os, tmpstr,
+                            tstatus = tdata.serv->processRequest(&ins, &os, tmpstr,
                                                                   msg.peer_port, true, keep_alive);
                         } else {
-                            tstatus = tdata->serv->processRequest(&ins, &os, tmpstr,
+                            tstatus = tdata.serv->processRequest(&ins, &os, tmpstr,
                                                                   msg.peer_port, false, keep_alive);
                         }
+                        auto t2 = high_resolution_clock::now();
+                        duration<double, std::milli> ms_double = t2 - t1;
+                        Server::logger()->info("Processing request required {} ms", ms_double.count());
+                        debug_output(__LINE__, "---------> AFTER processRequest...");
                         //
                         // send the finished message
                         //
@@ -364,32 +380,32 @@ namespace cserve {
                         } else {
                             msg.type = SocketControl::FINISHED_AND_CLOSE;
                         }
-                        SocketControl::send_control_message(tdata->control_pipe, msg);
+                        SocketControl::send_control_message(tdata.control_pipe, msg);
                         break;
                     }
                     case SocketControl::EXIT: {
-                        //SocketControl::SocketInfo send_msg = receive_msg;
-                        tdata->result = 0;
-                        //close(tdata->control_pipe);
-                        //SocketControl::send_control_message(tdata->control_pipe, msg);
-                        return nullptr;
+                        debug_output(__LINE__, "process_request: SocketControl::EXIT");
+                        tdata.result = 0;
+                        return;
                     }
                     case SocketControl::NOOP: {
+                        debug_output(__LINE__, "process_request: SocketControl::NOOP");
                         break;
                     }
-                    default: {  }
+                    default: {
+                        debug_output(__LINE__, "process_request: SocketControl::--other--");
+                    }
                 }
             } else if (readfds[0].revents == POLLHUP) {
-                return nullptr;
+                return;
             } else if (readfds[0].revents == POLLERR) {
                 Server::logger()->error("Thread pool got POLLERR message");
-                return nullptr;
+                return;
             } else {
                 Server::logger()->error("Thread pool got UNKNONW(!) message");
-                return nullptr;
+                return;
             }
         } while (true);
-
     }
 
 
@@ -406,6 +422,14 @@ namespace cserve {
             Server::logger()->error("Socket error  at [{}: {}]: {}", this_src_file, __LINE__, strerror(errno));
             // ToDo: Perform appropriate action!
         }
+
+        if (_keep_alive_timeout > 0) {
+            struct timeval tv;
+            tv.tv_sec = _keep_alive_timeout;
+            tv.tv_usec = 0;
+            setsockopt(socket_id.sid, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof tv);
+        }
+
         socket_id.type = SocketControl::NOOP;
         socket_id.socket_type = SocketControl::DYN_SOCKET;
 
@@ -519,19 +543,6 @@ namespace cserve {
         Server::logger()->info("Creating thread pool....");
         ThreadControl thread_control(_nthreads, process_request, this);
         SocketControl socket_control(thread_control);
-        //
-        // now we are adding the lua routes
-        //
-//        for (auto &route : _lua_routes) {
-//            route.script = _scriptdir + "/" + route.script;
-//
-//            std::shared_ptr<ScriptHandler> handler = std::make_shared<ScriptHandler>(route.script);
-//            addRoute(route.method, route.route, handler);
-//
-//            old_ll = setlogmask(LOG_MASK(LOG_INFO));
-//            Server::logger()->info("Added _route '{}' with script '{}'", route.route.c_str(), route.script.c_str());
-//            setlogmask(old_ll);
-//        }
 
         _sockfd = prepare_socket(_port);
         old_ll = setlogmask(LOG_MASK(LOG_INFO));
@@ -588,6 +599,7 @@ namespace cserve {
                                     // if there are no waiting sockets, the thread will pause and be put on the list of
                                     // available threads.
                                     //
+                                    debug_output(__LINE__, "A thread finished, but the socket should remain open");
                                     msg.type = SocketControl::NOOP;
                                     socket_control.add_dyn_socket(msg); // add socket to list to pe polled ==> CHANGES open_sockets!!
                                     //
@@ -601,6 +613,7 @@ namespace cserve {
                                         SocketControl::SocketInfo sockid = opt_sockid.value();
                                         sockid.type = SocketControl::PROCESS_REQUEST;
                                         SocketControl::send_control_message(sockets[i].fd, sockid);
+                                        debug_output(__LINE__, "We have a waiting socket. Get it and make the thread processing it");
                                     } else {
                                         //
                                         // we have no waiting socket, so
@@ -608,10 +621,12 @@ namespace cserve {
                                         //
                                         ThreadControl::ThreadMasterData tinfo = thread_control[i]; // get thread info
                                         thread_control.thread_push(tinfo); // push thread to list of waiting threads
+                                        debug_output(__LINE__, "We have no waiting socket, push the thread to the list of available threads");
                                     }
                                     break;
                                 }
                                 case SocketControl::FINISHED_AND_CLOSE: {
+                                    debug_output(__LINE__, "A thread finished and expects the socket to be closed");
                                     //
                                     // A thread finished and expects the socket to be closed
                                     //
@@ -627,6 +642,7 @@ namespace cserve {
                                         SocketControl::SocketInfo sockid = opt_sockid.value();
                                         sockid.type = SocketControl::PROCESS_REQUEST;
                                         SocketControl::send_control_message(sockets[i].fd, sockid);
+                                        debug_output(__LINE__, "We have a waiting socket. Get it and make the thread processing it");
                                     } else {
                                         //
                                         // we have no waiting socket, so
@@ -634,6 +650,7 @@ namespace cserve {
                                         //
                                         ThreadControl::ThreadMasterData tinfo = thread_control[i]; // get thread info
                                         thread_control.thread_push(tinfo); // push thread to list of waiting threads
+                                        debug_output(__LINE__, "We have no waiting socket, so  push the thread to the list of available threads");
                                     }
                                     break;
                                 }
@@ -643,6 +660,7 @@ namespace cserve {
                                     //
                                     ::close(thread_control[i].control_pipe);
                                     thread_control.thread_delete(i);
+                                    debug_output(__LINE__, "A control socket has been closed – we assume the thread just finished");
                                     break;
                                 }
                                 case SocketControl::EXIT: {
@@ -650,15 +668,18 @@ namespace cserve {
                                     // a thread sent an EXIT message –– should not happen!!
                                     //
                                     Server::logger()->error("A worker thread sent an EXIT message! This should never happen!");
+                                    debug_output(__LINE__, "A thread sent an EXIT message –– should not happen!");
                                     break;
                                 }
-                                case SocketControl::ERROR: {
+                                case SocketControl::ERROR: {std::cerr << "##### A worker thread sent an ERROR message! This should never happen!" << std::endl;
+                                    debug_output(__LINE__, "A worker thread sent an ERROR message! This should never happen!");
                                     Server::logger()->error("A worker thread sent an ERROR message! This should never happen!");
                                     // ToDo: React to this message
                                     break;
                                 }
                                 default: {
                                     Server::logger()->error("A worker thread sent an non-identifiable message! This should never happen!");
+                                    debug_output(__LINE__, "A worker thread sent an non-identifiable message! This should never happen!");
                                     // error handling
                                 }
                             }
@@ -668,7 +689,7 @@ namespace cserve {
                             //
                             // STOP from interrupt thread: got input ready from stoppipe
                             //
-
+                            debug_output(__LINE__, "STOP from interrupt thread: got input ready from stoppipe");
                             SocketControl::SocketInfo msg = SocketControl::receive_control_message(sockets[i].fd); // read the message from the pipe
                             if (msg.type != SocketControl::EXIT) {
                                 Server::logger()->error("Got unexpected message from interrupt");
@@ -685,6 +706,7 @@ namespace cserve {
                             // external HTTP request coming in
                             //
                             // we got input ready from normal listener socket
+                            debug_output(__LINE__, "external HTTP request coming in");
                             SocketControl::SocketInfo sockid = accept_connection(sockets[i].fd, false);
                             socket_control.add_dyn_socket(sockid);
                             Server::logger()->info("Accepted connection from {}", sockid.peer_ip);
@@ -692,6 +714,7 @@ namespace cserve {
                             //
                             // external SSL request coming in
                             //
+                            debug_output(__LINE__, "external SSL request coming in");
                             SocketControl::SocketInfo sockid = accept_connection(sockets[i].fd, true);
                             socket_control.add_dyn_socket(sockid);
                             Server::logger()->info("Accepted SSL connection from {}", sockid.peer_ip);
@@ -701,6 +724,7 @@ namespace cserve {
                             // DYN_SOCKET: a client socket (already accepted) has data -> dispatch the processing to a free thread
                             // or put the request in the waiting queue (waiting for a free thread...)
                             //
+                            debug_output(__LINE__, "DYN_SOCKET: a client socket (already accepted) has data -> dispatch the processing to a free thread");
                             ThreadControl::ThreadMasterData tinfo;
                             if (thread_control.thread_pop(tinfo)) { // thread available
                                 SocketControl::SocketInfo sockid = socket_control.remove(i); //  ==> CHANGES open_sockets!!
@@ -813,7 +837,9 @@ namespace cserve {
         }
         if (ins->eof() || os->eof()) return CLOSE;
         try {
+            debug_output(__LINE__, "BEFORE Connection....");
             Connection conn(this, ins, os, _tmpdir);
+            debug_output(__LINE__, "AFTER Connection....");
 
             if (keep_alive <= 0) {
                 conn.keepAlive(false);

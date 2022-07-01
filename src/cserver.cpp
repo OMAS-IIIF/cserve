@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
     config.add_config(prefix, "jwtkey", "UP4014, the biggest steam engine", "The secret for generating JWT's (JSON Web Tokens) (exactly 42 characters).");
     config.add_config(prefix, "nthreads", static_cast<int>(std::thread::hardware_concurrency()), "Number of worker threads to be used by cserver");
     config.add_config(prefix, "tmpdir", "./tmp", "Path to the temporary directory (e.g. for uploads etc.).");
-    config.add_config(prefix, "keepalive", 5, "Number of seconds for the keep-alive option of HTTP 1.1.");
+    config.add_config(prefix, "keepalive", 10, "Number of seconds for the keep-alive option of HTTP 1.1. Set to 0 for no keep_alive. [default=10]");
     config.add_config(prefix, "maxpost", cserve::DataSize("1MB"), "A string indicating the maximal size of a POST request, e.g. '100M'.");
     config.add_config(prefix, "lua_include_path", "./scripts", "Include path for Lua.");
     config.add_config(prefix, "initscript", "", "Path to LUA init script.");

@@ -4,6 +4,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <thread>
 #include <pthread.h> //for threading , link with lpthread
 //#include <thread>
 #include <utility>
@@ -21,6 +22,7 @@
 namespace cserve {
 
     class Server; // Declaration only
+
 
     /*!
      * Error thrown by methods of ThreadControl
@@ -64,7 +66,7 @@ namespace cserve {
     class ThreadControl {
     public:
         typedef struct {
-            pthread_t tid;
+            std::shared_ptr<std::thread> thread_ptr;
             int control_pipe;
         } ThreadMasterData;
 
@@ -73,6 +75,9 @@ namespace cserve {
             int result;
             Server *serv;
         } ThreadChildData;
+
+        using ThreadFunction = std::function<void(ThreadChildData &thread_child_data)>;
+
 
     private:
         std::vector<ThreadMasterData> thread_list; //!> List of all threads
@@ -87,7 +92,7 @@ namespace cserve {
          * @param start_routine Function that the threads should run
          * @param serv Reference to the server
          */
-        ThreadControl(unsigned n_threads, void *(*start_routine)(void*), Server *serv);
+        ThreadControl(unsigned n_threads, const ThreadFunction& start_routine, Server *serv);
 
         /*!
          * Destructor

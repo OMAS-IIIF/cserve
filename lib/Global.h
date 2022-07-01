@@ -70,6 +70,13 @@ namespace cserve {
         std::transform(lstr.begin(), lstr.end(),lstr.begin(), ::toupper);
         return lstr;
     }
+
+    static std::mutex debug_mutex;
+
+    inline void debug_output(int line, const std::string &str) {
+        const std::lock_guard<std::mutex> lock(debug_mutex);
+        std::cerr << ">>>DEBUG line=" << line << ": " << str << std::endl;
+    };
 }
 
 #endif

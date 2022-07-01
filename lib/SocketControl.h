@@ -121,6 +121,12 @@ namespace cserve {
                 return *this;
             }
 
+            struct socket_info_hash {
+                size_t operator()(SocketInfo const &sockid) const noexcept {
+                    return (sockid.sid);
+                }
+            };
+
         };
 
     private:
@@ -128,12 +134,12 @@ namespace cserve {
         std::vector<pollfd> open_sockets; //!> open sockets waiting for reading
         std::vector<SocketInfo> generic_open_sockets; //!> open socket-info's waiting for reading
         std::queue<SocketInfo> waiting_sockets; //!> Sockets that have input and are waiting for the thread
-        //std::unordered_set<SocketInfo, socket_info_hash> working_sockets; //!> Socket's that are currently working
+        std::unordered_set<SocketInfo, SocketInfo::socket_info_hash> working_sockets; //!> Socket's that are currently working
         int n_msg_sockets; //!> Number of sockets communicating with the threads
         int stop_sock_id; //!> Index of the stopsocket (the thread that catches signals sens to this socket)
         int http_sock_id; //!> Index of the HTTP socckel
         int ssl_sock_id; //!> Index of the SSL socket
-        int dyn_socket_base; //!> base index of the dynanic sockets created by accept
+        int dyn_socket_base; //!> base index of the dynamic sockets created by accept
 
     public:
         /*!
@@ -177,7 +183,7 @@ namespace cserve {
 
         SocketInfo remove(int pos);
 
-
+        inline void working_socket_add(const SocketInfo &sockid) { working_sockets.insert(sockid); }
 
         void move_to_waiting(int pos);
 

@@ -1,6 +1,7 @@
 //
 // Created by Lukas Rosenthaler on 08.07.20.
 //
+#include <functional>
 
 #include "ThreadControl.h"
 #include "Cserve.h"
@@ -9,9 +10,8 @@ static const char file_[] = __FILE__;
 
 namespace cserve {
 
-    ThreadControl::ThreadControl(unsigned n_threads, void *(*start_routine)(void*), Server *serv) {
-        //thread_list.reserve(n_threads);
-        //child_data.reserve(n_threads);
+
+    ThreadControl::ThreadControl(unsigned n_threads, const ThreadFunction& start_routine, Server *serv) {
         //
         // first we have to create the vector for the child data. We misuse the "result"-field
         // to store the master's socket endpoint.
@@ -27,16 +27,10 @@ namespace cserve {
         //
         // now we can create the threads
         //
-        ThreadChildData *cd = child_data.data(); // we get the raw array of child data
         for (int n = 0; n < n_threads; n++) {
             ThreadMasterData thread_data;
             thread_data.control_pipe = child_data[n].result;
-            pthread_attr_t tattr;
-            pthread_attr_init(&tattr);
-            if (pthread_create(&thread_data.tid, &tattr, start_routine, (void *) (&cd[n])) != 0) {
-                Server::logger()->error("Could not create thread at [{}: {}]: {}", file_, __LINE__, strerror(errno));
-                break;
-            }
+            thread_data.thread_ptr = std::make_shared<std::thread>(start_routine, std::ref(child_data[n]));
             thread_list.push_back(thread_data);
             thread_push(thread_data);
         }
@@ -44,11 +38,8 @@ namespace cserve {
     //=========================================================================
 
     ThreadControl::~ThreadControl() {
-        for (auto const &thread : thread_list) {
-            int err = pthread_join(thread.tid, nullptr);
-            if (err != 0) {
-                Server::logger()->info("pthread_join failed with error code: {}", strerror(err));
-            }
+        for (auto const &thread_data : thread_list) {
+            thread_data.thread_ptr->join();
         }
     }
     //=========================================================================
