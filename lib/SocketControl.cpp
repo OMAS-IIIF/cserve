@@ -141,15 +141,12 @@ namespace cserve {
     //=========================================================================§
 
     void SocketControl::broadcast_exit(int (*closefunc)(const SocketInfo&)) {
-        std::cerr << "##### In broadcast_exit()..." << std::endl;
         SIData data = {EXIT, CONTROL_SOCKET, -1, nullptr, nullptr, "", -1};
         for (auto &ss: working_sockets) {
             (void) closefunc(ss);
         }
         for (char &c: data.peer_ip) { c = '\0'; }
         for (int i = 0; i < n_msg_sockets; i++) {
-            std::string myinfo = fmt::format("In broadcast_exit(): SocketType={} sid={} peer_ip={}", generic_open_sockets[i].socket_type, generic_open_sockets[i].sid, generic_open_sockets[i].peer_ip);
-            debug_output(__LINE__, myinfo);
             data.sid = generic_open_sockets[i].sid;
             ::send(generic_open_sockets[i].sid, &data, sizeof(SIData), 0);
         }

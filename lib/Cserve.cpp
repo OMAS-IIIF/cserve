@@ -330,10 +330,8 @@ namespace cserve {
                 SocketControl::SocketInfo msg = SocketControl::receive_control_message(tdata.control_pipe);
                 switch (msg.type) {
                     case SocketControl::ERROR:
-                        debug_output(__LINE__, "process_request: SocketControl::ERROR");
                         break; // should never happen!
                     case SocketControl::PROCESS_REQUEST: {
-                        debug_output(__LINE__, "process_request: SocketControl::PROCESS_REQUEST");
                         //
                         // here we process the request
                         //
@@ -352,7 +350,6 @@ namespace cserve {
                         cserve::ThreadStatus tstatus;
                         int keep_alive = 1;
                         std::string tmpstr(msg.peer_ip);
-                        debug_output(__LINE__, "---------> BEFORE processRequest...");
 
                         using std::chrono::high_resolution_clock;
                         using std::chrono::duration_cast;
@@ -370,7 +367,6 @@ namespace cserve {
                         auto t2 = high_resolution_clock::now();
                         duration<double, std::milli> ms_double = t2 - t1;
                         Server::logger()->info("Processing request required {} ms", ms_double.count());
-                        debug_output(__LINE__, "---------> AFTER processRequest...");
                         //
                         // send the finished message
                         //
@@ -384,16 +380,13 @@ namespace cserve {
                         break;
                     }
                     case SocketControl::EXIT: {
-                        debug_output(__LINE__, "process_request: SocketControl::EXIT");
                         tdata.result = 0;
                         return;
                     }
                     case SocketControl::NOOP: {
-                        debug_output(__LINE__, "process_request: SocketControl::NOOP");
                         break;
                     }
                     default: {
-                        debug_output(__LINE__, "process_request: SocketControl::--other--");
                     }
                 }
             } else if (readfds[0].revents == POLLHUP) {
@@ -599,9 +592,7 @@ namespace cserve {
                                     // if there are no waiting sockets, the thread will pause and be put on the list of
                                     // available threads.
                                     //
-                                    debug_output(__LINE__, "A thread finished, but the socket should remain open");
                                     socket_control.remove_from_working_socket(msg);
-                                    debug_output(__LINE__, fmt::format("1a:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                     msg.type = SocketControl::NOOP;
                                     socket_control.add_dyn_socket(msg); // add socket to list to pe polled ==> CHANGES open_sockets!!
                                     //
@@ -615,9 +606,7 @@ namespace cserve {
                                         SocketControl::SocketInfo sockid = opt_sockid.value();
                                         sockid.type = SocketControl::PROCESS_REQUEST;
                                         socket_control.add_to_working_socket(sockid);
-                                        debug_output(__LINE__, fmt::format("1b:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                         SocketControl::send_control_message(sockets[i].fd, sockid);
-                                        debug_output(__LINE__, "We have a waiting socket. Get it and make the thread processing it");
                                     } else {
                                         //
                                         // we have no waiting socket, so
@@ -625,14 +614,11 @@ namespace cserve {
                                         //
                                         ThreadControl::ThreadMasterData tinfo = thread_control[i]; // get thread info
                                         thread_control.thread_push(tinfo); // push thread to list of waiting threads
-                                        debug_output(__LINE__, "We have no waiting socket, push the thread to the list of available threads");
                                     }
                                     break;
                                 }
                                 case SocketControl::FINISHED_AND_CLOSE: {
-                                    debug_output(__LINE__, "A thread finished and expects the socket to be closed");
                                     socket_control.remove_from_working_socket(msg);
-                                    debug_output(__LINE__, fmt::format("2a:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                     //
                                     // A thread finished and expects the socket to be closed
                                     //
@@ -648,9 +634,7 @@ namespace cserve {
                                         SocketControl::SocketInfo sockid = opt_sockid.value();
                                         sockid.type = SocketControl::PROCESS_REQUEST;
                                         socket_control.add_to_working_socket(sockid);
-                                        debug_output(__LINE__, fmt::format("2b:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                         SocketControl::send_control_message(sockets[i].fd, sockid);
-                                        debug_output(__LINE__, "We have a waiting socket. Get it and make the thread processing it");
                                     } else {
                                         //
                                         // we have no waiting socket, so
@@ -658,7 +642,6 @@ namespace cserve {
                                         //
                                         ThreadControl::ThreadMasterData tinfo = thread_control[i]; // get thread info
                                         thread_control.thread_push(tinfo); // push thread to list of waiting threads
-                                        debug_output(__LINE__, "We have no waiting socket, so  push the thread to the list of available threads");
                                     }
                                     break;
                                 }
@@ -668,7 +651,6 @@ namespace cserve {
                                     //
                                     ::close(thread_control[i].control_pipe);
                                     thread_control.thread_delete(i);
-                                    debug_output(__LINE__, "A control socket has been closed – we assume the thread just finished");
                                     break;
                                 }
                                 case SocketControl::EXIT: {
@@ -676,18 +658,15 @@ namespace cserve {
                                     // a thread sent an EXIT message –– should not happen!!
                                     //
                                     Server::logger()->error("A worker thread sent an EXIT message! This should never happen!");
-                                    debug_output(__LINE__, "A thread sent an EXIT message –– should not happen!");
                                     break;
                                 }
                                 case SocketControl::ERROR: {
-                                    debug_output(__LINE__, "A worker thread sent an ERROR message! This should never happen!");
                                     Server::logger()->error("A worker thread sent an ERROR message! This should never happen!");
                                     // ToDo: React to this message
                                     break;
                                 }
                                 default: {
                                     Server::logger()->error("A worker thread sent an non-identifiable message! This should never happen!");
-                                    debug_output(__LINE__, "A worker thread sent an non-identifiable message! This should never happen!");
                                     // error handling
                                 }
                             }
@@ -697,7 +676,6 @@ namespace cserve {
                             //
                             // STOP from interrupt thread: got input ready from stoppipe
                             //
-                            debug_output(__LINE__, "STOP from interrupt thread: got input ready from stoppipe");
                             SocketControl::SocketInfo msg = SocketControl::receive_control_message(sockets[i].fd); // read the message from the pipe
                             if (msg.type != SocketControl::EXIT) {
                                 Server::logger()->error("Got unexpected message from interrupt");
@@ -706,7 +684,6 @@ namespace cserve {
                             SocketControl::SocketInfo sockid;
                             (void) socket_control.remove(socket_control.get_http_socket_id()); // remove the HTTP socket
                             (void) socket_control.remove(socket_control.get_ssl_socket_id()); // remove the SSL socket
-                            debug_output(__LINE__, fmt::format("-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                             socket_control.close_all_dynsocks(close_socket);
                             socket_control.broadcast_exit(close_socket); // broadcast EXIT to all worker threads
                             running = false;
@@ -715,7 +692,6 @@ namespace cserve {
                             // external HTTP request coming in
                             //
                             // we got input ready from normal listener socket
-                            debug_output(__LINE__, "external HTTP request coming in");
                             SocketControl::SocketInfo sockid = accept_connection(sockets[i].fd, false);
                             socket_control.add_dyn_socket(sockid);
                             Server::logger()->info("Accepted connection from {}", sockid.peer_ip);
@@ -723,7 +699,6 @@ namespace cserve {
                             //
                             // external SSL request coming in
                             //
-                            debug_output(__LINE__, "external SSL request coming in");
                             SocketControl::SocketInfo sockid = accept_connection(sockets[i].fd, true);
                             socket_control.add_dyn_socket(sockid);
                             Server::logger()->info("Accepted SSL connection from {}", sockid.peer_ip);
@@ -733,13 +708,11 @@ namespace cserve {
                             // DYN_SOCKET: a client socket (already accepted) has data -> dispatch the processing to a free thread
                             // or put the request in the waiting queue (waiting for a free thread...)
                             //
-                            debug_output(__LINE__, "DYN_SOCKET: a client socket (already accepted) has data -> dispatch the processing to a free thread");
                             ThreadControl::ThreadMasterData tinfo;
                             if (thread_control.thread_pop(tinfo)) { // thread available
                                 SocketControl::SocketInfo sockid = socket_control.remove(i); //  ==> CHANGES open_sockets!!
                                 sockid.type = SocketControl::PROCESS_REQUEST;
                                 socket_control.add_to_working_socket(sockid);
-                                debug_output(__LINE__, fmt::format("3b:-+-+-+-+-+-+-+-+-+->Number of working sockets: {}", socket_control.working_socket_number()));
                                 ssize_t n = SocketControl::send_control_message(tinfo.control_pipe, sockid);
                                 if (n < 0) {
                                     Server::logger()->warn("Got something unexpected...");
@@ -849,9 +822,7 @@ namespace cserve {
         }
         if (ins->eof() || os->eof()) return CLOSE;
         try {
-            debug_output(__LINE__, "BEFORE Connection....");
             Connection conn(this, ins, os, _tmpdir);
-            debug_output(__LINE__, "AFTER Connection....");
 
             if (keep_alive <= 0) {
                 conn.keepAlive(false);
