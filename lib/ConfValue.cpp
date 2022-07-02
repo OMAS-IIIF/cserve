@@ -64,7 +64,7 @@ namespace cserve {
               _envname(std::move(envname)),
               _value_type(BOOL) {
         app->add_flag(std::move(optionname), _bool_value, _description)
-                ->envname(_envname);
+        ->envname(_envname);
     }
 
     ConfValue::ConfValue(std::string prefix,
@@ -73,8 +73,12 @@ namespace cserve {
                          std::string description,
                          std::string envname,
                          const std::shared_ptr<CLI::App> &app)
-            : _prefix(std::move(prefix)), _optionname(optionname), _int_value(ivalue),
-              _description(std::move(description)), _envname(std::move(envname)), _value_type(INTEGER) {
+            : _prefix(std::move(prefix)),
+              _optionname(optionname),
+              _int_value(ivalue),
+              _description(std::move(description)),
+              _envname(std::move(envname)),
+              _value_type(INTEGER) {
         app->add_option(std::move(optionname), _int_value, _description)
                 ->envname(_envname)
                 ->check(CLI::TypeValidator<int>());

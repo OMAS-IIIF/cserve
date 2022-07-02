@@ -223,14 +223,17 @@ namespace cserve {
 
         if (!_cserverOpts->get_option("--config")->empty()) {
             cserve::LuaServer luacfg = cserve::LuaServer(_values["config"]->get_string().value());
-            typedef std::variant<int, float, std::string, cserve::DataSize, spdlog::level::level_enum, std::vector<cserve::RouteInfo>> UnionDataType;
+            typedef std::variant<bool, int, float, std::string, cserve::DataSize, spdlog::level::level_enum, std::vector<cserve::RouteInfo>> UnionDataType;
             std::unordered_map<std::string, UnionDataType> valmap;
 
             for (auto const& [name, val] : _values) {
                 auto vtype = val->get_type();
                 //auto prefix = val->get_
                 switch (vtype) {
-                    case cserve::ConfValue::INTEGER:
+                     case cserve::ConfValue::BOOL:
+                        valmap.emplace(name, luacfg.configInteger(val->get_prefix(), name, val->get_bool().value()));
+                        break;
+                   case cserve::ConfValue::INTEGER:
                         valmap.emplace(name, luacfg.configInteger(val->get_prefix(), name, val->get_int().value()));
                         break;
                     case cserve::ConfValue::FLOAT:
@@ -254,6 +257,9 @@ namespace cserve {
                 if (_cserverOpts->get_option(val->get_optionname())->empty()) {
                     auto vtype = val->get_type();
                     switch (vtype) {
+                        case cserve::ConfValue::BOOL:
+                            _values[name]->set_value(std::get<bool>(valmap[name]));
+                            break;
                         case cserve::ConfValue::INTEGER:
                             _values[name]->set_value(std::get<int>(valmap[name]));
                             break;

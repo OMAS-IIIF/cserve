@@ -34,12 +34,12 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "BTEST";
         bool bdefval = true;
-        auto bval = cserve::ConfValue("cserve", "btest", bdefval, description, envname, app);
+        auto bval = cserve::ConfValue("cserve", "--btest", bdefval, description, envname, app);
         REQUIRE(bval.get_bool().value() == bdefval);
         REQUIRE(bval.get_description() == description);
         REQUIRE(bval.get_envname() == envname);
         int argc = 2;
-        char const *argv[] = {"gaga", "--btest"};
+        char const *argv[] = { "test", "--btest"};
         app->parse(argc, argv);
         REQUIRE(bval.get_bool().value());
         REQUIRE_THROWS_AS(bval.get_int().value(), std::bad_optional_access);
@@ -56,12 +56,12 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "ITEST";
         int idefval = 4711;
-        auto ival = cserve::ConfValue("cserve", "itest", idefval, description, envname, app);
+        auto ival = cserve::ConfValue("cserve", "--itest", idefval, description, envname, app);
         REQUIRE(ival.get_int().value() == idefval);
         REQUIRE(ival.get_description() == description);
         REQUIRE(ival.get_envname() == envname);
-        int argc = 2;
-        char const *argv[] = {"--itest", "42"};
+        int argc = 3;
+        char const *argv[] = {"test", "--itest", "42"};
         app->parse(argc, argv);
         REQUIRE(ival.get_int().value() == 42);
         REQUIRE_THROWS_AS(ival.get_bool().value(), std::bad_optional_access);
@@ -79,12 +79,12 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "FTEST";
         float fdefval = 3.1415;
-        auto fval = cserve::ConfValue("cserve", "ftest", fdefval, description, envname, app);
+        auto fval = cserve::ConfValue("cserve", "--ftest", fdefval, description, envname, app);
         REQUIRE(fval.get_float().value() == fdefval);
         REQUIRE(fval.get_description() == description);
         REQUIRE(fval.get_envname() == envname);
-        int argc = 2;
-        char const *argv[] = {"--ftest", "2.71"};
+        int argc = 3;
+        char const *argv[] = {"test", "--ftest", "2.71"};
         app->parse(argc, argv);
         REQUIRE(fval.get_float().value() == 2.71f);
         REQUIRE_THROWS_AS(fval.get_bool().value(), std::bad_optional_access);
@@ -101,12 +101,12 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "STEST";
         char const *sdefval = "Teststring";
-        auto sval = cserve::ConfValue("cserve", "stest", sdefval, description, envname, app);
+        auto sval = cserve::ConfValue("cserve", "--stest", sdefval, description, envname, app);
         REQUIRE(sval.get_string().value() == std::string(sdefval));
         REQUIRE(sval.get_description() == description);
         REQUIRE(sval.get_envname() == envname);
-        int argc = 2;
-        char const *argv[] = {"--ftest", "Another string"};
+        int argc = 3;
+        char const *argv[] = {"test", "--stest", "Another string"};
         app->parse(argc, argv);
         REQUIRE(sval.get_string().value() == std::string("Another string"));
         REQUIRE_THROWS_AS(sval.get_bool().value(), std::bad_optional_access);
@@ -123,12 +123,12 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "STEST";
         std::string sdefval = "Teststring";
-        auto sval = cserve::ConfValue("cserve", "stest", sdefval, description, envname, app);
+        auto sval = cserve::ConfValue("cserve", "--stest", sdefval, description, envname, app);
         REQUIRE(sval.get_string().value() == std::string(sdefval));
         REQUIRE(sval.get_description() == description);
         REQUIRE(sval.get_envname() == envname);
-        int argc = 2;
-        char const *argv[] = {"--ftest", "Another string"};
+        int argc = 3;
+        char const *argv[] = {"test", "--stest", "Another string"};
         app->parse(argc, argv);
         REQUIRE(sval.get_string().value() == std::string("Another string"));
         REQUIRE_THROWS_AS(sval.get_bool().value(), std::bad_optional_access);
@@ -145,12 +145,12 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "DSTEST";
         cserve::DataSize dsdefval("10MB");
-        auto sval = cserve::ConfValue("cserve", "dstest", dsdefval, description, envname, app);
+        auto sval = cserve::ConfValue("cserve", "--dstest", dsdefval, description, envname, app);
         REQUIRE(sval.get_datasize().value().as_size_t() == dsdefval.as_size_t());
         REQUIRE(sval.get_description() == description);
         REQUIRE(sval.get_envname() == envname);
-        int argc = 2;
-        char const *argv[] = {"--dstest", "1TB"};
+        int argc = 3;
+        char const *argv[] = {"test", "--dstest", "1TB"};
         app->parse(argc, argv);
         REQUIRE(sval.get_datasize().value().as_size_t() == cserve::DataSize("1TB").as_size_t());
         REQUIRE_THROWS_AS(sval.get_bool().value(), std::bad_optional_access);
@@ -180,14 +180,14 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         int i = 0;
         for (auto defval: all) {
             std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>();
-            auto sval = cserve::ConfValue("cserve", "test", defval, description, envname, app);
+            auto sval = cserve::ConfValue("cserve", "--lltest", defval, description, envname, app);
             REQUIRE(sval.get_loglevel().value() == defval);
             REQUIRE(sval.get_loglevel_as_string().value() == allstr[i]);
             REQUIRE(sval.get_description() == description);
             REQUIRE(sval.get_envname() == envname);
-            int argc = 2;
+            int argc = 3;
             int ii = i >= (all.size() - 1) ? 0 : i + 1;
-            char const *argv[] = {"--loglevel", allstr[ii].c_str()};
+            char const *argv[] = {"test", "--lltest", allstr[ii].c_str()};
             app->parse(argc, argv);
             REQUIRE(sval.get_loglevel().value() == all[ii]);
             REQUIRE(sval.get_loglevel_as_string().value() == allstr[ii]);
@@ -209,12 +209,12 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
                 cserve::RouteInfo("GET:/gaga:gaga.lua"),
                 cserve::RouteInfo("PUT:/gugus:gugus.lua"),
         };
-        auto sval = cserve::ConfValue("cserve", "lrtest", lrdefval, description, envname, app);
+        auto sval = cserve::ConfValue("cserve", "--lrtest", lrdefval, description, envname, app);
         REQUIRE(sval.get_luaroutes().value() == lrdefval);
         REQUIRE(sval.get_description() == description);
         REQUIRE(sval.get_envname() == envname);
-        int argc = 3;
-        char const *argv[] = {"--lrtest", "GET:/hello:hello.lua", "PUT:/byebye:byebye.lua"};
+        int argc = 4;
+        char const *argv[] = {"test", "--lrtest", "GET:/hello:hello.lua", "PUT:/byebye:byebye.lua"};
         app->parse(argc, argv);
         auto result = sval.get_luaroutes().value();
         REQUIRE(result.size() == 2);
@@ -234,7 +234,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "ITEST";
         int idefval = 4711;
-        auto ival = cserve::ConfValue("cserve", "itest", idefval, description, envname, app);
+        auto ival = cserve::ConfValue("cserve", "--itest", idefval, description, envname, app);
         putenv((char *) "ITEST=1234");
         int argc = 1;
         char const *argv[] = {"program"};
@@ -247,7 +247,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "FTEST";
         float fdefval = 3.1415f;
-        auto ival = cserve::ConfValue("cserve", "ftest", fdefval, description, envname, app);
+        auto ival = cserve::ConfValue("cserve", "--ftest", fdefval, description, envname, app);
         putenv((char *) "FTEST=2.67");
         int argc = 1;
         char const *argv[] = {"program"};
@@ -260,7 +260,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "STEST";
         std::string sdefval = "soso lala";
-        auto ival = cserve::ConfValue("cserve", "ftest", sdefval, description, envname, app);
+        auto ival = cserve::ConfValue("cserve", "--ftest", sdefval, description, envname, app);
         putenv((char *) "STEST=was soll denn das?");
         int argc = 1;
         char const *argv[] = {"program"};
@@ -273,7 +273,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "DSTEST";
         cserve::DataSize dsdefval("1MB");
-        auto dsval = cserve::ConfValue("cserve", "dstest", dsdefval, description, envname, app);
+        auto dsval = cserve::ConfValue("cserve", "--dstest", dsdefval, description, envname, app);
         putenv((char *) "DSTEST=2GB");
         int argc = 1;
         char const *argv[] = {"program"};
@@ -286,7 +286,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         std::string description = "This is a description";
         std::string envname = "LLTEST";
         spdlog::level::level_enum lldefval = spdlog::level::level_enum::info;
-        auto dsval = cserve::ConfValue("cserve", "lltest", lldefval, description, envname, app);
+        auto dsval = cserve::ConfValue("cserve", "--lltest", lldefval, description, envname, app);
         putenv((char *) "LLTEST=ERR");
         int argc = 1;
         char const *argv[] = {"program"};
@@ -302,7 +302,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
                 cserve::RouteInfo("GET:/gaga:gaga.lua"),
                 cserve::RouteInfo("PUT:/gugus:gugus.lua"),
         };
-        auto lrval = cserve::ConfValue("cserve", "lrtest", lrdefval, description, envname, app);
+        auto lrval = cserve::ConfValue("cserve", "--lrtest", lrdefval, description, envname, app);
         putenv((char *) "LRTEST=POST:/hoppla:hoppla.lua;DELETE:/delme:delme.lua");
         int argc = 1;
         char const *argv[] = {"program"};
