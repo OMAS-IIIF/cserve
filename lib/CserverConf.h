@@ -42,6 +42,8 @@ namespace cserve {
          */
         explicit CserverConf(std::string lua_global_name = "config");
 
+        void add_config(const std::string &prefix, const std::string &name, bool defaultval, const std::string &description);
+
         void add_config(const std::string &prefix, const std::string &name, int defaultval, const std::string &description);
 
         void add_config(const std::string &prefix, std::string name, float defaultval, const std::string &description);
@@ -68,6 +70,8 @@ namespace cserve {
         [[nodiscard]] inline std::string get_lua_global_name() const { return lua_global_name; }
 
         inline const std::unordered_map<std::string, std::shared_ptr<cserve::ConfValue>> &get_values() { return _values; }
+
+        [[nodiscard]] std::optional<bool> get_bool(const std::string &name) const;
 
         [[nodiscard]] std::optional<int> get_int(const std::string &name) const;
 

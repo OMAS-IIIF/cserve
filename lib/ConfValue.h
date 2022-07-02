@@ -49,11 +49,12 @@ namespace cserve {
     class ConfValue {
     public:
         enum DataType {
-            INTEGER, FLOAT, STRING, DATASIZE, LOGLEVEL, LUAROUTES
+            BOOL, INTEGER, FLOAT, STRING, DATASIZE, LOGLEVEL, LUAROUTES
         };
     private:
         std::string _prefix;
         DataType _value_type{};
+        bool _bool_value{};
         int _int_value{};
         float _float_value{};
         std::string _string_value{};
@@ -65,6 +66,9 @@ namespace cserve {
         std::string _envname{};
     public:
         inline ConfValue() = default;
+
+        ConfValue(std::string prefix, std::string optionname, bool bvalue, std::string description, std::string envname,
+                  const std::shared_ptr<CLI::App> &app);
 
         ConfValue(std::string prefix, std::string optionname, int ivalue, std::string description, std::string envname,
                   const std::shared_ptr<CLI::App> &app);
@@ -102,6 +106,7 @@ namespace cserve {
         inline ConfValue &operator=(const ConfValue &cv) {
             _prefix = cv._prefix;
             _value_type = cv._value_type;
+            _bool_value = cv._bool_value;
             _int_value = cv._int_value;
             _float_value = cv._float_value;
             _string_value = cv._string_value;
@@ -118,6 +123,15 @@ namespace cserve {
         inline std::string get_optionname() const { return _optionname; }
 
         [[nodiscard]] inline DataType get_type() const { return _value_type; }
+
+        [[nodiscard]] inline std::optional<bool> get_bool() const {
+            if (_value_type == BOOL) {
+                return _bool_value;
+            }
+            else {
+                return {};
+            }
+        }
 
         [[nodiscard]] inline std::optional<int> get_int() const {
             if (_value_type == INTEGER) {
@@ -201,6 +215,11 @@ namespace cserve {
             else {
                 return {};
             }
+        }
+
+        inline void set_value(bool bval) {
+            _bool_value = bval;
+            _value_type = BOOL;
         }
 
         inline void set_value(int ival) {

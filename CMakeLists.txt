@@ -96,6 +96,7 @@ add_subdirectory(handlers/testhandler)
 add_subdirectory(handlers/pinghandler)
 add_subdirectory(handlers/scripthandler)
 add_subdirectory(handlers/filehandler)
+add_subdirectory(handlers/iiifhandler)
 
 
 link_directories(
@@ -143,7 +144,8 @@ add_dependencies(cserver
         testhandler
         pinghandler
         scripthandler
-        filehandler)
+        filehandler
+        iiifhandler)
 
 add_custom_command(TARGET cserver POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy

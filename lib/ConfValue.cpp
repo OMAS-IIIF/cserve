@@ -51,23 +51,39 @@ namespace cserve {
         return size_str;
     }
 
-    ConfValue::ConfValue(std::string prefix, std::string optionname, int ivalue, std::string description,
+    ConfValue::ConfValue(std::string prefix,
+                         std::string optionname,
+                         bool bvalue,
+                         std::string description,
+                         std::string envname,
+                         const std::shared_ptr<CLI::App> &app)
+            : _prefix(std::move(prefix)),
+              _optionname(optionname),
+              _bool_value(bvalue),
+              _description(std::move(description)),
+              _envname(std::move(envname)),
+              _value_type(BOOL) {
+        app->add_flag(std::move(optionname), _bool_value, _description)
+                ->envname(_envname);
+    }
+
+    ConfValue::ConfValue(std::string prefix,
+                         std::string optionname,
+                         int ivalue,
+                         std::string description,
                          std::string envname,
                          const std::shared_ptr<CLI::App> &app)
             : _prefix(std::move(prefix)), _optionname(optionname), _int_value(ivalue),
-              _description(std::move(description)),
-              _envname(std::move(envname)), _value_type(INTEGER) {
+              _description(std::move(description)), _envname(std::move(envname)), _value_type(INTEGER) {
         app->add_option(std::move(optionname), _int_value, _description)
                 ->envname(_envname)
                 ->check(CLI::TypeValidator<int>());
     }
 
     ConfValue::ConfValue(std::string prefix, std::string optionname, float fvalue, std::string description,
-                         std::string envname,
-                         const std::shared_ptr<CLI::App> &app)
+                         std::string envname, const std::shared_ptr<CLI::App> &app)
             : _prefix(std::move(prefix)), _optionname(optionname), _float_value(fvalue),
-              _description(std::move(description)),
-              _envname(std::move(envname)), _value_type(FLOAT) {
+              _description(std::move(description)), _envname(std::move(envname)), _value_type(FLOAT) {
         app->add_option(std::move(optionname), _float_value, _description)
                 ->envname(_envname)
                 ->check(CLI::Number);
@@ -135,6 +151,7 @@ namespace cserve {
 
     std::ostream & operator<<(std::ostream &os, const std::shared_ptr<ConfValue>& p) {
         switch (p->_value_type) {
+            case ConfValue::DataType::BOOL: return os << "BOOL: " << p->get_bool().value_or(false);
             case ConfValue::DataType::INTEGER: return os << "INTEGER: " << p->get_int().value_or(9999);
             case ConfValue::DataType::FLOAT: return os << "FLOAT: " << p->get_float().value_or(9999.9999);
             case ConfValue::DataType::STRING: return os << "STRING: " << p->get_string().value_or("--UNDEFINED--");

@@ -31,10 +31,6 @@ namespace cserve {
 
         void handler(Connection& conn, LuaServer &lua, const std::string &route) override;
 
-        //[[maybe_unused]] std::string route() { return _route; }
-
-        //[[maybe_unused]] std::string docroot() { return _docroot; }
-
          void set_config_variables(CserverConf &conf) override;
 
          void get_config_variables(const CserverConf &conf) override;

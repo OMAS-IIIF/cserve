@@ -52,14 +52,13 @@ target_link_libraries(tests_00
         ${CMAKE_DL_LIBS})
 
 
-add_test(NAME tests_00 COMMAND tests_00 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-
 add_executable (tests_01 test_01.cpp)
 
 include_directories(
         ${COMMON_LOCAL}/include
         /usr/local/include
 )
+
 target_link_libraries(tests_01
         cserve
         Catch2Main
@@ -78,9 +77,12 @@ target_link_libraries(tests_01
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(tests_01 ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
 endif()
+
+add_test(NAME tests_00 COMMAND tests_00 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_test(NAME tests_01 COMMAND tests_01 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 

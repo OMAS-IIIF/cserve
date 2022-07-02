@@ -23,6 +23,9 @@ namespace cserve {
             lua_pushstring(L, name.c_str()); // table1 - "index_L1"
             auto vtype = val->get_type();
             switch (vtype) {
+                case cserve::ConfValue::BOOL:
+                    lua_pushboolean(L, val->get_bool().value_or(true)); // "table1 - index_L1 - value_L1"
+                    break;
                 case cserve::ConfValue::INTEGER:
                     lua_pushinteger(L, val->get_int().value_or(-1)); // "table1 - index_L1 - value_L1"
                     break;
@@ -60,6 +63,16 @@ namespace cserve {
             lua_rawset(L, -3); // table1
         }
         lua_setglobal(L, conf->get_lua_global_name().c_str());
+    }
+
+    std::optional<bool> CserverConf::get_bool(const std::string &name) const {
+        try {
+            auto val = _values.at(name);
+            return val->get_bool();
+        }
+        catch (std::out_of_range &err) {
+            return {};
+        }
     }
 
     std::optional<int> CserverConf::get_int(const std::string &name) const {
@@ -128,6 +141,14 @@ namespace cserve {
         //
         _cserverOpts = std::make_shared<CLI::App>("cserver is a small C++ based webserver with Lua integration.", "cserver");
         _serverconf_ok = 0;
+    }
+
+    void CserverConf::add_config(const std::string &prefix, const std::string &name, bool defaultval,
+                                 const std::string &description) {
+        std::string optionname = "--" + name;
+        std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
+        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, std::move(description),
+                                                            envname, _cserverOpts);
     }
 
     void CserverConf::add_config(const std::string &prefix, const std::string &name, int defaultval,

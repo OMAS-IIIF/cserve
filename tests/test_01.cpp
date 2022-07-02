@@ -29,6 +29,28 @@ TEST_CASE("DataSize class", "DataSize") {
 }
 
 TEST_CASE("Testing ConfValue class", "[ConfValue]") {
+    SECTION("Boolean testing") {
+        std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>();
+        std::string description = "This is a description";
+        std::string envname = "BTEST";
+        bool bdefval = true;
+        auto bval = cserve::ConfValue("cserve", "btest", bdefval, description, envname, app);
+        REQUIRE(bval.get_bool().value() == bdefval);
+        REQUIRE(bval.get_description() == description);
+        REQUIRE(bval.get_envname() == envname);
+        int argc = 2;
+        char const *argv[] = {"gaga", "--btest"};
+        app->parse(argc, argv);
+        REQUIRE(bval.get_bool().value());
+        REQUIRE_THROWS_AS(bval.get_int().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(bval.get_float().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(bval.get_string().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(bval.get_datasize().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(bval.get_loglevel().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(bval.get_loglevel_as_string().value(), std::bad_optional_access);
+        REQUIRE_THROWS_AS(bval.get_luaroutes().value(), std::bad_optional_access);
+    }
+
     SECTION("Integer testing") {
         std::shared_ptr<CLI::App> app = std::make_shared<CLI::App>();
         std::string description = "This is a description";
@@ -42,6 +64,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         char const *argv[] = {"--itest", "42"};
         app->parse(argc, argv);
         REQUIRE(ival.get_int().value() == 42);
+        REQUIRE_THROWS_AS(ival.get_bool().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(ival.get_float().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(ival.get_string().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(ival.get_datasize().value(), std::bad_optional_access);
@@ -64,6 +87,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         char const *argv[] = {"--ftest", "2.71"};
         app->parse(argc, argv);
         REQUIRE(fval.get_float().value() == 2.71f);
+        REQUIRE_THROWS_AS(fval.get_bool().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(fval.get_int().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(fval.get_string().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(fval.get_datasize().value(), std::bad_optional_access);
@@ -85,6 +109,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         char const *argv[] = {"--ftest", "Another string"};
         app->parse(argc, argv);
         REQUIRE(sval.get_string().value() == std::string("Another string"));
+        REQUIRE_THROWS_AS(sval.get_bool().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_int().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_float().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_datasize().value(), std::bad_optional_access);
@@ -106,6 +131,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         char const *argv[] = {"--ftest", "Another string"};
         app->parse(argc, argv);
         REQUIRE(sval.get_string().value() == std::string("Another string"));
+        REQUIRE_THROWS_AS(sval.get_bool().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_int().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_float().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_datasize().value(), std::bad_optional_access);
@@ -127,6 +153,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         char const *argv[] = {"--dstest", "1TB"};
         app->parse(argc, argv);
         REQUIRE(sval.get_datasize().value().as_size_t() == cserve::DataSize("1TB").as_size_t());
+        REQUIRE_THROWS_AS(sval.get_bool().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_int().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_float().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_string().value(), std::bad_optional_access);
@@ -164,6 +191,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
             app->parse(argc, argv);
             REQUIRE(sval.get_loglevel().value() == all[ii]);
             REQUIRE(sval.get_loglevel_as_string().value() == allstr[ii]);
+            REQUIRE_THROWS_AS(sval.get_bool().value(), std::bad_optional_access);
             REQUIRE_THROWS_AS(sval.get_int().value(), std::bad_optional_access);
             REQUIRE_THROWS_AS(sval.get_float().value(), std::bad_optional_access);
             REQUIRE_THROWS_AS(sval.get_string().value(), std::bad_optional_access);
@@ -192,6 +220,7 @@ TEST_CASE("Testing ConfValue class", "[ConfValue]") {
         REQUIRE(result.size() == 2);
         REQUIRE(result[0] == cserve::RouteInfo("GET:/hello:hello.lua"));
         REQUIRE(result[1] == cserve::RouteInfo("PUT:/byebye:byebye.lua"));
+        REQUIRE_THROWS_AS(sval.get_bool().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_int().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_float().value(), std::bad_optional_access);
         REQUIRE_THROWS_AS(sval.get_string().value(), std::bad_optional_access);
