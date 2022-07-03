@@ -20,12 +20,14 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
 endif()
 
 include_directories(
+        ${CMAKE_SOURCE_DIR}/lib
         ${COMMON_LOCAL}/include
         /usr/local/include
 )
 
 add_library(iiifhandler MODULE
-        IIIFHandler.cpp IIIFHandler.h )
+        IIIFHandler.cpp IIIFHandler.h
+        IiifError.cpp IiifError.h)
 
 set_target_properties(iiifhandler PROPERTIES PREFIX "")
 

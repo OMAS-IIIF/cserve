@@ -2,6 +2,10 @@
 // Created by Lukas Rosenthaler on 02.07.22.
 //
 
+#include <regex>
+
+
+#include "Global.h"
 #include "IIIFHandler.h"
 
 namespace cserve {
@@ -13,6 +17,40 @@ namespace cserve {
     }
 
     void IIIFHandler::handler(cserve::Connection &conn, LuaServer &lua, const std::string &route) {
+        std::vector<std::string> headers = conn.header();
+        std::string uri = conn.uri();
+
+        std::vector<std::string> parts;
+        {
+            std::vector<std::string> tmpparts = split(uri, '/');
+            for (auto &part: parts) {
+                parts.push_back(urldecode(part));
+            }
+        }
+
+        //
+        // below are regex expressions for the different parts of the IIIF URL
+        //
+        std::string qualform_ex = "^(color|gray|bitonal|default)\\.(jpg|tif|png|jp2)$";
+        std::string rotation_ex = "^!?[-+]?[0-9]*\\.?[0-9]*$";
+        std::string size_ex = "^(\\^?max)|(\\^?pct:[0-9]*\\.?[0-9]*)|(\\^?[0-9]*,)|(\\^?,[0-9]*)|(\\^?!?[0-9]*,[0-9]*)$";
+        std::string region_ex = "^(full)|(square)|([0-9]+,[0-9]+,[0-9]+,[0-9]+)|(pct:[0-9]*\\.?[0-9]*,[0-9]*\\.?[0-9]*,[0-9]*\\.?[0-9]*,[0-9]*\\.?[0-9]*)$";
+
+        bool qualform_ok = false;
+        if (!parts.empty())
+            qualform_ok = std::regex_match(parts[parts.size() - 1], std::regex(qualform_ex));
+
+        bool rotation_ok = false;
+        if (parts.size() > 1)
+            rotation_ok = std::regex_match(parts[parts.size() - 2], std::regex(rotation_ex));
+
+        bool size_ok = false;
+        if (parts.size() > 2)
+            size_ok = std::regex_match(parts[parts.size() - 3], std::regex(size_ex));
+
+        bool region_ok = false;
+        if (parts.size() > 3)
+            region_ok = std::regex_match(parts[parts.size() - 4], std::regex(region_ex));
 
     }
 
