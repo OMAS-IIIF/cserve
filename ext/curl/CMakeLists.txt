@@ -24,8 +24,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 include(FindOpenSSL REQUIRED)
 
-message('==================== ${OPENSSL_FOUND}')
-
 #
 # get libcurl
 #

@@ -1,6 +1,13 @@
-/*!
- * \brief Implements the handling of the http server connections.
- *
+/*
+ * Copyright © 2022 Lukas Rosenthaler
+ * This file is part of OMAS/cserve
+ * OMAS/cserve is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * OMAS/cserve is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #ifndef __cserve_connection_h
 #define __cserve_connection_h
@@ -13,6 +20,7 @@
 #include <algorithm>
 
 #include "Error.h"
+#include "HttpHelpers.h"
 
 
 namespace cserve {
@@ -49,80 +57,6 @@ namespace cserve {
 
     class Server;
 
-    /*!
-     * Function which splits a string at the first occurrence of a given character
-     *
-     * \params[in] str String to be split
-     * \param[in] c The character which indicates the split position in the string
-     *
-     * \returns A pair of strings
-     */
-    extern std::pair<std::string, std::string> strsplit(const std::string &str, char c);
-
-    /*!
-     * Function to read a line from the HTTP stream which is terminated by either
-     * "\n" or "\r\n"
-     *
-     * \param[in] is Input stream (HTTP socket stream)
-     * \param[out] t String containing the line
-     * \param[in] max_n Maximum length of line accepted. If 0, the length of the line is unlimited. The string t
-     *            is expanded as necessary.
-     *
-     * \returns Number of bytes read
-     */
-    extern size_t safeGetline(std::istream &is, std::string &t, size_t max_n = 0);
-
-    /*!
-     * Function to parse the options of a HTTP header line
-     *
-     * \param[in] options Options-part of the string
-     * \param[in] form_encoded Has to be set to true, if it is form_encoded data [default: false]
-     * \param[in] sep Separator character between options [default: ';']
-     *
-     * \returns map of options (all names converted to lower case!)
-     */
-    extern std::unordered_map<std::string, std::string>
-    parse_header_options(const std::string &options, bool form_encoded = false, char sep = ';');
-
-    /*!
-     * urldecode is used to decode an according to the HTTP-standard urlencoded string
-     *
-     * \param[in] src Encoded string
-     * \param[in] form_encoded Boolean which must be true if the string has been part
-     * of a form
-     *
-     * \returns Decoded string
-     */
-    extern std::string urldecode(const std::string &src, bool form_encoded = false);
-
-    /*!
-     * Encode a string (value) acording the the rules of urlencoded strings
-     *
-     * \param[in] value String to be encoded
-     *
-     * \returns Encoded string
-     */
-    [[maybe_unused]] extern std::string urlencode(const std::string &value);
-
-    /*!
-     * convert a string to all lowercase characters. The string should contain
-     * only ascii characters. The outcome of non-ascii characters is undefined.
-     *
-     * \param[in] str Input string with mixed case
-     *
-     * \returns String converted to all lower case
-     */
-    [[maybe_unused]] inline void asciitolower(std::string &str) { std::transform(str.begin(), str.end(), str.begin(), ::tolower); }
-
-    /*!
-     * convert a string to all uppercase characters. The string should contain
-     * only ascii characters. The outcome of non-ascii characters is undefined.
-     *
-     * \param[in] str Input string with mixed case
-     *
-     * \returns String converted to all upper case
-     */
-    [[maybe_unused]] inline void asciitoupper(std::string &str) { std::transform(str.begin(), str.end(), str.begin(), ::toupper); }
 
     /*!
      * This is a class used to represent the possible options of a HTTP cookie
@@ -294,7 +228,8 @@ namespace cserve {
          * \typedef Commands Used for flushing the output stream to the socket
          */
         typedef enum {
-            flush_data
+            flush_data,
+            endl
         } Commands;
 
         /*!

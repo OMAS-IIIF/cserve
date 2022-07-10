@@ -1,7 +1,14 @@
-//
-// Created by Lukas Rosenthaler on 29.06.21.
-//
-
+/*
+ * Copyright © 2022 Lukas Rosenthaler
+ * This file is part of OMAS/cserve
+ * OMAS/cserve is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * OMAS/cserve is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ */
 #include <unistd.h>
 
 #include "ScriptHandler.h"
@@ -34,21 +41,27 @@ namespace cserve {
             scriptname = routedata.at(route);
         }
         catch(std::out_of_range &err) {
-            conn.setBuffer();
-            conn.status(Connection::INTERNAL_SERVER_ERROR);
-            conn.header("Content-Type", "text/text; charset=utf-8");
-            conn << "Error in ScriptHandler: No script route defined.\r\n";
-            conn.flush();
+            try {
+                conn.setBuffer();
+                conn.status(Connection::INTERNAL_SERVER_ERROR);
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn << "Error in ScriptHandler: No script route defined.\r\n";
+                conn.flush();
+            }
+            catch (InputFailure &err) {}
             Server::logger()->error("Error in ScriptHandler: No script route defined.");
             return;
         }
 
         if (scriptname.empty()) {
-            conn.setBuffer();
-            conn.status(Connection::INTERNAL_SERVER_ERROR);
-            conn.header("Content-Type", "text/text; charset=utf-8");
-            conn << "Error in ScriptHandler: No script path defined.\r\n";
-            conn.flush();
+            try {
+                conn.setBuffer();
+                conn.status(Connection::INTERNAL_SERVER_ERROR);
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn << "Error in ScriptHandler: No script path defined.\r\n";
+                conn.flush();
+            }
+            catch (InputFailure &err) {}
             Server::logger()->error("Error in ScriptHandler: No script path defined.");
             return;
         }
@@ -58,18 +71,24 @@ namespace cserve {
 
         std::error_code ec; // For noexcept overload usage.
         if (!std::filesystem::exists(scriptpath, ec) && !ec) {
-            conn.status(Connection::NOT_FOUND);
-            conn.header("Content-Type", "text/text; charset=utf-8");
-            conn << "File not found\n";
-            conn.flush();
+            try {
+                conn.status(Connection::NOT_FOUND);
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn << "File not found\n";
+                conn.flush();
+            }
+            catch (InputFailure &err) {}
             Server::logger()->error("Error in ScriptHandler: Script '{}' not existing", scriptpath.string());
             return;
         }
         if (access(scriptpath.c_str(), R_OK) != 0) { // test, if file exists
-            conn.status(Connection::NOT_FOUND);
-            conn.header("Content-Type", "text/text; charset=utf-8");
-            conn << "File not found\n";
-            conn.flush();
+            try {
+                conn.status(Connection::NOT_FOUND);
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn << "File not found\n";
+                conn.flush();
+            }
+            catch (InputFailure &err) {}
             Server::logger()->error("Error in ScriptHandler: Script '{}' not readable", scriptpath.string());
             return;
         }

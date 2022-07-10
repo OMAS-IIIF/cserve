@@ -19,6 +19,11 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
     MESSAGE(STATUS "Distro: " ${CMAKE_DISTRO_NAME})
 endif()
 
+add_subdirectory(ext/lerc)
+add_subdirectory(ext/jpeg)
+add_subdirectory(ext/png)
+add_subdirectory(ext/webp)
+
 include_directories(
         ${CMAKE_SOURCE_DIR}/lib
         ${COMMON_LOCAL}/include
@@ -27,7 +32,15 @@ include_directories(
 
 add_library(iiifhandler MODULE
         IIIFHandler.cpp IIIFHandler.h
-        IiifError.cpp IiifError.h)
+        IIIFError.cpp IIIFError.h
+        IIIFSendInfo.cpp IIIFSendInfo.h
+        IIIFPreflight.cpp
+        IIIFCheckFileAccess.cpp
+        iiifparser/IIIFIdentifier.cpp iiifparser/IIIFIdentifier.h
+        iiifparser/IIIFQualityFormat.cpp iiifparser/IIIFQualityFormat.h
+        iiifparser/IIIFRegion.cpp iiifparser/IIIFRegion.h
+        iiifparser/IIIFRotation.cpp iiifparser/IIIFRotation.h
+        iiifparser/IIIFSize.cpp iiifparser/IIIFSize.h)
 
 set_target_properties(iiifhandler PROPERTIES PREFIX "")
 
@@ -44,6 +57,7 @@ target_link_libraries(iiifhandler PRIVATE
         zlib
         xz
         bzip2
+        jpeg
         Threads::Threads
         ${CMAKE_DL_LIBS})
 

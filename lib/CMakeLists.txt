@@ -71,7 +71,7 @@ add_library(cserve
         CserveVersion.h
         RequestHandlerLoader.cpp RequestHandlerLoader.h
         ConfValue.cpp ConfValue.h
-        CserverConf.cpp CserverConf.h)
+        CserverConf.cpp CserverConf.h HttpHelpers.cpp HttpHelpers.h HttpSendError.cpp HttpSendError.h)
 
 add_dependencies(cserve
         spdlog

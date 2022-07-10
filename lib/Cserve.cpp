@@ -429,14 +429,26 @@ namespace cserve {
         //
         // get peer address
         //
+        const int SIZE = 1024;
+        char host[SIZE];
+        char service[SIZE];
         if (cli_addr.ss_family == AF_INET) {
             auto *s = (struct sockaddr_in *) &cli_addr;
             socket_id.peer_port = ntohs(s->sin_port);
             inet_ntop(AF_INET, &s->sin_addr, socket_id.peer_ip, sizeof(socket_id.peer_ip));
+            int res = getnameinfo((struct sockaddr*) s, sizeof(*s), host, sizeof(host), service, sizeof(service), 0);
+            if (res == 0) {
+                socket_id.set_peer_name(host);
+            }
         } else if (cli_addr.ss_family == AF_INET6) { // AF_INET6
             auto *s = (struct sockaddr_in6 *) &cli_addr;
             socket_id.peer_port = ntohs(s->sin6_port);
             inet_ntop(AF_INET6, &s->sin6_addr, socket_id.peer_ip, sizeof(socket_id.peer_ip));
+
+            int res = getnameinfo((struct sockaddr*) s, sizeof(*s), host, sizeof(host), service, sizeof(service), 0);
+            if (res == 0) {
+                socket_id.set_peer_name(host);
+            }
         } else {
             socket_id.peer_port = -1;
         }
@@ -500,6 +512,7 @@ namespace cserve {
         }
         socket_id.ssl_sid = cSSL;
         socket_id.sslctx = sslctx;
+
         return socket_id;
     }
 
@@ -694,15 +707,14 @@ namespace cserve {
                             // we got input ready from normal listener socket
                             SocketControl::SocketInfo sockid = accept_connection(sockets[i].fd, false);
                             socket_control.add_dyn_socket(sockid);
-                            Server::logger()->info("Accepted connection from {}", sockid.peer_ip);
+                            Server::logger()->info("Accepted connection from '{}' ({})", sockid.peer_name, sockid.peer_ip);
                         } else if (i == socket_control.get_ssl_socket_id()) {
                             //
                             // external SSL request coming in
                             //
                             SocketControl::SocketInfo sockid = accept_connection(sockets[i].fd, true);
                             socket_control.add_dyn_socket(sockid);
-                            Server::logger()->info("Accepted SSL connection from {}", sockid.peer_ip);
-
+                            Server::logger()->info("Accepted connection from '{}' ({})", sockid.peer_name, sockid.peer_ip);
                         } else {
                             //
                             // DYN_SOCKET: a client socket (already accepted) has data -> dispatch the processing to a free thread
@@ -725,7 +737,6 @@ namespace cserve {
                         //
                         // we got a HANGUP from a socket
                         //
-
                         if (i >= socket_control.get_dyn_socket_base()) {
                             //
                             // ist a hangup from a dynamic client socket!

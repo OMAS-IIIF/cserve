@@ -1,7 +1,14 @@
-//
-// Created by Lukas Rosenthaler on 08.07.20.
-//
-
+/*
+ * Copyright © 2022 Lukas Rosenthaler
+ * This file is part of OMAS/cserve
+ * OMAS/cserve is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * OMAS/cserve is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ */
 #ifndef SIPI_SOCKETCONTROL_H
 #define SIPI_SOCKETCONTROL_H
 
@@ -63,6 +70,7 @@ namespace cserve {
             SSL_CTX *sslctx{};
             char peer_ip[INET6_ADDRSTRLEN]{};
             int peer_port;
+            std::string peer_name{};
 
             explicit SocketInfo(ControlMessageType type = NOOP,
                                 SocketType socket_type = CONTROL_SOCKET,
@@ -96,6 +104,7 @@ namespace cserve {
                 sslctx = si.sslctx;
                 for (int i = 0; i < INET6_ADDRSTRLEN; i++) peer_ip[i] = si.peer_ip[i];
                 peer_port = si.peer_port;
+                peer_name = si.peer_name;
             }
 
             explicit SocketInfo(const SIData &data) {
@@ -118,6 +127,7 @@ namespace cserve {
                 sslctx = si.sslctx;
                 for (int i = 0; i < INET6_ADDRSTRLEN; i++) peer_ip[i] = si.peer_ip[i];
                 peer_port = si.peer_port;
+                peer_name = si.peer_name;
                 return *this;
             }
 
@@ -129,6 +139,14 @@ namespace cserve {
 
             bool operator==(SocketInfo const &sockid) const {
                 return sid == sockid.sid;
+            }
+
+            void set_peer_name(const std::string &peer_name_p) {
+                peer_name = peer_name_p;
+            }
+
+            std::string get_peer_name() {
+                return peer_name;
             }
 
         };

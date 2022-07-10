@@ -1,14 +1,22 @@
-//
-// Created by Lukas Rosenthaler on 29.06.21.
-//
+/*
+ * Copyright © 2022 Lukas Rosenthaler
+ * This file is part of OMAS/cserve
+ * OMAS/cserve is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * OMAS/cserve is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ */
 #include <sys/stat.h>
 #include <unistd.h>
 #include <filesystem>
 
 #include <vector>
-#include "../../lib/Cserve.h"
+#include "Cserve.h"
 #include "FileHandler.h"
-#include "../../lib/Parsing.h"
+#include "Parsing.h"
 
 static const char file_[] = __FILE__;
 
@@ -35,11 +43,14 @@ namespace cserve {
         std::string uri = conn.uri();
 
         if (_docroot.empty()) {
-            conn.setBuffer();
-            conn.status(Connection::INTERNAL_SERVER_ERROR);
-            conn.header("Content-Type", "text/text; charset=utf-8");
-            conn << "Error in FileHandler: FileHandler request data missing.\r\n";
-            conn.flush();
+            try {
+                conn.setBuffer();
+                conn.status(Connection::INTERNAL_SERVER_ERROR);
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn << "Error in FileHandler: FileHandler request data missing.\r\n";
+                conn.flush();
+            }
+            catch (InputFailure &err) {}
             Server::logger()->error("Error in FileHandler: FileHandler request data missing.");
             return;
         }
@@ -82,10 +93,13 @@ namespace cserve {
         }
 
         if (access(path.c_str(), R_OK) != 0) { // test, if file exists
-            conn.status(Connection::NOT_FOUND);
-            conn.header("Content-Type", "text/text; charset=utf-8");
-            conn << "File not found.\r\n";
-            conn.flush();
+            try {
+                conn.status(Connection::NOT_FOUND);
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn << "File not found.\r\n";
+                conn.flush();
+            }
+            catch (InputFailure &err) {}
             Server::logger()->error("FileHandler: '{}' not readable.", path.string());
             return;
         }
@@ -94,20 +108,26 @@ namespace cserve {
 
         if (stat(path.c_str(), &s) == 0) {
             if (!(s.st_mode & S_IFREG)) { // we have not a regular file, do nothing!
-                conn.setBuffer();
-                conn.status(Connection::NOT_FOUND);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << path << " not a regular file\r\n";
-                conn.flush();
+                try {
+                    conn.setBuffer();
+                    conn.status(Connection::NOT_FOUND);
+                    conn.header("Content-Type", "text/text; charset=utf-8");
+                    conn << path << " not a regular file\r\n";
+                    conn.flush();
+                }
+                catch (InputFailure &err) {}
                 Server::logger()->error("FileHandler: '{}' is not regular file.", path.string());
                 return;
             }
         } else {
-            conn.setBuffer();
-            conn.status(Connection::NOT_FOUND);
-            conn.header("Content-Type", "text/text; charset=utf-8");
-            conn << "Could not stat file" << path << "\r\n";
-            conn.flush();
+            try {
+                conn.setBuffer();
+                conn.status(Connection::NOT_FOUND);
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn << "Could not stat file" << path << "\r\n";
+                conn.flush();
+            }
+            catch (InputFailure &err) {}
             Server::logger()->error("FileHandler: Could not stat '{}'", path.string());
             return;
         }
