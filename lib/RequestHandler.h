@@ -58,6 +58,9 @@ namespace cserve {
         virtual inline void set_config_variables(CserverConf &conf) {}
 
         virtual inline void get_config_variables(const CserverConf &conf) {}
+
+        virtual inline void set_lua_globals(lua_State *L, cserve::Connection &conn) {}
+
     };
 
 } // cserve

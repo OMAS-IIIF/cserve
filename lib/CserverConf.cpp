@@ -27,6 +27,9 @@ namespace cserve {
         const auto values = conf->get_values();
         lua_createtable(L, 0, values.size());
         for (auto const& [name, val] : values) {
+            if (name == "jwtkey") continue;
+            if (name == "sslcert") continue;
+            if (name == "sslkey") continue;
             lua_pushstring(L, name.c_str()); // table1 - "index_L1"
             auto vtype = val->get_type();
             switch (vtype) {

@@ -172,6 +172,7 @@ namespace cserve {
         int _keep_alive_timeout;
         bool running; //!< Main runloop should keep on going
         std::map<std::string, std::shared_ptr<RequestHandler>> handler[Connection::NumHttpMethods]; // request handlers for the different 9 request methods
+        std::map<std::string, LuaSetGlobalsFunc> lua_global_funcs;
         std::shared_ptr<RequestHandler> default_handler;
         // void *_user_data; //!< Some opaque user data that can be given to the Connection (for use within the handler)
         std::string _initscript;
@@ -382,6 +383,7 @@ namespace cserve {
             gf.func_dataptr = user_data;
             lua_globals.push_back(gf);
         }
+
 
         /*!
          * Add a request handler for the given request method and _route

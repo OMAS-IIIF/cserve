@@ -36,6 +36,8 @@ namespace cserve {
         void set_config_variables(CserverConf &conf) override;
 
         void get_config_variables(const CserverConf &conf) override;
+
+        void set_lua_globals(lua_State *L, cserve::Connection &conn) override;
     };
 
 }

@@ -27,22 +27,26 @@ namespace cserve {
      * - ".lua" are files containing Lua code
      * - ".elua" are files containing embedded lua in HTML. The Lua code start with <lua> and ends with </lua>.
      */
-     class FileHandler: public RequestHandler {
+    class FileHandler : public RequestHandler {
     private:
-         const static std::string _name;
-         std::string _docroot;
+        const static std::string _name;
+        std::string _docroot;
     public:
         [[maybe_unused]] FileHandler() : RequestHandler() {}
 
-         const std::string& name() const override;
+        const std::string &name() const override;
 
-        void handler(Connection& conn, LuaServer &lua, const std::string &route) override;
+        inline std::string get_docroot() const { return _docroot; }
 
-         void set_config_variables(CserverConf &conf) override;
+        void handler(Connection &conn, LuaServer &lua, const std::string &route) override;
 
-         void get_config_variables(const CserverConf &conf) override;
+        void set_config_variables(CserverConf &conf) override;
 
-     };
+        void get_config_variables(const CserverConf &conf) override;
+
+        void set_lua_globals(lua_State *L, cserve::Connection &conn) override;
+
+    };
 
 }
 

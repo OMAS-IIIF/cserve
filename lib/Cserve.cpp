@@ -870,6 +870,7 @@ namespace cserve {
                 std::shared_ptr<RequestHandler> req_handler;
                 std::string route;
                 std::tie(req_handler, route) = get_handler(conn);
+                req_handler->set_lua_globals(luaserver.lua(), conn);
                 req_handler->handler(conn, luaserver, route);
             } catch (InputFailure &iofail) {
                 Server::logger()->error("Possibly socket closed by peer");

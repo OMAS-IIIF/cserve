@@ -326,6 +326,13 @@ namespace cserve {
         _docroot = conf.get_string("docroot").value_or("-- no scriptdir --");
     }
 
+    void FileHandler::set_lua_globals(lua_State *L, cserve::Connection &conn) {
+        lua_createtable(L, 0, 1);
+        lua_pushstring(L, "docroot");
+        lua_pushstring(L, _docroot.c_str());
+        lua_rawset(L, -3); // table1
+        lua_setglobal(L, _name.c_str());
+    }
 }
 
 extern "C" cserve::FileHandler * create_filehandler() {
@@ -335,4 +342,3 @@ extern "C" cserve::FileHandler * create_filehandler() {
 extern "C" void destroy_filehandler(cserve::FileHandler *handler) {
     delete handler;
 }
-

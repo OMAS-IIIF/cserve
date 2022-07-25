@@ -18,6 +18,8 @@
 #include "../../lib/RequestHandlerData.h"
 #include "../../lib/RequestHandler.h"
 
+#include "IIIFCache.h"
+
 namespace cserve {
 
     enum Parts {
@@ -38,11 +40,13 @@ namespace cserve {
         std::string _cachedir;
         std::string _pre_flight_func_name;
         int _max_tmp_age;
-        bool _path_prefix;
+        bool _prefix_as_path;
         DataSize _cache_size;
         int _max_num_chache_files;
         float _cache_hysteresis;
         std::string _thumbnail_size;
+
+        std::shared_ptr<IIIFCache> _cache;
     public:
         [[maybe_unused]] IIIFHandler() : RequestHandler() {}
 
@@ -54,16 +58,19 @@ namespace cserve {
 
         void get_config_variables(const CserverConf &conf) override;
 
-        std::unordered_map<std::string, std::string>
-        call_pre_flight(Connection &conn_obj,
-                        LuaServer &luaserver,
-                        const std::string &prefix,
-                        const std::string &identifier);
+        void set_lua_globals(lua_State *L, cserve::Connection &conn) override;
+
+        std::unordered_map<std::string, std::string> call_pre_flight(Connection &conn_obj,
+                                                                     LuaServer &luaserver,
+                                                                     const std::string &prefix,
+                                                                     const std::string &identifier) const;
 
         std::unordered_map<std::string, std::string> check_file_access(Connection &conn_obj,
                                                                        LuaServer &luaserver,
-                                                                       std::vector<std::string> &params,
-                                                                       bool prefix_as_path);
+                                                                       const std::unordered_map<Parts,std::string> &params,
+                                                                       bool prefix_as_path) const;
+
+        void send_iiif_info(Connection &conn_obj, LuaServer &luaserver, const std::unordered_map<Parts,std::string> &params) const;
 
     };
 

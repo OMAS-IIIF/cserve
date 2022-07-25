@@ -16,6 +16,7 @@
 #include "Cserve.h"
 #include "HttpSendError.h"
 #include "IIIFHandler.h"
+#include "IIIFCache.h"
 
 namespace cserve {
 
@@ -52,8 +53,8 @@ namespace cserve {
         //
         std::string qualform_ex = "^(color|gray|bitonal|default)\\.(jpg|tif|png|jp2)$";
         std::string rotation_ex = "^!?[-+]?[0-9]*\\.?[0-9]*$";
-        std::string size_ex = "^(\\^?max)|(\\^?pct:[0-9]*\\.?[0-9]*)|(\\^?[0-9]*,)|(\\^?,[0-9]*)|(\\^?!?[0-9]*,[0-9]*)$";
-        std::string region_ex = "^(full)|(square)|([0-9]+,[0-9]+,[0-9]+,[0-9]+)|(pct:[0-9]*\\.?[0-9]*,[0-9]*\\.?[0-9]*,[0-9]*\\.?[0-9]*,[0-9]*\\.?[0-9]*)$";
+        std::string size_ex = R"(^(\^?max)|(\^?pct:[0-9]*\.?[0-9]*)|(\^?[0-9]*,)|(\^?,[0-9]*)|(\^?!?[0-9]*,[0-9]*)$)";
+        std::string region_ex = R"(^(full)|(square)|([0-9]+,[0-9]+,[0-9]+,[0-9]+)|(pct:[0-9]*\.?[0-9]*,[0-9]*\.?[0-9]*,[0-9]*\.?[0-9]*,[0-9]*\.?[0-9]*)$)";
 
 
         std::unordered_map<Parts,std::string> iiif_str_params;
@@ -65,7 +66,7 @@ namespace cserve {
         bool region_ok = false;
         bool info_ok = false;
         bool file_ok = false;
-        int partspos = parts.size() - 1;
+        ssize_t partspos = parts.size() - 1;
 
         if (partspos < 0) {
             send_error(conn, Connection::BAD_REQUEST, "Empty path not allowed for IIIF request.");
@@ -165,19 +166,20 @@ namespace cserve {
         }
 
         try {
-            conn.header("Content-Type", "text/text; charset=utf-8");
-            conn.setBuffer();
-            conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
             if (file_ok) {
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn.setBuffer();
+                conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
                 conn << ">>>Send file as blob" << Connection::endl;
                 conn << "prefix=" << iiif_str_params[IIIF_PREFIX] << Connection::endl;
                 conn << "file=" << iiif_str_params[IIIF_IDENTIFIER] << Connection::endl;
             }
             else if (info_ok) {
-                conn << ">>>Send 'info.json'" << Connection::endl;
-                conn << "prefix=" << iiif_str_params[IIIF_PREFIX] << Connection::endl;
-                conn << "file=" << iiif_str_params[IIIF_IDENTIFIER] << Connection::endl;
+                send_iiif_info(conn, lua, iiif_str_params);
             } else if (format_ok && quality_ok && region_ok && size_ok && rotation_ok) {
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn.setBuffer();
+                conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
                 conn << ">>>Send IIIF image" << Connection::endl;
                 conn << "prefix=" << iiif_str_params[IIIF_PREFIX] << Connection::endl;
                 conn << "id=" << iiif_str_params[IIIF_IDENTIFIER] << Connection::endl;
@@ -187,6 +189,9 @@ namespace cserve {
                 conn << "quailty=" << iiif_str_params[IIIF_QUALITY] << Connection::endl;
                 conn << "formar=" << iiif_str_params[IIIF_FORMAT] << Connection::endl;
             } else {
+                conn.header("Content-Type", "text/text; charset=utf-8");
+                conn.setBuffer();
+                conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
                 conn << ">>>Send UNKNOWN!" << Connection::endl;
             }
             conn << Connection::flush_data;
@@ -204,7 +209,7 @@ namespace cserve {
         conf.add_config(_name, "routes",routes, "Route for iiifhandler");
         conf.add_config(_name, "imgroot", "./imgroot", "Root directory containing the images for the IIIF server.");
         conf.add_config(_name, "max_tmp_age", 86400, "The maximum allowed age of temporary files (in seconds) before they are deleted.");
-        conf.add_config(_name, "path_prefix", false, "Flag, if set indicates that the IIIF prefix is part of the path to the image file (deprecated).");
+        conf.add_config(_name, "prefix_as_path", false, "Flag, if set indicates that the IIIF prefix is part of the path to the image file (deprecated).");
         conf.add_config(_name, "cachedir", "./cache", "Path to cache folder.");
         conf.add_config(_name, "cachesize", DataSize("200MB"), "Maximal size of cache, e.g. '500M'.");
         conf.add_config(_name, "preflight_name", "pre_flight", "Name of the preflight lua function.");
@@ -216,21 +221,71 @@ namespace cserve {
     void IIIFHandler::get_config_variables(const CserverConf &conf) {
         _imgroot = conf.get_string("imgroot").value_or("-- no imgroot --");
         _max_tmp_age = conf.get_int("max_tmp_age").value_or(86400);
-        _path_prefix = conf.get_bool("path_prefix").value_or(false);
+        _prefix_as_path = conf.get_bool("prefix_as_path").value_or(false);
         _cachedir = conf.get_string("cachedir").value_or("./cache");
         _cache_size = conf.get_datasize("cachesize").value_or(DataSize("200MB"));
-        _pre_flight_func_name = conf.get_string("preflight_name").value_or("pre_flight");
         _max_num_chache_files = conf.get_int("max_num_cache_files").value_or(200);
         _cache_hysteresis = conf.get_float("cache_hysteresis").value_or(0.15f);
+        _pre_flight_func_name = conf.get_string("preflight_name").value_or("pre_flight");
         _thumbnail_size = conf.get_string("thumbsize").value_or("!128,128");
+
+        try {
+            _cache = std::make_shared<IIIFCache>(_cachedir, _cache_size.as_size_t(), _max_num_chache_files, _cache_hysteresis);
+        }
+        catch (const IIIFError &err) {
+            _cache = nullptr;
+            Server::logger()->warn("Couldn't open cache directory {}: %s", _cachedir, err.to_string());
+        }
+
     }
 
+    void IIIFHandler::set_lua_globals(lua_State *L, cserve::Connection &conn) {
+        lua_createtable(L, 0, 1);
+
+        lua_pushstring(L, "imgroot");
+        lua_pushstring(L, _imgroot.c_str());
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "max_tmp_age");
+        lua_pushinteger(L, _max_tmp_age);
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "prefix_as_path");
+        lua_pushboolean(L, _prefix_as_path);
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "cachedir");
+        lua_pushstring(L, _cachedir.c_str());
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "cachesize");
+        lua_pushstring(L, _cache_size.as_string().c_str());
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "max_num_cache_files");
+        lua_pushinteger(L, _max_num_chache_files);
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "cache_hysteresis");
+        lua_pushnumber(L, _cache_hysteresis);
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "preflight_name");
+        lua_pushstring(L, _pre_flight_func_name.c_str());
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "thumbsize");
+        lua_pushstring(L, _thumbnail_size.c_str());
+        lua_rawset(L, -3); // table1
+
+        lua_setglobal(L, _name.c_str());
+    }
 }
 
-extern "C" cserve::IIIFHandler * create_iiifhandler() {
+extern "C" [[maybe_unused]] cserve::IIIFHandler * create_iiifhandler() {
     return new cserve::IIIFHandler();
-};
+}
 
-extern "C" void destroy_iiifhandler(cserve::IIIFHandler *handler) {
+extern "C" [[maybe_unused]] void destroy_iiifhandler(cserve::IIIFHandler *handler) {
     delete handler;
 }

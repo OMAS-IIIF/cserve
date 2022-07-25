@@ -208,6 +208,14 @@ namespace cserve {
         _scriptdir = conf.get_string("scriptdir").value_or("-- no scriptdir --");
     }
 
+    void ScriptHandler::set_lua_globals(lua_State *L, cserve::Connection &conn) {
+        lua_createtable(L, 0, 1);
+        lua_pushstring(L, "scriptdir");
+        lua_pushstring(L, _scriptdir.c_str());
+        lua_rawset(L, -3); // table1
+        lua_setglobal(L, _name.c_str());
+    }
+
 }
 
 extern "C" cserve::ScriptHandler * create_scripthandler() {

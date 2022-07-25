@@ -36,6 +36,8 @@ namespace cserve {
 
         std::shared_ptr<RequestHandler> get_instance();
 
+        LuaSetGlobalsFunc load_lua_global_funcs(const std::string &name);
+
     };
 
 }

@@ -2,7 +2,7 @@
 // Created by Lukas Rosenthaler on 08.07.22.
 //
 
-const static char file_[] = __FILE__;
+static const char file_[] = __FILE__;
 
 #include "IIIFHandler.h"
 #include "IIIFError.h"
@@ -12,7 +12,7 @@ namespace cserve {
     std::unordered_map<std::string, std::string> IIIFHandler::call_pre_flight(Connection &conn_obj,
                                                                               LuaServer &luaserver,
                                                                               const std::string &prefix,
-                                                                              const std::string &identifier) {
+                                                                              const std::string &identifier) const {
         // The permission and optional file path that the pre_fight function returns.
         std::unordered_map<std::string, std::string> preflight_info;
         // std::string permission;
