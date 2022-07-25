@@ -1,47 +1,37 @@
 /*
- * Copyright © 2016 Lukas Rosenthaler, Andrea Bianco, Benjamin Geer,
- * Ivan Subotic, Tobias Schweizer, André Kilchenmann, and André Fatton.
- * This file is part of Sipi.
- * Sipi is free software: you can redistribute it and/or modify
+ * Copyright © 2022 Lukas Rosenthaler
+ * This file is part of OMAS/cserve
+ * OMAS/cserve is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * Sipi is distributed in the hope that it will be useful,
+ * OMAS/cserve is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * Additional permission under GNU AGPL version 3 section 7:
- * If you modify this Program, or any covered work, by linking or combining
- * it with Kakadu (or a modified version of that library) or Adobe ICC Color
- * Profiles (or a modified version of that library) or both, containing parts
- * covered by the terms of the Kakadu Software Licence or Adobe Software Licence,
- * or both, the licensors of this Program grant you additional permission
- * to convey the resulting work.
- * See the GNU Affero General Public License for more details.
- * You should have received a copy of the GNU Affero General Public
- * License along with Sipi.  If not, see <http://www.gnu.org/licenses/>.
- *//*!
- * This file implements the Handling of ICC color profiles. It makes heavy use of the functions
- * provided by the littleCMS2 library (see http://www.littlecms.com )
  */
-#ifndef __sipi_icc_h
-#define __sipi_icc_h
+#ifndef __iiif_icc_h
+#define __iiif_icc_h
 
 #include <string>
 #include <vector>
 
-#include <stdio.h>
-#include <limits.h>
-#include <time.h>
-#include <stddef.h>
+#include <cstdio>
+#include <climits>
+#include <ctime>
+#include <cstddef>
+
+
+#define CMS_NO_REGISTER_KEYWORD 1
 
 #include <lcms2.h>
 
+#include "../IIIFPhotometricInterpretation.h"
 
-namespace Sipi {
+
+namespace cserve {
 
     extern void icc_error_logger(cmsContext ContextID, cmsUInt32Number ErrorCode, const char *Text);
 
-    class SipiImage; //!< forward declaration
 
     /*! Defines predefined profiles which are used by SipiIcc */
     typedef enum {
@@ -60,7 +50,7 @@ namespace Sipi {
     /*!
      * This class implements the handling of ICC color profiles
      */
-    class SipiIcc {
+    class IIIFIcc {
     private:
         cmsHPROFILE icc_profile{};            //!< Handle of the littleCMS profile data
         PredefinedProfiles profile_type;    //!< Profile type that is represented
@@ -69,8 +59,8 @@ namespace Sipi {
         /*!
          * Constructor (default) which results in empty, undefined profile
          */
-        inline SipiIcc() {
-            icc_profile = NULL;
+        inline IIIFIcc() {
+            icc_profile = nullptr;
             profile_type = icc_undefined;
         };
 
@@ -79,25 +69,27 @@ namespace Sipi {
          * \param[in] buf Buffer holding the binary profile data
          * \param]in len Length of the buffer
          */
-        SipiIcc(const unsigned char *buf, int len);
+        IIIFIcc(const unsigned char *buf, int len);
 
         /*!
          * Copy constructor. Uses deep copy and allocates new data buffers.
          * \param[in] icc_p Profile that acts as template for the new profile.
          */
-        SipiIcc(const SipiIcc &icc_p);
+        IIIFIcc(const IIIFIcc &icc_p);
+
+        IIIFIcc(IIIFIcc &&icc_p) noexcept;
 
         /*!
          * Constructor using littleCMS profile
          * \param[in] icc_profile_p LittleCMS profile
          */
-        explicit SipiIcc(cmsHPROFILE &icc_profile_p);
+        explicit IIIFIcc(cmsHPROFILE &icc_profile_p);
 
         /**
          * Constructor to create a predefined profile
          * \param[in] predef Desired predefined profile
          */
-        explicit SipiIcc(PredefinedProfiles predef);
+        explicit IIIFIcc(PredefinedProfiles predef);
 
         /**
          * Constructor of an ICC RGB profile using white point, primaries and transfer function (if available),
@@ -107,19 +99,21 @@ namespace Sipi {
          * \param[in] tfunc Transfer function tables as retrieved by libtiff with either (1 << bitspersample) or 3*(1 << bitspersample) entries
          * \param[in] Length of tranfer function table
          */
-        SipiIcc(float white_point_p[], float primaries_p[], const unsigned short *tfunc = nullptr,
+        IIIFIcc(float white_point_p[], float primaries_p[], const unsigned short *tfunc = nullptr,
                 int tfunc_len = 0);
 
         /**
          * Destructor
          */
-        ~SipiIcc();
+        ~IIIFIcc();
 
         /*!
          * Assignment operator which makes deep copy
          * \param[in] rhs Instance of SipiIcc
          */
-        SipiIcc &operator=(const SipiIcc &rhs);
+        IIIFIcc &operator=(const IIIFIcc &rhs);
+
+        IIIFIcc &operator=(IIIFIcc &&rhs);
 
         /*!
          * Get the blob containing the ICC profile
@@ -138,6 +132,7 @@ namespace Sipi {
          * Retireve the littleCMS profile
          * \returns Handle to littleCMS profile
          */
+        [[nodiscard]]
         cmsHPROFILE getIccProfile() const;
 
         /*!
@@ -158,14 +153,14 @@ namespace Sipi {
          * \param img The SipiImage instance whose color profile is used to create the formatter
          * \returns Formatter as used by cmsTransfrom
          */
-        unsigned int iccFormatter(SipiImage *img) const;
+        unsigned int iccFormatter(int nc, int bps, PhotometricInterpretation photo) const;
 
         /**
          * Print info to output stream
          * \param[in] lhs Output stream
          * \param[in] rhs SipiIcc instance
          */
-        friend std::ostream &operator<<(std::ostream &lhs, SipiIcc &rhs);
+        friend std::ostream &operator<<(std::ostream &lhs, IIIFIcc &rhs);
     };
 
 }
