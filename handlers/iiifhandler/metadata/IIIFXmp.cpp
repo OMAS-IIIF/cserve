@@ -125,6 +125,7 @@ namespace cserve {
             __xmpstr = std::move(rhs.__xmpstr);
             rhs.__xmpstr.clear();
         }
+        return *this;
     }
 
     char * IIIFXmp::xmpBytes(unsigned int &len) {

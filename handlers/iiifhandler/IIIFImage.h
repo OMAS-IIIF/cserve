@@ -106,6 +106,7 @@ namespace cserve {
     //class SipiImageError : public std::runtime_error {
 class IIIFImageError : public std::exception {
     private:
+        static std::string tmp;
         std::string file; //!< Source file where the error occurs in
         int line; //!< Line within the source file
         int errnum; //!< error number if a system call is the reason for the error
@@ -152,9 +153,10 @@ class IIIFImageError : public std::exception {
         }
         //============================================================================
 
-        inline const char *what()  {
-            return this->to_string().c_str();
-        }
+        [[nodiscard]]
+        const char *what() const noexcept override {
+            return errmsg.c_str();
+        };
 
         inline friend std::ostream &operator<<(std::ostream &outStream, const IIIFImageError &rhs) {
             std::string errStr = rhs.to_string();
@@ -265,8 +267,10 @@ class IIIFImageError : public std::exception {
          * Get bits per sample of image
          * @return bis per sample (bps)
          */
+        [[nodiscard]]
         inline size_t getBps() const { return bps; }
 
+        [[nodiscard]]
         inline PhotometricInterpretation getPhoto() const { return photo; }
 
         /*! Destructor
@@ -283,6 +287,7 @@ class IIIFImageError : public std::exception {
          * \param[in] c Color channels
          * \param[in] val Pixel value
          */
+        [[maybe_unused]]
         void setPixel(unsigned int x, unsigned int y, unsigned int c, int val);
 
         /*!
@@ -318,10 +323,12 @@ class IIIFImageError : public std::exception {
          *
          * \returns Pointer to connection data
          */
+        [[nodiscard]]
         inline Connection *connection() const { return conobj; };
 
         inline void essential_metadata(const IIIFEssentials &emdata_p) { emdata = emdata_p; }
 
+        [[nodiscard]]
         inline IIIFEssentials essential_metadata() const { return emdata; }
 
         /*!

@@ -143,7 +143,7 @@ namespace cserve {
         }
     }
 
-    void IIIFImage::setPixel(unsigned int x, unsigned int y, unsigned int c, int val) {
+    [[maybe_unused]] void IIIFImage::setPixel(unsigned int x, unsigned int y, unsigned int c, int val) {
         if (x >= nx) throw IIIFImageError(file_, __LINE__, "Error in setPixel: x >= nx");
         if (y >= ny) throw IIIFImageError(file_, __LINE__, "Error in setPixel: y >= ny");
         if (c >= nc) throw IIIFImageError(file_, __LINE__, "Error in setPixel: c >= nc");
@@ -287,6 +287,7 @@ namespace cserve {
             }
             throw IIIFImageError(file_, __LINE__, "Could not read file " + filepath);
          }
+         throw IIIFImageError(file_, __LINE__, "Could not read file " + filepath);
     }
     //============================================================================
 

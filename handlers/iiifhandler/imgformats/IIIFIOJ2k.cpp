@@ -10,23 +10,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <assert.h>
-#include <stdlib.h>
+
 #include <syslog.h>
 
 #include <string>
 #include <iostream>
-#include <fstream>
 #include <cmath>
 #include <vector>
 #include <cstdio>
 
 #include <fcntl.h>
-#include <string.h>
+#include <cstring>
 
 #include "Cserve.h"
 #include "Connection.h"
-#include "Global.h"
 
 #include "../IIIFError.h"
 #include "IIIFIOJ2k.h"
@@ -38,14 +35,13 @@
 #include "kdu_messaging.h"
 #include "kdu_params.h"
 #include "kdu_compressed.h"
-#include "kdu_sample_processing.h"
+
 // Application level includes
 #include "kdu_file_io.h"
 #include "kdu_stripe_decompressor.h"
 #include "kdu_stripe_compressor.h"
 #include "jp2.h"
 #include "jpx.h"
-//#include "shttps/makeunique.h"
 
 using namespace kdu_core;
 using namespace kdu_supp;
@@ -64,44 +60,28 @@ namespace cserve {
     public:
         explicit J2kHttpStream(Connection *conobj_p);
 
-        ~J2kHttpStream();
+        ~J2kHttpStream() override = default;
 
-        inline int get_capabilities() { return KDU_TARGET_CAP_SEQUENTIAL; };
+        inline int get_capabilities() override { return KDU_TARGET_CAP_SEQUENTIAL; };
 
-        inline bool start_rewrite(kdu_long backtrack) { return false; };
+        inline bool start_rewrite(kdu_long backtrack) override { return false; };
 
-        inline bool end_rewrite() { return false; };
+        inline bool end_rewrite() override { return false; };
 
-        bool write(const kdu_byte *buf, int num_bytes);
+        bool write(const kdu_byte *buf, int num_bytes) override;
 
-        bool close();
+        bool close() override;
 
-        inline bool prefer_large_writes() { return false; }
+        [[maybe_unused]] [[nodiscard]]
+        inline bool prefer_large_writes() const override { return false; }
 
-        inline void set_target_size(kdu_long num_bytes) {}; // we just ignore it
+        inline void set_target_size(kdu_long num_bytes) override {}; // we just ignore it
     };
-//-------------------------------------------------------------------------
 
-//-------------------------------------------------------------------------
-// Constructor which takes the HTTP server connection as parameter
-//........................................................................
     J2kHttpStream::J2kHttpStream(Connection *conobj_p) : kdu_core::kdu_compressed_target() {
         conobj = conobj_p;
-    };
-//-------------------------------------------------------------------------
+    }
 
-
-//-------------------------------------------------------------------------
-// Distructor which cleans up !!!!!!!!!! We still have to determine what has to be cleaned up!!!!!!!!!!
-//........................................................................
-    J2kHttpStream::~J2kHttpStream() {
-        // cleanup everything...
-    };
-//-------------------------------------------------------------------------
-
-//-------------------------------------------------------------------------
-// Write the data to the HTTP server connection
-//........................................................................
     bool J2kHttpStream::write(const kdu_byte *buf, int num_bytes) {
         try {
             conobj->sendAndFlush(buf, num_bytes);
@@ -109,8 +89,7 @@ namespace cserve {
             return false;
         }
         return true;
-    };
-//-------------------------------------------------------------------------
+    }
 
     bool J2kHttpStream::close() {
         try {
@@ -127,8 +106,6 @@ namespace cserve {
                                              0xe0, 0x97, 0xad, 0x38};
     static kdu_core::kdu_byte exif_uuid[] = {'J', 'p', 'g', 'T', 'i', 'f', 'f', 'E', 'x', 'i', 'f', '-', '>', 'J', 'P',
                                              '2'};
-//static kdu_core::kdu_byte geojp2_uuid[] = {0xB1, 0x4B, 0xF8, 0xBD, 0x08, 0x3D, 0x4B, 0x43, 0xA5, 0xAE, 0x8C, 0xD7, 0xD5, 0xA6, 0xCE, 0x03};
-//static kdu_core::kdu_byte world_uuid[] = {0x96, 0xa9, 0xf1, 0xf1, 0xdc, 0x98, 0x40, 0x2d, 0xa7, 0xae, 0xd6, 0x8e, 0x34, 0x45, 0x18, 0x09};
 
 
 
@@ -141,11 +118,11 @@ namespace cserve {
     public:
         KduIIIFWarning() : kdu_message() { msg = "KAKADU-WARNING: "; }
 
-        KduIIIFWarning(const char *lead_in) : kdu_message(), msg(lead_in) {}
+        explicit KduIIIFWarning(const char *lead_in) : kdu_message(), msg(lead_in) {}
 
-        void put_text(const char *str) { msg += str; }
+        void put_text(const char *str) override { msg += str; }
 
-        void flush(bool end_of_message = false) {
+        void flush(bool end_of_message) override {
             if (end_of_message) {
                 Server::logger()->warn("KDU_WARNING: {}", msg);
             }
@@ -163,18 +140,18 @@ namespace cserve {
     public:
         KduIIIFError() : kdu_message() { msg = "KAKADU-ERROR: "; }
 
-        KduIIIFError(const char *lead_in) : kdu_message(), msg(lead_in) {}
+        explicit KduIIIFError(const char *lead_in) : kdu_message(), msg(lead_in) {}
 
-        void put_text(const char *str) { msg += str; }
+        inline void put_text(const char *str) override { msg += str; }
 
-        void flush(bool end_of_message = false) {
+        inline void flush(bool end_of_message) override {
             if (end_of_message) {
                 Server::logger()->warn("KDU_ERROR: {}", msg);
                 throw KDU_ERROR_EXCEPTION;
             }
         }
 
-        void setMsg(const std::string &msg);
+        inline void setMsg(const std::string &msg_p) { msg = msg_p; };
     };
 //=============================================================================
 
@@ -191,9 +168,11 @@ namespace cserve {
             char sig2[] = {'\x00', '\x00', '\x00', '\x0C', '\x6A', '\x50', '\x20', '\x20', '\x0D', '\x0A', '\x87',
                            '\x0A'};
             auto n = read(inf, testbuf, 48);
-            if ((n >= 47) && (memcmp(sig0, testbuf + 45, 2) == 0)) { retval = 1; }
-            else if ((n >= 4) && (memcmp(sig1, testbuf, 4) == 0)) { retval = 1; }
-            else if ((n >= 12) && (memcmp(sig2, testbuf, 12) == 0)) retval = 1;
+            if (((n >= 47) && (memcmp(sig0, testbuf + 45, 2) == 0)) ||
+                ((n >= 4) && (memcmp(sig1, testbuf, 4) == 0)) ||
+                ((n >= 12) && (memcmp(sig2, testbuf, 12) == 0))) {
+                retval = 1;
+            }
         }
         close(inf);
         return retval == 1;
@@ -208,14 +187,11 @@ namespace cserve {
             throw IIIFImageError(file_, __LINE__, "Not a J2K file!");
         }
 
-        int num_threads;
-        if ((num_threads = kdu_get_num_processors()) < 2) num_threads = 0;
-
         // Custom messaging services
         kdu_customize_warnings(&kdu_sipi_warn);
         kdu_customize_errors(&kdu_sipi_error);
 
-        kdu_core::kdu_compressed_source *input = nullptr;
+        kdu_core::kdu_compressed_source *input;
         kdu_supp::kdu_simple_file_source file_in;
 
         kdu_supp::jp2_family_src jp2_ultimate_src;
@@ -223,16 +199,13 @@ namespace cserve {
         kdu_supp::jpx_codestream_source jpx_stream;
         kdu_supp::jpx_layer_source jpx_layer;
 
-        kdu_supp::jp2_channels channels;
         kdu_supp::jp2_palette palette;
-        kdu_supp::jp2_resolution resolution;
-        kdu_supp::jp2_colour colour;
 
         jp2_ultimate_src.open(filepath.c_str());
 
         IIIFImage img{};
-        if (jpx_in.open(&jp2_ultimate_src, true)
-            < 0) { // if < 0, not compatible with JP2 or JPX.  Try opening as a raw code-stream.
+        // if < 0, not compatible with JP2 or JPX.  Try opening as a raw code-stream.
+        if (jpx_in.open(&jp2_ultimate_src, true) < 0) {
             jp2_ultimate_src.close();
             file_in.open(filepath.c_str());
             input = &file_in;
@@ -246,17 +219,16 @@ namespace cserve {
                         if (memcmp(buf, xmp_uuid, 16) == 0) {
                             auto xmp_len = box.get_remaining_bytes();
                             auto xmp_buf = std::make_unique<char[]>(xmp_len);
-                            box.read((kdu_byte *) xmp_buf.get(), xmp_len);
+                            box.read((kdu_byte *) xmp_buf.get(), static_cast<int>(xmp_len));
                             try {
-                                img.xmp = std::make_shared<IIIFXmp>(xmp_buf.get(),
-                                                                    xmp_len); // ToDo: Problem with thread safety!!!!!!!!!!!!!!
+                                img.xmp = std::make_shared<IIIFXmp>(xmp_buf.get(),xmp_len);
                             } catch (IIIFError &err) {
                                 Server::logger()->error(err.to_string());
                             }
                         } else if (memcmp(buf, iptc_uuid, 16) == 0) {
                             auto iptc_len = box.get_remaining_bytes();
                             auto iptc_buf = std::make_unique<unsigned char[]>(iptc_len);
-                            box.read(iptc_buf.get(), iptc_len);
+                            box.read(iptc_buf.get(), static_cast<int>(iptc_len));
                             try {
                                 img.iptc = std::make_shared<IIIFIptc>(iptc_buf.get(), iptc_len);
                             } catch (IIIFError &err) {
@@ -265,7 +237,7 @@ namespace cserve {
                         } else if (memcmp(buf, exif_uuid, 16) == 0) {
                             auto exif_len = box.get_remaining_bytes();
                             auto exif_buf = std::make_unique<unsigned char[]>(exif_len);
-                            box.read(exif_buf.get(), exif_len);
+                            box.read(exif_buf.get(), static_cast<int>(exif_len));
                             try {
                                 img.exif = std::make_shared<IIIFExif>(exif_buf.get(), exif_len);
                             } catch (IIIFError &err) {
@@ -285,16 +257,9 @@ namespace cserve {
 
         kdu_core::kdu_codestream codestream;
         codestream.create(input);
-        //codestream.set_fussy(); // Set the parsing error tolerance.
         codestream.set_fast(); // No errors expected in input
-
-        //
-        // get the
         int maximal_reduce = codestream.get_min_dwt_levels();
 
-        //
-        // get SipiEssentials (if present) as codestream comment
-        //
         kdu_codestream_comment comment = codestream.get_comment();
         while (comment.exists()) {
             const char *cstr = comment.get_text();
@@ -310,15 +275,9 @@ namespace cserve {
         // get the size of the full image (without reduce!)
         //
         siz_params *siz = codestream.access_siz();
-        int __nx, __ny;
-        siz->get(Ssize, 0, 0, __ny);
-        siz->get(Ssize, 0, 1, __nx);
-
-        /*
-        int __clayers;
-        __clayers = codestream.get_min_dwt_levels( );
-        std::cerr << "Clayers=" << __clayers << std::endl;
-        */
+        int nx_, ny_;
+        siz->get(Ssize, 0, 0, ny_);
+        siz->get(Ssize, 0, 1, nx_);
 
         //
         // is there a region of interest defined ? If yes, get the cropping parameters...
@@ -328,9 +287,9 @@ namespace cserve {
         if ((region != nullptr) && (region->getType()) != IIIFRegion::FULL) {
             try {
                 size_t sx, sy;
-                region->crop_coords(__nx, __ny, roi.pos.x, roi.pos.y, sx, sy);
-                roi.size.x = sx;
-                roi.size.y = sy;
+                region->crop_coords(nx_, ny_, roi.pos.x, roi.pos.y, sx, sy);
+                roi.size.x = static_cast<int>(sx);
+                roi.size.y = static_cast<int>(sy);
                 do_roi = true;
             } catch (IIIFError &err) {
                 codestream.destroy();
@@ -350,7 +309,7 @@ namespace cserve {
             if (do_roi) {
                 size->get_size(roi.size.x, roi.size.y, nnx, nny, reduce, redonly);
             } else {
-                size->get_size(__nx, __ny, nnx, nny, reduce, redonly);
+                size->get_size(nx_, ny_, nnx, nny, reduce, redonly);
             }
         } else {
             reduce = 0;
@@ -359,7 +318,6 @@ namespace cserve {
         if (reduce < 0) reduce = 0;
 
         codestream.apply_input_restrictions(0, 0, reduce, 0, do_roi ? &roi : nullptr);
-
 
         // Determine number of components to decompress
         kdu_core::kdu_dims dims;
@@ -370,13 +328,12 @@ namespace cserve {
         img.nc = codestream.get_num_components(); // not the same as the number of colors!
         img.bps = codestream.get_bit_depth(0); // bitdepth of zeroth component. Assuming it's valid for all
 
-
         //
         // The following definitions we need in case we get a palette color image!
         //
-        byte *rlut = nullptr;
-        byte *glut = nullptr;
-        byte *blut = nullptr;
+        std::unique_ptr<byte[]> rlut = nullptr;
+        std::unique_ptr<byte[]> glut = nullptr;
+        std::unique_ptr<byte[]> blut = nullptr;
         //
         // get ICC-Profile if available
         //
@@ -390,26 +347,25 @@ namespace cserve {
             int nluts = palette.get_num_luts();
             if (nluts == 3) {
                 int nentries = palette.get_num_entries();
-                rlut = new byte[nentries];
-                glut = new byte[nentries];
-                blut = new byte[nentries];
-                float *tmplut = new float[nentries];
+                rlut = std::make_unique<byte[]>(nentries);
+                glut = std::make_unique<byte[]>(nentries);
+                blut = std::make_unique<byte[]>(nentries);
+                auto tmplut = std::make_unique<float[]>(nentries);
 
-                palette.get_lut(0, tmplut);
+                palette.get_lut(0, tmplut.get());
                 for (int i = 0; i < nentries; i++) {
-                    rlut[i] = roundf((tmplut[i] + 0.5) * 255.0);
+                    rlut[i] = lroundf((tmplut[i] + 0.5f) * 255.0f);
                 }
 
-                palette.get_lut(1, tmplut);
+                palette.get_lut(1, tmplut.get());
                 for (int i = 0; i < nentries; i++) {
-                    glut[i] = roundf((tmplut[i] + 0.5) * 255.0);
+                    glut[i] = lroundf((tmplut[i] + 0.5f) * 255.0f);
                 }
 
-                palette.get_lut(2, tmplut);
+                palette.get_lut(2, tmplut.get());
                 for (int i = 0; i < nentries; i++) {
-                    blut[i] = roundf((tmplut[i] + 0.5) * 255.0);
+                    blut[i] = lroundf((tmplut[i] + 0.5f) * 255.0f);
                 }
-                delete[] tmplut;
             }
 
             if (img.nc > numcol) { // we have more components than colors -> alpha channel!
@@ -458,9 +414,8 @@ namespace cserve {
                         } else if (numcol == 4) {
                             img.photo = SEPARATED;
                         } else {
-                            syslog(LOG_ERR, "Unsupported number of colors: %d", numcol);
-                            throw IIIFImageError(file_, __LINE__,
-                                                 "Unsupported number of colors: " + std::to_string(numcol));
+                            Server::logger()->error("Unsupported number of colors: {}", numcol);
+                            throw IIIFImageError(file_, __LINE__, fmt::format("Unsupported number of colors: {}", numcol));
                         }
                         int icc_len;
                         const unsigned char *icc_buf = colinfo.get_icc_profile(&icc_len);
@@ -489,13 +444,13 @@ namespace cserve {
                     }
 
                     default: {
-                        syslog(LOG_ERR, "Unsupported ICC profile: %s", std::to_string(space).c_str());
-                        throw IIIFImageError(file_, __LINE__, "Unsupported ICC profile: " + std::to_string(space));
+                        Server::logger()->error("Unsupported ICC profile: {}", space);
+                        throw IIIFImageError(file_, __LINE__, fmt::format("Unsupported ICC profile: {}", space));
                     }
                 }
             }
         } else {
-            numcol = img.nc;
+            numcol = static_cast<int>(img.nc);
         }
 
         if (img.photo == INVALID) {
@@ -539,7 +494,7 @@ namespace cserve {
             case 12: {
                 std::vector<char> get_signed(img.nc, 0); // vector<bool> does not work -> special treatment in C++
                 auto buffer16 = std::make_unique<word[]>(dims.area() * img.nc);
-                kdu_core::kdu_int16 *raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.get();
+                auto raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.get();
                 decompressor.pull_stripe(raw_buffer16,
                                          stripe_heights,
                                          nullptr,
@@ -554,7 +509,7 @@ namespace cserve {
             case 16: {
                 std::vector<char> get_signed(img.nc, 0); // vector<bool> does not work -> special treatment in C++
                 auto buffer16 = std::make_unique<word[]>(dims.area() * img.nc);
-                kdu_core::kdu_int16 *raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.get();
+                auto raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.get();
                 decompressor.pull_stripe(raw_buffer16,
                                          stripe_heights,
                                          nullptr,
@@ -593,9 +548,9 @@ namespace cserve {
             }
             img.bpixels = std::move(tmpbuf);
             img.nc = numcol;
-            delete[] rlut;
-            delete[] glut;
-            delete[] blut;
+            rlut.release();
+            glut.release();
+            blut.release();
         }
         if (img.photo == YCBCR) {
             img.convertYCC2RGB();
@@ -606,18 +561,14 @@ namespace cserve {
             switch (scaling_quality.jk2) {
                 case HIGH:
                     img.scale(nnx, nny);
-                    //std::cerr << "===>HIGH SCALING to nnx=" << nnx << " nny=" << nny << std::endl;
                     break;
                 case MEDIUM:
                     img.scaleMedium(nnx, nny);
-                    //std::cerr << "===>MEDIUM SCALING to nnx=" << nnx << " nny=" << nny << std::endl;
                     break;
                 case LOW:
                     img.scaleFast(nnx, nny);
-                    //std::cerr << "===>FAST SCALING to nnx=" << nnx << " nny=" << nny << std::endl;
                     break;
             }
-
         }
         return img;
     }
@@ -637,7 +588,7 @@ namespace cserve {
         kdu_supp::jp2_family_src jp2_ultimate_src;
         kdu_supp::jpx_source jpx_in;
         kdu_supp::jpx_codestream_source jpx_stream;
-        kdu_core::kdu_compressed_source *input = nullptr;
+        kdu_core::kdu_compressed_source *input;
         kdu_supp::kdu_simple_file_source file_in;
 
         jp2_ultimate_src.open(filepath.c_str());
@@ -669,11 +620,11 @@ namespace cserve {
         info.width = tmp_width;
         info.success = IIIFImgInfo::DIMS;
 
-        int __tnx, __tny;
-        siz->get(Stiles, 0, 0, __tny);
-        siz->get(Stiles, 0, 1, __tnx);
-        info.tile_width = __tnx;
-        info.tile_height = __tny;
+        int tnx_, tny_;
+        siz->get(Stiles, 0, 0, tny_);
+        siz->get(Stiles, 0, 1, tnx_);
+        info.tile_width = tnx_;
+        info.tile_height = tny_;
         info.clevels = codestream.get_min_dwt_levels();
 
         kdu_codestream_comment comment = codestream.get_comment();
@@ -701,9 +652,9 @@ namespace cserve {
     static void write_xmp_box(kdu_supp::jp2_family_tgt *tgt, const char *xmpstr) {
         kdu_supp::jp2_output_box out;
         out.open(tgt, jp2_uuid_4cc);
-        out.set_target_size(strlen(xmpstr) + sizeof(xmp_uuid));
+        out.set_target_size(static_cast<kdu_core::kdu_long>(strlen(xmpstr)) + static_cast<kdu_core::kdu_long>(sizeof(xmp_uuid)));
         out.write(xmp_uuid, 16);
-        out.write((kdu_core::kdu_byte *) xmpstr, strlen(xmpstr));
+        out.write((kdu_core::kdu_byte *) xmpstr, static_cast<int>(strlen(xmpstr)));
         out.close();
     }
 //=============================================================================
@@ -711,7 +662,7 @@ namespace cserve {
     static void write_iptc_box(kdu_supp::jp2_family_tgt *tgt, kdu_core::kdu_byte *iptc, int iptc_len) {
         kdu_supp::jp2_output_box out;
         out.open(tgt, jp2_uuid_4cc);
-        out.set_target_size(iptc_len + sizeof(iptc_uuid));
+        out.set_target_size(static_cast<kdu_core::kdu_long>(iptc_len) + static_cast<kdu_core::kdu_long>(sizeof(iptc_uuid)));
         out.write(iptc_uuid, 16);
         out.write((kdu_core::kdu_byte *) iptc, iptc_len);
         out.close();
@@ -721,13 +672,14 @@ namespace cserve {
     static void write_exif_box(kdu_supp::jp2_family_tgt *tgt, kdu_core::kdu_byte *exif, int exif_len) {
         kdu_supp::jp2_output_box out;
         out.open(tgt, jp2_uuid_4cc);
-        out.set_target_size(exif_len + sizeof(exif_uuid));
-        out.write(exif_uuid, sizeof(exif_uuid));
+        out.set_target_size(static_cast<kdu_core::kdu_long>(exif_len) + static_cast<kdu_core::kdu_long>(sizeof(exif_uuid)));
+        out.write(exif_uuid, static_cast<int>(sizeof(exif_uuid)));
         out.write((kdu_byte *) exif, exif_len); // NOT::: skip JPEG marker header 'E', 'x', 'i', 'f', '\0', '\0'..
         out.close();
     }
 //=============================================================================
 
+    [[maybe_unused]]
     static long get_bpp_dims(kdu_codestream &codestream) {
         int comps = codestream.get_num_components();
         int n, max_width = 0, max_height = 0;
@@ -749,7 +701,6 @@ namespace cserve {
         kdu_customize_errors(&kdu_sipi_error);
 
         int num_threads;
-
         kdu_membroker membroker;
 
         if ((num_threads = kdu_get_num_processors()) < 2) num_threads = 0;
@@ -757,17 +708,17 @@ namespace cserve {
         try {
             // Construct code-stream object
             siz_params siz;
-            siz.set(Scomponents, 0, 0, (int) img.nc);
-            siz.set(Sdims, 0, 0, (int) img.ny);  // Height of first image component
-            siz.set(Sdims, 0, 1, (int) img.nx);   // Width of first image component
-            siz.set(Sprecision, 0, 0, (int) img.bps);  // Bits per sample (usually 8 or 16)
+            siz.set(Scomponents, 0, 0, static_cast<int>(img.nc));
+            siz.set(Sdims, 0, 0, static_cast<int>(img.ny));  // Height of first image component
+            siz.set(Sdims, 0, 1, static_cast<int>(img.nx));   // Width of first image component
+            siz.set(Sprecision, 0, 0, static_cast<int>(img.bps));  // Bits per sample (usually 8 or 16)
             siz.set(Ssigned, 0, 0, false); // Image samples are originally unsigned
 
             //
             // tiling has to be done here. Tile size must be adapted to image dimesions!
             //
             int tw = 0, th = 0;
-            const int mindim = img.ny < img.nx ? img.ny : img.nx;
+            const auto mindim = img.ny < img.nx ? img.ny : img.nx;
             if (!params.empty()) {
                 if (params.find(J2K_Stiles) != params.end()) {
                     int n = std::sscanf(params.at(J2K_Stiles).c_str(), "{%d,%d}", &tw, &th);
@@ -782,7 +733,7 @@ namespace cserve {
                 }
             } else {
                 if (mindim >= 4096) {
-                    tw = th = 1024;
+                    tw = th = 1536;
                 } else if (mindim >= 2048) {
                     tw = th = 1024;
                 } else if (mindim >= 1024) {
@@ -791,7 +742,6 @@ namespace cserve {
                     tw = th = 0;
                 }
                 if (mindim > 1024) {
-                    const int mindim = img.ny < img.nx ? img.ny : img.nx;
                     std::stringstream ss;
                     ss << "Stiles={" << tw << "," << th << "}";
                     siz.parse_string(ss.str().c_str());
@@ -801,7 +751,7 @@ namespace cserve {
             kdu_params *siz_ref = &siz;
             siz_ref->finalize();
 
-            kdu_compressed_target *output = nullptr;
+            kdu_compressed_target *output;
 
             jp2_family_tgt jp2_ultimate_tgt;
 
@@ -818,8 +768,6 @@ namespace cserve {
             jpx_out.open(&jp2_ultimate_tgt, &membroker);
             jpx_codestream_target jpx_stream = jpx_out.add_codestream();
             jpx_layer_target jpx_layer = jpx_out.add_layer();
-
-            //jp2_palette jp2_family_palette = jpx_stream.access_palette();
             jp2_resolution jp2_family_resolution = jpx_layer.access_resolution();
 
             output = jpx_stream.access_stream();
@@ -844,7 +792,6 @@ namespace cserve {
             codestream.create(&siz, output, nullptr, 0, 0, env_ref, &membroker);
 
             // Set up any specific coding parameters and finalize them.
-            int num_clayers;
             std::vector<double> rates;
 
             //
@@ -864,13 +811,11 @@ namespace cserve {
                 }
 
                 if (params.find(J2K_Clayers) != params.end()) {
-                    num_clayers = std::stoi(params.at(J2K_Clayers));
                     std::stringstream ss;
                     ss << "Clayers=" << params.at(J2K_Clayers);
                     codestream.access_siz()->parse_string(ss.str().c_str());
                 } else {
                     codestream.access_siz()->parse_string("Clayers=8");
-                    num_clayers = 8;
                 }
 
                 if (params.find(J2K_Clevels) != params.end()) {
@@ -917,22 +862,20 @@ namespace cserve {
                     std::string ratestr = params.at(J2K_rates);
                     std::stringstream ss(ratestr);
                     double temp;
-                    while (ss >> temp)
+                    while (ss >> temp) {
                         rates.push_back(temp); // done! now array={102,330,3133,76531,451,000,12,44412}
+                    }
                 }
             } else {
                 codestream.access_siz()->parse_string("Sprofile=PART2");
                 if (mindim > 4096) {
                     codestream.access_siz()->parse_string("Clayers=8");
-                    num_clayers = 8;
                     codestream.access_siz()->parse_string("Clevels=8"); // resolution levels ***
                 } else if (mindim > 2048) {
                     codestream.access_siz()->parse_string("Clayers=5");
-                    num_clayers = 5;
                     codestream.access_siz()->parse_string("Clevels=5"); // resolution levels ***
                 } else if (mindim > 1024) {
                     codestream.access_siz()->parse_string("Clayers=3");
-                    num_clayers = 3;
                     codestream.access_siz()->parse_string("Clevels=3"); // resolution levels ***
                 }
                 codestream.access_siz()->parse_string("Corder=RPCL");
@@ -968,14 +911,15 @@ namespace cserve {
                         case 1:
                             break; // RESUNIT_NONE
                         case 2: { // RESUNIT_INCH
-                            res_x = res_x * 100. / 2.51;
-                            res_y = res_y * 100. / 2.51;
+                            res_x = res_x * 100.f / 2.51f;
+                            res_y = res_y * 100.f / 2.51f;
                             break;
                         }
                         case 3: { // RESUNIT_CENTIMETER
-                            res_x = res_x * 100.;
-                            res_y = res_y * 100.;
+                            res_x = res_x * 100.f;
+                            res_y = res_y * 100.f;
                         }
+                        default: {}
                     }
                     jp2_family_resolution.init(res_y / res_x);
                     jp2_family_resolution.set_resolution(res_x, false);
@@ -994,13 +938,13 @@ namespace cserve {
                     switch (icc_type) {
                         case icc_undefined: {
                             unsigned int icc_len;
-                            kdu_byte *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
                             jp2_family_colour.init(icc_bytes);
                             break;
                         }
                         case icc_unknown: {
                             unsigned int icc_len;
-                            kdu_byte *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
                             jp2_family_colour.init(icc_bytes);
                             break;
                         }
@@ -1010,13 +954,13 @@ namespace cserve {
                         }
                         case icc_AdobeRGB: {
                             unsigned int icc_len;
-                            kdu_byte *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
                             jp2_family_colour.init(icc_bytes);
                             break;
                         }
                         case icc_RGB: { // TODO: DOES NOT WORK AS EXPECTED!!!!! Fallback below
                             unsigned int icc_len;
-                            kdu_byte *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
                             jp2_family_colour.init(icc_bytes);
                             break;
                         }
@@ -1026,15 +970,11 @@ namespace cserve {
                         }
                         case icc_GRAY_D50: {
                             unsigned int icc_len;
-                            kdu_byte *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
                             jp2_family_colour.init(icc_bytes); // TODO: DOES NOT WORK AS EXPECTED!!!!! Fallback below
                             break;
                         }
-                        case icc_LUM_D65: {
-                            if (es.is_set()) es.use_icc(true);
-                            jp2_family_colour.init(JP2_sLUM_SPACE); // TODO: just a fallback
-                            break;
-                        }
+                        case icc_LUM_D65:
                         case icc_ROMM_GRAY: {
                             if (es.is_set()) es.use_icc(true);
                             jp2_family_colour.init(JP2_sLUM_SPACE); // TODO: just a fallback
@@ -1053,7 +993,7 @@ namespace cserve {
                         };
                         default: {
                             unsigned int icc_len;
-                            kdu_byte *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
                             jp2_family_colour.init(icc_bytes);
                         }
                     }
@@ -1103,18 +1043,18 @@ namespace cserve {
             }
 
             jp2_channels jp2_family_channels = jpx_layer.access_channels();
-            jp2_family_channels.init(img.nc - img.es.size());
+            jp2_family_channels.init(static_cast<int>(img.nc) - static_cast<int>(img.es.size()));
             for (int c = 0; c < img.nc - img.es.size(); c++) {
                 jp2_family_channels.set_colour_mapping(c, c);
             }
-            if (img.es.size() > 0) {
+            if (!img.es.empty()) {
                 if (img.es.size() == 1) {
                     for (int c = 0; c < img.nc - img.es.size(); c++) {
-                        jp2_family_channels.set_opacity_mapping(c, img.nc - img.es.size());
+                        jp2_family_channels.set_opacity_mapping(c, static_cast<int>(img.nc) - static_cast<int>(img.es.size()));
                     }
                 } else if (img.es.size() == (img.nc - img.es.size())) {
                     for (int c = 0; c < img.nc - img.es.size(); c++) {
-                        jp2_family_channels.set_opacity_mapping(c, img.nc - img.es.size() + c);
+                        jp2_family_channels.set_opacity_mapping(c, static_cast<int>(img.nc) - static_cast<int>(img.es.size()) + c);
                     }
                 }
             }
@@ -1122,7 +1062,7 @@ namespace cserve {
             jpx_out.write_headers();
             if (img.iptc != nullptr) {
                 std::vector<unsigned char> iptc_buf = img.iptc->iptcBytes();
-                write_iptc_box(&jp2_ultimate_tgt, iptc_buf.data(), iptc_buf.size());
+                write_iptc_box(&jp2_ultimate_tgt, iptc_buf.data(), static_cast<int>(iptc_buf.size()));
             }
 
             //
@@ -1130,7 +1070,7 @@ namespace cserve {
             //
             if (img.exif != nullptr) {
                 std::vector<unsigned char> exif_buf = img.exif->exifBytes();
-                write_exif_box(&jp2_ultimate_tgt, exif_buf.data(), exif_buf.size());
+                write_exif_box(&jp2_ultimate_tgt, exif_buf.data(), static_cast<int>(exif_buf.size()));
             }
 
             //
@@ -1148,41 +1088,6 @@ namespace cserve {
 
             codestream.access_siz()->finalize_all();
 
-
-            //
-            // here we calculate the JPEG2000/kakadu parameters for num_layer...
-            // see kdu_compress, derived fromn code there
-            //
-            /*
-            int num_layers = 0;
-            std::vector<kdu_long> layer_sizes;
-            kdu_long *layer_sizes_ptr = nullptr;
-            if (rates.size() > 0) {
-                if ((rates.size() == num_clayers) || ((rates.size() <= 2) && ((num_clayers >= 2)))) {
-                    kdu_long total_pels = get_bpp_dims(codestream);
-                    for (const auto &rate: rates) {
-                        if (rate == -1.0) {
-                            layer_sizes.push_back(KDU_LONG_MAX);
-                        } else {
-                            layer_sizes.push_back((kdu_long) std::floor(rate * 0.125 * total_pels));
-                        }
-                    }
-                    std::sort(layer_sizes.begin(), layer_sizes.end());
-                    if (layer_sizes.back() == KDU_LONG_MAX) layer_sizes.back() = 0;
-                    layer_sizes_ptr = layer_sizes.data();
-                    num_layers = layer_sizes.size();
-                }
-            } else if (num_clayers > 0) {
-                for (int i = 0; i < num_clayers; i++) {
-                    layer_sizes.push_back(0);
-                }
-                layer_sizes_ptr = layer_sizes.data();
-                num_layers = layer_sizes.size();
-            } else {
-                layer_sizes_ptr = nullptr;
-                num_layers = 0;
-            }
-            */
             // Now compress the image in one hit, using `kdu_stripe_compressor'
             kdu_stripe_compressor compressor;
             compressor.mem_configure(&membroker);
@@ -1195,28 +1100,25 @@ namespace cserve {
                              is_reversible,    //force_precise [YES, if reversible=yes]
                              true,    // record_layer_info_in_comment
                              0.0,     // size_tolerance
-                             img.nc, // num_components
+                             static_cast<int>(img.nc), // num_components
                              false,   // want_fastest [NO]
                              env_ref);
 
-            //int *stripe_heights = new int[img->nc];
             int stripe_heights[5];
-            int *precisions;
-            bool *is_signed;
             if (img.bps == 16) {
-                kdu_int16 *buf = (kdu_int16 *) img.wpixels.get();
-                precisions = new int[img.nc];
-                is_signed = new bool[img.nc];
+                auto *buf = (kdu_int16 *) img.wpixels.get();
+                auto precisions = std::make_unique<int[]>(img.nc);
+                auto is_signed = std::make_unique<bool[]>(img.nc);
                 for (size_t i = 0; i < img.nc; i++) {
-                    precisions[i] = img.bps;
+                    precisions[i] = static_cast<int>(img.bps);
                     is_signed[i] = false;
                 }
                 for (size_t i = 0; i < img.nc; i++) {
-                    stripe_heights[i] = img.ny;
+                    stripe_heights[i] = static_cast<int>(img.ny);
                 }
-                compressor.push_stripe(buf, stripe_heights, nullptr, nullptr, nullptr, precisions, is_signed);
+                compressor.push_stripe(buf, stripe_heights, nullptr, nullptr, nullptr, precisions.get(), is_signed.get());
             } else if (img.bps == 8) {
-                if (th == 0) th = img.ny;
+                if (th == 0) th = static_cast<int>(img.ny);
                 size_t stripe_start = 0;
                 do {
                     kdu_byte *buf = (kdu_byte *) img.bpixels.get() + stripe_start * img.nc * img.nx;
@@ -1229,15 +1131,14 @@ namespace cserve {
                 if ((img.ny - stripe_start) > 0) {
                     kdu_byte *buf = (kdu_byte *) img.bpixels.get() + stripe_start * img.nc * img.nx;
                     for (size_t i = 0; i < img.nc; i++) {
-                        stripe_heights[i] = img.ny - stripe_start;
+                        stripe_heights[i] = static_cast<int>(img.ny) - static_cast<int>(stripe_start);
                     }
                     compressor.push_stripe(buf, stripe_heights);
-                    stripe_start += img.ny - stripe_start;
                 }
             } else {
                 throw IIIFImageError(file_, __LINE__, "Unsupported number of bits/sample!");
             }
-            compressor.finish(0, NULL, NULL, env_ref);
+            compressor.finish(0, nullptr, nullptr, env_ref);
             // Finally, cleanup
             codestream.destroy(); // All done: simple as that.
             output->close(); // Not really necessary here.
@@ -1245,14 +1146,7 @@ namespace cserve {
             if (jp2_ultimate_tgt.exists()) {
                 jp2_ultimate_tgt.close();
             }
-            //delete[] stripe_heights;
-            if (img.bps == 16) {
-                delete[] precisions;
-                delete[] is_signed;
-            }
-            if (http != nullptr) {
-                delete http;
-            }
+            delete http;
         } catch (kdu_exception e) {
             throw IIIFImageError(file_, __LINE__, "Problem writing a JPEG2000 image!");
         }
