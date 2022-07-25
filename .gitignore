@@ -41,3 +41,8 @@ cmake-build-release
 __pycache__
 /build-linux
 /docs
+/vendor
+/handlers/iiifhandler/YCC709_icc.h
+/handlers/iiifhandler/USWebCoatedSWOP_icc.h
+/handlers/iiifhandler/Rec709-Rec1886_icc.h
+/handlers/iiifhandler/AdobeRGB1998_icc.h
