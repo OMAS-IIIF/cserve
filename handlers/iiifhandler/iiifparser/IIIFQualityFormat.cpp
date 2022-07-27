@@ -23,21 +23,13 @@ static const char __file__[] = __FILE__;
 
 namespace cserve {
 
-    IIIFQualityFormat::IIIFQualityFormat(std::string str) {
-        if (str.empty()) {
+    IIIFQualityFormat::IIIFQualityFormat(const std::string &quality, const std::string &format) {
+        if (quality.empty() || format.empty()) {
             quality_type = IIIFQualityFormat::DEFAULT;
             format_type = IIIFQualityFormat::JPG;
             return;
         }
 
-        size_t dot_pos = str.find(".");
-
-        if (dot_pos == std::string::npos) {
-            throw IIIFError(__file__, __LINE__, "IIIF Error reading Quality+Format parameter  \"" + str + "\" !");
-        }
-
-        std::string quality = str.substr(0, dot_pos);
-        std::string format = str.substr(dot_pos + 1);
 
         if (quality == "default") {
             quality_type = IIIFQualityFormat::DEFAULT;

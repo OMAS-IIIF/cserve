@@ -28,6 +28,7 @@ namespace cserve {
      */
     class Error : public std::runtime_error {
     protected:
+        std::string cname;
         int line;            //!< Linenumber where the exception has been throwns
         std::string file;    //!< Name of source code file where the exception has been thrown
         std::string message; //!< Description of the problem
@@ -35,26 +36,8 @@ namespace cserve {
 
     public:
 
-        /*!
-        * Constructor with all (char *) strings
-        *
-        * \param[in] file The filename, usually the __FILE__ macro.
-        * \param[in] line The source code line, usually the __LINE__ macro.
-        * \param[in] msg The message describing the error.
-        * \param[in] errno_p Retrieve and display the system error message from errno.
-        */
         Error(const char *file, int line, const char *msg, int errno_p = 0);
 
-        /*!
-        * Constructor with std::string strings for the message. The file parameter is
-        * is always of type (char *), becuase usually its either __LINE__ or a static
-        * pointer to char
-        *
-        * \param[in] file The filename, usually the __FILE__ macro.
-        * \param[in] line The source code line, usually the __LINE__ macro.
-        * \param[in] msg The message describing the error.
-        * \param[in] syserr Retrieve and display the system error message from errno.
-        */
         Error(const char *file, int line, const std::string &msg, int errno_p = 0);
 
         [[nodiscard]] inline int getLine() const { return line; }
@@ -65,29 +48,12 @@ namespace cserve {
 
         [[maybe_unused]] [[nodiscard]] inline int getSysErrno() const { return sysErrno; }
 
-        /*!
-         * Retuns the error as a one-line string
-         *
-         * \returns Error string
-         */
         [[nodiscard]] virtual std::string to_string() const;
 
-        /*!
-         * String conversion operator.
-         * @return Error message a s std::string
-         */
         inline explicit operator std::string() const {
             return to_string();
         }
 
-
-        /*!
-        * The overloaded << operator which is used to write the error message to the output
-        *
-        * \param[in] outStream The output stream
-        * \param[in] rhs Reference to an instance of a Error
-        * \returns Returns an std::ostream object
-        */
         friend std::ostream &operator<<(std::ostream &outStream, const Error &rhs);
     };
 }

@@ -19,6 +19,9 @@
 #include "../../lib/RequestHandler.h"
 
 #include "IIIFCache.h"
+#include "IIIFImage.h"
+#include "iiifparser/IIIFRotation.h"
+#include "iiifparser/IIIFQualityFormat.h"
 
 namespace cserve {
 
@@ -45,6 +48,8 @@ namespace cserve {
         int _max_num_chache_files;
         float _cache_hysteresis;
         std::string _thumbnail_size;
+        int _jpeg_quality;
+        ScalingQuality _scaling_quality;
 
         std::shared_ptr<IIIFCache> _cache;
     public:
@@ -71,6 +76,21 @@ namespace cserve {
                                                                        bool prefix_as_path) const;
 
         void send_iiif_info(Connection &conn_obj, LuaServer &luaserver, const std::unordered_map<Parts,std::string> &params) const;
+
+        void send_iiif_file(Connection &conn_obj, LuaServer &luaserver, const std::unordered_map<Parts,std::string> &params) const;
+
+        inline std::shared_ptr<IIIFCache> cache() const { return _cache; }
+
+        std::pair<std::string, std::string> get_canonical_url  (
+                size_t tmp_w,
+                size_t tmp_h,
+                const std::string &host,
+                const std::string &prefix,
+                const std::string &identifier,
+                const std::shared_ptr<IIIFRegion>& region,
+                const std::shared_ptr<IIIFSize>& size,
+                IIIFRotation &rotation,
+                IIIFQualityFormat &quality_format, int pagenum) const;
 
     };
 

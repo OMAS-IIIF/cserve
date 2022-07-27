@@ -24,20 +24,7 @@ namespace cserve {
 
         IIIFError(const char *file, int line, const std::string &msg, int errno_p = 0);
 
-        /*!
-        * Convert the error into a string message
-        */
-        [[nodiscard]] std::string to_string() const override;
-
-        /*!
-         * The overloaded << operator which is used to write the error message to the output
-         *
-         * \param[in] lhs The output stream
-         * \param[in] rhs Reference to an instance of a SipiError
-         * \returns Returns an std::ostream object
-         */
         friend std::ostream &operator<<(std::ostream &lhs, const IIIFError &rhs);
-
     };
 
 

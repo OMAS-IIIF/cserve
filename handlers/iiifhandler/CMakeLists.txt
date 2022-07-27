@@ -104,12 +104,14 @@ add_library(iiifhandler MODULE
         IIIFHandler.cpp IIIFHandler.h
         IIIFError.cpp IIIFError.h
         IIIFSendInfo.cpp
+        IIIFSendFile.cpp
         IIIFPreflight.cpp
         IIIFCheckFileAccess.cpp
         IIIFCache.cpp IIIFCache.h
         IIIFIO.h
         IIIFImage.cpp IIIFImage.h
         IIIFImgTools.cpp IIIFImgTools.h
+        IIIFLua.cpp IIIFLua.h
         AdobeRGB1998_icc.h USWebCoatedSWOP_icc.h Rec709-Rec1886_icc.h
         iiifparser/IIIFIdentifier.cpp iiifparser/IIIFIdentifier.h
         iiifparser/IIIFQualityFormat.cpp iiifparser/IIIFQualityFormat.h
@@ -124,7 +126,8 @@ add_library(iiifhandler MODULE
         imgformats/IIIFIOTiff.cpp imgformats/IIIFIOTiff.h
         imgformats/IIIFIOPng.cpp imgformats/IIIFIOPng.h
         imgformats/IIIFIOJpeg.cpp imgformats/IIIFIOJpeg.h
-        imgformats/IIIFIOJ2k.cpp imgformats/IIIFIOJ2k.h IIIFPhotometricInterpretation.h)
+        imgformats/IIIFIOJ2k.cpp imgformats/IIIFIOJ2k.h
+        IIIFPhotometricInterpretation.h IIIFGetCanonicalUrl.cpp)
 
 add_dependencies(iiifhandler
         icc_profiles)

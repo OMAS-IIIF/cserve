@@ -31,8 +31,8 @@ namespace cserve {
             }
 
             rotation = Parsing::parse_float(str);
-        } catch (Error &error) {
-            throw IIIFError(file_, __LINE__, "Could not parse IIIF rotation parameter: " + str);
+        } catch (const Error &err) {
+            throw IIIFError(file_, __LINE__, "Could not parse IIIF rotation parameter: " + str + " -> " + err.to_string());
         }
     }
     //-------------------------------------------------------------------------

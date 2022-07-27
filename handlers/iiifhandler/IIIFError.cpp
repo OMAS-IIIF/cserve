@@ -12,33 +12,24 @@
 #include <sstream>
 
 #include "IIIFError.h"
+#include "spdlog/fmt/bundled/format.h"
 
 namespace cserve {
 
-    IIIFError::IIIFError(const char *file_p, const int line_p, const char *msg, int errno_p) : Error(file_p, line_p,
-                                                                                                     msg, errno_p) {}
-    //============================================================================
-
-
-    IIIFError::IIIFError(const char *file_p, const int line_p, const std::string &msg, int errno_p) : Error(file_p,
-                                                                                                            line_p, msg,
-                                                                                                            errno_p) {}
-    //============================================================================
-
-    std::string IIIFError::to_string(void) const {
-        std::ostringstream errStream;
-        errStream << "Sipi Error at [" << file << ": " << line << "]";
-        if (sysErrno != 0) errStream << " (system error: " << std::strerror(sysErrno) << ")";
-        errStream << ": " << message;
-        return errStream.str();
+    IIIFError::IIIFError(const char *file, const int line, const char *msg, int errno_p)
+        : Error(file, line, msg, errno_p) {
+        cname = __func__;
     }
-    //============================================================================
+
+    IIIFError::IIIFError(const char *file, const int line, const std::string &msg, int errno_p)
+        : Error(file, line, msg, errno_p) {
+        cname = __func__;
+    }
 
     std::ostream &operator<<(std::ostream &outStream, const IIIFError &rhs) {
         std::string errStr = rhs.to_string();
         outStream << errStr << std::endl; // TODO: remove the endl, the logging code should do it
         return outStream;
     }
-    //============================================================================
 
 } // cserve

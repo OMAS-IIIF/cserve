@@ -9,6 +9,7 @@
 #include "IIIFError.h"
 #include "iiifparser/IIIFIdentifier.h"
 #include "nlohmann/json.hpp"
+#include "IIIFImage.h"
 
 static const char file_[] = __FILE__;
 
@@ -156,13 +157,61 @@ namespace cserve {
             int numpages = 0;
 
             if (!_cache || !_cache->getSize(access["infile"], width, height, t_width, t_height, clevels, pagenum)) {
-
+                try {
+                    auto info = IIIFImage::getDim(access["infile"], pagenum);
+                    if (info.success == IIIFImgInfo::FAILURE) {
+                        send_error(conn, Connection::INTERNAL_SERVER_ERROR, "Error getting image dimensions!");
+                        return;
+                    }
+                    width = info.width;
+                    height = info.height;
+                    t_width = info.tile_width;
+                    t_height = info.tile_height;
+                    clevels = info.clevels;
+                    numpages = info.numpages;
+                }
+                catch (const IIIFImageError &err) {
+                    send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
+                    return;
+                }
+            }
+            root_obj["width"] = width;
+            root_obj["height"] = height;
+            if (numpages > 0) {
+                root_obj["numpages"] = numpages;
             }
 
+            nlohmann::json sizes = nlohmann::json::array();
+            const int cnt = clevels > 0 ? clevels : 5;
+            for (int i = 1; i < cnt; i++) {
+                IIIFSize size(i);
+                size_t w, h;
+                int r;
+                bool ro;
+                size.get_size(width, height, w, h, r, ro);
+                if ((w < 128) || (h < 128)) break;
+                sizes.push_back({{"width", w}, {"height", h}});
+            }
+            root_obj["sizes"] = sizes;
+
+            if (t_width > 0 && t_height > 0) {
+                nlohmann::json tiles = nlohmann::json::array();
+                nlohmann::json scaleFactors = nlohmann::json::array();
+                for (int i = 1; i < cnt; i++) {
+                    scaleFactors.push_back(i);
+                }
+                nlohmann::json tileobj = {{"width", t_width}, {"height", t_height}, {"scaleFactors", scaleFactors}};
+                root_obj["tiles"] = { tileobj };
+            }
+            root_obj["extraFormats"] = {"tif", "jp2"};
+            root_obj["preferredFormats"] = {"jpg", "tif", "jp2", "png"};
+            root_obj["extraFeatures"] = {"baseUriRedirect", "canonicalLinkHeader", "cors", "jsonldMediaType",
+                    "mirroring", "profileLinkHeader", "regionByPct", "regionByPx", "regionSquare", "rotationArbitrary",
+                    "rotationBy90s", "sizeByConfinedWh", "sizeByH", "sizeByPct", "sizeByW", "sizeByWh", "sizeUpscaling"};
         }
+
         conn.status(http_status);
         conn.setBuffer(); // we want buffered output, since we send JSON text...
-
         conn.header("Access-Control-Allow-Origin", "*");
         const std::string contenttype = conn.header("accept");
         if (is_image_file) {

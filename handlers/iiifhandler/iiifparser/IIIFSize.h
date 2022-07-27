@@ -24,6 +24,11 @@ namespace cserve {
         inline std::string to_string() const {
             return "SipiSizeError: " + description;
         };
+
+        inline explicit operator std::string() const {
+            return to_string();
+        }
+
     };
 
     /*!

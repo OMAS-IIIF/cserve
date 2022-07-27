@@ -25,7 +25,7 @@ namespace cserve {
             format_type = IIIFQualityFormat::JPG;
         }
 
-        IIIFQualityFormat(std::string str);
+        IIIFQualityFormat(const std::string &quality, const std::string &format);
 
         friend std::ostream &operator<<(std::ostream &lhs, const IIIFQualityFormat &rhs);
 

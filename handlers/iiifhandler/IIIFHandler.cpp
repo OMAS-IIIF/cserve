@@ -17,6 +17,7 @@
 #include "HttpSendError.h"
 #include "IIIFHandler.h"
 #include "IIIFCache.h"
+#include "IIIFLua.h"
 
 namespace cserve {
 
@@ -66,6 +67,7 @@ namespace cserve {
         bool region_ok = false;
         bool info_ok = false;
         bool file_ok = false;
+        bool id_ok = false;
         ssize_t partspos = parts.size() - 1;
 
         if (partspos < 0) {
@@ -156,17 +158,20 @@ namespace cserve {
             }
         }
         iiif_str_params[IIIF_IDENTIFIER] = urldecode(parts[partspos]);
+        if (!iiif_str_params[IIIF_IDENTIFIER].empty()) {
+            id_ok = true;
+        }
         if (partspos > 0) { // we have a prefix
             std::stringstream prefix;
             for (int i = 0; i < partspos; i++) {
                 if (i > 0) prefix << "/";
                 prefix << urldecode(parts[i]);
             }
-            iiif_str_params[IIIF_PREFIX] = prefix.str();
+            iiif_str_params[IIIF_PREFIX] = prefix.str(); // includes starting "/"!
         }
 
         try {
-            if (file_ok) {
+            if (file_ok && id_ok) {
                 conn.header("Content-Type", "text/text; charset=utf-8");
                 conn.setBuffer();
                 conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
@@ -174,21 +179,29 @@ namespace cserve {
                 conn << "prefix=" << iiif_str_params[IIIF_PREFIX] << Connection::endl;
                 conn << "file=" << iiif_str_params[IIIF_IDENTIFIER] << Connection::endl;
             }
-            else if (info_ok) {
+            else if (info_ok && id_ok) {
                 send_iiif_info(conn, lua, iiif_str_params);
-            } else if (format_ok && quality_ok && region_ok && size_ok && rotation_ok) {
-                conn.header("Content-Type", "text/text; charset=utf-8");
+            }
+            else if (id_ok && format_ok && quality_ok && region_ok && size_ok && rotation_ok) {
+                send_iiif_file(conn, lua, iiif_str_params);
+            }
+            else if (id_ok) {
                 conn.setBuffer();
-                conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
-                conn << ">>>Send IIIF image" << Connection::endl;
-                conn << "prefix=" << iiif_str_params[IIIF_PREFIX] << Connection::endl;
-                conn << "id=" << iiif_str_params[IIIF_IDENTIFIER] << Connection::endl;
-                conn << "region=" << iiif_str_params[IIIF_REGION] << Connection::endl;
-                conn << "size=" << iiif_str_params[IIIF_SIZE] << Connection::endl;
-                conn << "rotation=" << iiif_str_params[IIIF_ROTATION] << Connection::endl;
-                conn << "quailty=" << iiif_str_params[IIIF_QUALITY] << Connection::endl;
-                conn << "formar=" << iiif_str_params[IIIF_FORMAT] << Connection::endl;
-            } else {
+                conn.status(Connection::SEE_OTHER);
+                std::string redirect;
+                if (conn.secure()) {
+                    redirect = fmt::format("https://{}{}/{}/info.json", conn.host(), iiif_str_params[IIIF_PREFIX], iiif_str_params[IIIF_IDENTIFIER]);
+                } else {
+                    redirect = fmt::format("http://{}{}/{}/info.json", conn.host(), iiif_str_params[IIIF_PREFIX], iiif_str_params[IIIF_IDENTIFIER]);
+                }
+                conn.header("Location", redirect);
+                conn.header("Content-Type", "text/plain");
+                conn << "Redirect to " << redirect;
+                Server::logger()->info("GET: redirect to {}", redirect);
+                conn.flush();
+                return;
+            }
+            else {
                 conn.header("Content-Type", "text/text; charset=utf-8");
                 conn.setBuffer();
                 conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
@@ -216,6 +229,21 @@ namespace cserve {
         conf.add_config(_name, "max_num_cache_files", 200, "The maximal number of files to be cached.");
         conf.add_config(_name, "cache_hysteresis", 0.15f, "If the cache becomes full, the given percentage of file space is marked for reuse (0.0 - 1.0).");
         conf.add_config(_name, "thumbsize", "!128,128", "Size of the thumbnails (to be used within Lua).");
+        conf.add_config(_name, "jpeg_quality", 80, "Default quality for JPEG file compression. Range 1-100. [Default: 80]");
+        conf.add_config(_name, "jpeg_scaling_quality", "medium", "Scaling quality for JPEG images [Default: \"medium\"]");
+        conf.add_config(_name, "tiff_scaling_quality", "high", "Scaling quality for TIFF images [Default: \"high\"]");
+        conf.add_config(_name, "png_scaling_quality", "medium", "Scaling quality for PNG images [Default: \"medium\"]");
+        conf.add_config(_name, "j2k_scaling_quality", "high", "Scaling quality for J2K images [Default: \"high\"]");
+
+    }
+
+    static ScalingMethod get_scaling_quality(const CserverConf &conf, const std::string &format, const std::string &def) {
+        std::string tmp_jpeg = strtoupper(conf.get_string(format).value_or(def));
+        if (tmp_jpeg == "HIGH") return HIGH;
+        if (tmp_jpeg == "MEDIUM") return MEDIUM;
+        if (tmp_jpeg == "LOW") return LOW;
+        return MEDIUM;
+
     }
 
     void IIIFHandler::get_config_variables(const CserverConf &conf) {
@@ -228,6 +256,11 @@ namespace cserve {
         _cache_hysteresis = conf.get_float("cache_hysteresis").value_or(0.15f);
         _pre_flight_func_name = conf.get_string("preflight_name").value_or("pre_flight");
         _thumbnail_size = conf.get_string("thumbsize").value_or("!128,128");
+        _jpeg_quality = conf.get_int("jpeg_quality").value_or(80);
+        _scaling_quality.jpeg = get_scaling_quality(conf, "jpeg_scaling_quality", "medium");
+        _scaling_quality.tiff = get_scaling_quality(conf, "tiff_scaling_quality", "high");
+        _scaling_quality.png = get_scaling_quality(conf, "png_scaling_quality", "medium");
+        _scaling_quality.png = get_scaling_quality(conf, "j2k_scaling_quality", "high");
 
         try {
             _cache = std::make_shared<IIIFCache>(_cachedir, _cache_size.as_size_t(), _max_num_chache_files, _cache_hysteresis);
@@ -279,6 +312,8 @@ namespace cserve {
         lua_rawset(L, -3); // table1
 
         lua_setglobal(L, _name.c_str());
+
+        iiif_lua_globals(L, conn, *this);
     }
 }
 

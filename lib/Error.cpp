@@ -22,7 +22,7 @@ namespace cserve {
             + std::string(file_p)
             + std::string(" Line: ")
             + std::to_string(line_p)), line(line_p), file(file_p), message(msg), sysErrno(errno_p) {
-
+        cname = __func__;
     }
     //============================================================================
 
@@ -33,13 +33,13 @@ namespace cserve {
             + std::string(file_p)
             + std::string(" Line: ")
             + std::to_string(line_p)), line(line_p), file(file_p), message(msg), sysErrno(errno_p) {
-
+        cname = __func__;
     }
     //============================================================================
 
     std::string Error::to_string() const {
         std::ostringstream err_stream;
-        err_stream << "Error at [" << file << ": " << line << "]";
+        err_stream << cname << " at [" << file << ": " << line << "]";
         if (sysErrno != 0) err_stream << " (system error: " << std::strerror(sysErrno) << ")";
         err_stream << ": " << message;
         return err_stream.str();
