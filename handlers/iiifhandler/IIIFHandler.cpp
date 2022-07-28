@@ -234,7 +234,8 @@ namespace cserve {
         conf.add_config(_name, "tiff_scaling_quality", "high", "Scaling quality for TIFF images [Default: \"high\"]");
         conf.add_config(_name, "png_scaling_quality", "medium", "Scaling quality for PNG images [Default: \"medium\"]");
         conf.add_config(_name, "j2k_scaling_quality", "high", "Scaling quality for J2K images [Default: \"high\"]");
-
+        conf.add_config(_name, "iiif_max_width", 0, "Maximal image width delivered by IIIF [Default: 0 (no limit)]");
+        conf.add_config(_name, "iiif_max_height", 0, "Maximal image height delivered by IIIF [Default: 0 (no limit)]");
     }
 
     static ScalingMethod get_scaling_quality(const CserverConf &conf, const std::string &format, const std::string &def) {
@@ -261,7 +262,8 @@ namespace cserve {
         _scaling_quality.tiff = get_scaling_quality(conf, "tiff_scaling_quality", "high");
         _scaling_quality.png = get_scaling_quality(conf, "png_scaling_quality", "medium");
         _scaling_quality.png = get_scaling_quality(conf, "j2k_scaling_quality", "high");
-
+        _iiif_max_image_width = conf.get_int("iiif_max_width").value_or(0);
+        _iiif_max_image_height = conf.get_int("iiif_max_height").value_or(0);
         try {
             _cache = std::make_shared<IIIFCache>(_cachedir, _cache_size.as_size_t(), _max_num_chache_files, _cache_hysteresis);
         }

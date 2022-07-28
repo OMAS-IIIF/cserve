@@ -4,12 +4,14 @@
 #include <vector>
 #include <cmath>
 
-#include <stdio.h>
+#include <cstdio>
+
+#include "fmt/format.h"
 
 #include "../IIIFError.h"
 #include "IIIFRegion.h"
 
-static const char __file__[] = __FILE__;
+static const char file_[] = __FILE__;
 
 namespace cserve {
 
@@ -40,7 +42,7 @@ namespace cserve {
             n = sscanf(tmpstr.c_str(), "%f,%f,%f,%f", &rx, &ry, &rw, &rh);
 
             if (n != 4) {
-                throw IIIFError(__file__, __LINE__, "IIIF Error reading Region parameter  \"" + str + "\"");
+                throw IIIFError(file_, __LINE__, "IIIF Error reading Region parameter  \"" + str + "\"");
             }
 
             canonical_ok = false;
@@ -49,7 +51,7 @@ namespace cserve {
             n = sscanf(str.c_str(), "%f,%f,%f,%f", &rx, &ry, &rw, &rh);
 
             if (n != 4) {
-                throw IIIFError(__file__, __LINE__, "IIIF Error reading Region parameter  \"" + str + "\"");
+                throw IIIFError(file_, __LINE__, "IIIF Error reading Region parameter  \"" + str + "\"");
             }
 
             canonical_ok = false;
@@ -109,9 +111,7 @@ namespace cserve {
             w += x;
             x = 0;
         } else if (x >= nx) {
-            std::stringstream msg;
-            msg << "Invalid cropping region outside of image (x=" << x << " nx=" << nx << ")";
-            throw IIIFError(__file__, __LINE__, msg.str());
+            throw IIIFError(file_, __LINE__, fmt::format("Invalid cropping region outside of image (x={} nx={})", x, nx));
         }
 
         if (y < 0) {
@@ -120,7 +120,7 @@ namespace cserve {
         } else if (y >= ny) {
             std::stringstream msg;
             msg << "Invalid cropping region outside of image (y=" << y << " ny=" << ny << ")";
-            throw IIIFError(__file__, __LINE__, msg.str());
+            throw IIIFError(file_, __LINE__, msg.str());
         }
 
         if (w == 0) {
@@ -155,7 +155,7 @@ namespace cserve {
     void IIIFRegion::canonical(char *buf, int buflen) {
         if (!canonical_ok && (coord_type != FULL)) {
             std::string msg = "Canonical coordinates not determined";
-            throw IIIFError(__file__, __LINE__, msg);
+            throw IIIFError(file_, __LINE__, msg);
         }
 
         switch (coord_type) {
@@ -173,6 +173,22 @@ namespace cserve {
     }
     //-------------------------------------------------------------------------
 
+    std::string IIIFRegion::canonical() {
+        if (!canonical_ok && (coord_type != FULL)) {
+            std::string msg = "Canonical coordinates not determined";
+            throw IIIFError(file_, __LINE__, msg);
+        }
+        switch (coord_type) {
+            case FULL: {
+                return std::string("full");
+            }
+            case SQUARE:
+            case COORDS:
+            case PERCENTS: {
+                return fmt::format("{},{},{},{}", x, y, w, h);
+            }
+        }
+    }
     //-------------------------------------------------------------------------
     // Output to stdout for debugging etc.
     //

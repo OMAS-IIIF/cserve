@@ -50,11 +50,15 @@ namespace cserve {
         std::string _thumbnail_size;
         int _jpeg_quality;
         ScalingQuality _scaling_quality;
+        size_t _iiif_max_image_width;
+        size_t _iiif_max_image_height;
 
         std::shared_ptr<IIIFCache> _cache;
     public:
-        [[maybe_unused]] IIIFHandler() : RequestHandler() {}
+        [[maybe_unused]]
+        IIIFHandler() : RequestHandler() {}
 
+        [[nodiscard]]
         const std::string& name() const override;
 
         void handler(Connection& conn, LuaServer &lua, const std::string &route) override;

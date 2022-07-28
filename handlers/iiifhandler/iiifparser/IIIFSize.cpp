@@ -1,26 +1,18 @@
-#include <assert.h>
-#include <stdlib.h>
-#include <syslog.h>
 
 #include <string>
 #include <iostream>
-#include <fstream>
 #include <sstream>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+
 #include <vector>
 #include <cmath>
 #include <climits>
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
 
-
-#include "Global.h"
 #include "Parsing.h"
 #include "../IIIFError.h"
 #include "IIIFSize.h"
+#include "fmt/format.h"
 
 static const char file_[] = __FILE__;
 
@@ -28,7 +20,8 @@ namespace cserve {
 
     size_t IIIFSize::limitdim = 32000;
 
-    IIIFSize::IIIFSize(std::string str) {
+    IIIFSize::IIIFSize(std::string str, size_t iiif_max_width, size_t iiif_max_height, size_t iiif_max_area)
+            : iiif_max_width(iiif_max_width), iiif_max_height(iiif_max_height), iiif_max_area(iiif_max_area) {
         nx = ny = w = h =0;
         percent = 0.F;
         canonical_ok = false;
@@ -107,17 +100,133 @@ namespace cserve {
                     }
                 }
 
-                if (nx > limitdim) nx = limitdim;
-                if (ny > limitdim) ny = limitdim;
+                /*
+                size_t limit_nx = limitdim;
+                size_t limit_ny = limitdim;
+                if (iiif_max_width > 0) {
+                    limit_nx = iiif_max_width;
+                    limit_ny = iiif_max_width;
+                    if (iiif_max_height > 0) {
+                        limit_ny = iiif_max_height;
+                    }
+                }
+                if (nx > limit_nx) nx = limit_nx;
+                if (ny > limit_ny) ny = limit_ny;
+                */
             }
-        } catch (IIIFError &sipi_error) {
-            throw sipi_error;
-        } catch (Error &error) {
-            throw IIIFError(file_, __LINE__, "Could not parse IIIF size parameter: " + str);
+        } catch (const Error &error) {
+            throw IIIFError(file_, __LINE__, "Could not parse IIIF size parameter: " + error.to_string());
         }
     }
 
+    IIIFSize::IIIFSize(const IIIFSize &other) {
+        size_type = other.size_type;
+        upscaling = other.upscaling;
+        percent = other.percent;
+        reduce = other.reduce;
+        redonly = other.redonly;
+        nx = other.nx;
+        ny = other.ny;
+        w = other.w;
+        h = other.h;
+        iiif_max_width = other.iiif_max_width;
+        iiif_max_height = other.iiif_max_height;
+        canonical_ok = other.iiif_max_width;
+    }
+
+    IIIFSize::IIIFSize(IIIFSize &&other) noexcept
+            : size_type(SizeType::UNDEFINED), upscaling(false), percent(0.0F), reduce(0), redonly(false), nx(0), ny(0),
+              w(0), h(0), iiif_max_height(0), iiif_max_width(0), canonical_ok(false) {
+        size_type = other.size_type;
+        upscaling = other.upscaling;
+        percent = other.percent;
+        reduce = other.reduce;
+        redonly = other.redonly;
+        nx = other.nx;
+        ny = other.ny;
+        w = other.w;
+        h = other.h;
+        iiif_max_width = other.iiif_max_width;
+        iiif_max_height = other.iiif_max_height;
+        canonical_ok = other.canonical_ok;
+
+        other.size_type = SizeType::UNDEFINED;
+        other.upscaling = false;
+        other.percent = 0.0F;
+        other.reduce = 0;
+        other.redonly = false;
+        other.nx = 0;
+        other.ny = 0;
+        other.w = 0;
+        other.h = 0;
+        other.iiif_max_width = 0;
+        other.iiif_max_height = 0;
+        other.canonical_ok = false;
+    }
+
     //-------------------------------------------------------------------------
+
+    IIIFSize &IIIFSize::operator=(const IIIFSize &other) {
+        if (this != &other) {
+            size_type = other.size_type;
+            upscaling = other.upscaling;
+            percent = other.percent;
+            reduce = other.reduce;
+            redonly = other.redonly;
+            nx = other.nx;
+            ny = other.ny;
+            w = other.w;
+            h = other.h;
+            iiif_max_width = other.iiif_max_width;
+            iiif_max_height = other.iiif_max_height;
+            canonical_ok = other.iiif_max_width;
+        }
+        return *this;
+    }
+
+    IIIFSize &IIIFSize::operator=(IIIFSize &&other) {
+        if (this != &other) {
+            size_type = SizeType::UNDEFINED;
+            upscaling = false;
+            percent = 0.0F;
+            reduce = 0;
+            redonly = false;
+            nx = 0;
+            ny = 0;
+            w = 0;
+            h = 0;
+            iiif_max_width = 0;
+            iiif_max_height = 0;
+            canonical_ok = false;
+
+            size_type = other.size_type;
+            upscaling = other.upscaling;
+            percent = other.percent;
+            reduce = other.reduce;
+            redonly = other.redonly;
+            nx = other.nx;
+            ny = other.ny;
+            w = other.w;
+            h = other.h;
+            iiif_max_width = other.iiif_max_width;
+            iiif_max_height = other.iiif_max_height;
+            canonical_ok = other.iiif_max_width;
+
+            other.size_type = SizeType::UNDEFINED;
+            other.upscaling = false;
+            other.percent = 0.0F;
+            other.reduce = 0;
+            other.redonly = false;
+            other.nx = 0;
+            other.ny = 0;
+            other.w = 0;
+            other.h = 0;
+            other.iiif_max_width = 0;
+            other.iiif_max_height = 0;
+            other.canonical_ok = false;
+        }
+        return *this;
+    }
 
     bool IIIFSize::operator>(const IIIFSize &s) const {
         if (!canonical_ok) {
@@ -166,8 +275,8 @@ namespace cserve {
         int max_reduce = reduce_p;
         reduce_p = 0;
 
-        float img_w_float = static_cast<float>(img_w);
-        float img_h_float = static_cast<float>(img_h);
+        auto img_w_float = static_cast<float>(img_w);
+        auto img_h_float = static_cast<float>(img_h);
 
         switch (size_type) {
             case IIIFSize::UNDEFINED: {
@@ -186,7 +295,9 @@ namespace cserve {
                 int reduce_w = 0;
                 bool exact_match_w = true;
                 if (nx > img_w) {
-                    if (!upscaling) throw IIIFSizeError(400, "Upscaling not allowed!");
+                    if (!upscaling) {
+                        throw IIIFSizeError(400, "Upscaling not allowed!");
+                    }
                 } else {
                     w = static_cast<size_t>(ceilf(img_w_float / static_cast<float>(sf_w)));
 
@@ -209,7 +320,9 @@ namespace cserve {
                 int reduce_h = 0;
                 bool exact_match_h = true;
                 if (ny > img_h) {
-                    if (!upscaling) throw IIIFSizeError(400, "Upscaling not allowed!");
+                    if (!upscaling) {
+                        throw IIIFSizeError(400, "Upscaling not allowed!");
+                    }
                 } else {
                     h = static_cast<size_t>(ceilf(img_h_float / static_cast<float>(sf_h)));
 
@@ -218,7 +331,6 @@ namespace cserve {
                         h = static_cast<size_t>(ceilf(img_h_float / static_cast<float>(sf_h)));
                         reduce_h++;
                     }
-
                     if (h < ny) {
                         // we do not have an exact match. Go back one level with reduce
                         exact_match_h = false;
@@ -226,7 +338,6 @@ namespace cserve {
                         reduce_h--;
                     }
                     if (h > ny) exact_match_h = false;
-
                 }
 
                 if (exact_match_w && exact_match_h && (reduce_w == reduce_h)) {
@@ -286,7 +397,7 @@ namespace cserve {
                 int sf_h = 1;
                 int reduce_h = 0;
                 bool exact_match_h = true;
-                h = static_cast<size_t>(ceilf(img_h_float / static_cast<float>(sf_h)));
+                h = static_cast<size_t>(img_h_float);
 
                 while ((h > ny) && (reduce_h < max_reduce)) {
                     sf_h *= 2;
@@ -311,7 +422,9 @@ namespace cserve {
                 } else {
                     w = static_cast<size_t>(ceilf(static_cast<float>(img_w * ny) / img_h_float));
                 }
-                if (!upscaling && (w > img_w || h > img_h)) throw IIIFSizeError(400, "Upscaling not allowed!");
+                if (!upscaling && (w > img_w || h > img_h)) {
+                    throw IIIFSizeError(400, "Upscaling not allowed!");
+                }
                 break;
             }
 
@@ -319,7 +432,9 @@ namespace cserve {
                 w = static_cast<size_t>(ceilf(img_w * percent / 100.F));
                 h = static_cast<size_t>(ceilf(img_h * percent / 100.F));
 
-                if (!upscaling && (w > img_w || h > img_h)) throw IIIFSizeError(400, "Upscaling not allowed!");
+                if (!upscaling && (w > img_w || h > img_h)) {
+                    throw IIIFSizeError(400, "Upscaling not allowed!");
+                }
 
                 reduce_p = 0;
                 float r = 100.F / percent;
@@ -376,8 +491,9 @@ namespace cserve {
 
                     r = img_h_float / static_cast<float>(h);
                 }
-                if (!upscaling && (w > img_w || h > img_h)) throw IIIFSizeError(400, "Upscaling not allowed!");
-
+                if (!upscaling && (w > img_w || h > img_h)) {
+                    throw IIIFSizeError(400, "Upscaling not allowed!");
+                }
                 float s = 1.0;
                 reduce_p = 0;
 
@@ -395,6 +511,35 @@ namespace cserve {
             case IIIFSize::FULL: {
                 w = img_w;
                 h = img_h;
+                if (upscaling) {
+                    if ((iiif_max_width > 0) && (iiif_max_height == 0)) {
+                        if (img_w > img_h) {
+                            w = iiif_max_width;
+                            h = static_cast<size_t>(floorf(static_cast<float>(img_h*iiif_max_width) / static_cast<float>(img_w)));
+                        }
+                        else {
+                            h = iiif_max_width;
+                            w = static_cast<size_t>(floorf(static_cast<float>(img_w*iiif_max_width) / static_cast<float>(img_w)));
+                        }
+                    }
+                    else if ((iiif_max_width > 0) && (iiif_max_height > 0)) {
+                        if ((static_cast<float>(img_w) / static_cast<float>(iiif_max_width)) > (static_cast<float>(img_h) / (static_cast<float>(iiif_max_height)))) {
+                            w = iiif_max_width;
+                            float s = static_cast<float>(iiif_max_width) / static_cast<float>(img_w);
+                            h = static_cast<size_t>(floorf(static_cast<float>(img_h)*s));
+                        }
+                        else {
+                            h = iiif_max_height;
+                            float s = static_cast<float>(iiif_max_height) / static_cast<float>(img_h);
+                            w = static_cast<size_t>(floorf(static_cast<float>(img_w)*s));
+                        }
+                    }
+                    else if (iiif_max_area > 0) {
+                        float s = sqrtf(static_cast<float>(iiif_max_area) / static_cast<float>(img_w*img_h));
+                        w = static_cast<size_t>(floorf(static_cast<float>(img_w)*s));
+                        h = static_cast<size_t>(floorf(static_cast<float>(img_h)*s));
+                    }
+                }
                 reduce_p = 0;
                 redonly = true;
                 break;
@@ -404,13 +549,26 @@ namespace cserve {
         w_p = w;
         h_p = h;
 
+        size_t limit_nx = limitdim;
+        size_t limit_ny = limitdim;
+        if (iiif_max_width > 0) {
+            limit_nx = iiif_max_width;
+            limit_ny = iiif_max_height;
+            if (iiif_max_height > 0) {
+                limit_ny = iiif_max_height;
+            }
+        }
+        if ((w_p > limit_nx) || (h_p > limit_ny)) {
+            throw IIIFSizeError(400, "Requested image dimensions to big! (dims)!");
+        }
+        if (iiif_max_area > 0) {
+            if (w_p*h_p > iiif_max_area) {
+                throw IIIFSizeError(400, "Requested image dimensions to big (area)! ");
+            }
+        }
+
         if (reduce_p < 0) reduce_p = 0;
         redonly_p = redonly;
-
-        std::stringstream ss;
-        ss << "get_size: img_w=" << img_w << " img_h=" << img_h << " w_p=" << w_p << " h_p=" << h_p << " reduce=" << reduce_p
-           << " reduce only=" << redonly;
-
         canonical_ok = true;
 
         return size_type;
@@ -422,14 +580,12 @@ namespace cserve {
         int n;
 
         if (!canonical_ok && (size_type != IIIFSize::FULL)) {
-            std::string msg = "Canonical size not determined!";
-            throw IIIFError(file_, __LINE__, msg);
+            throw IIIFError(file_, __LINE__, "Canonical size not determined!");
         }
 
         switch (size_type) {
             case IIIFSize::UNDEFINED: {
                 throw IIIFError(file_, __LINE__, "Error creating size string!");
-                break;
             }
             case IIIFSize::PERCENTS:
             case IIIFSize::REDUCE:

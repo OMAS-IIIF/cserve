@@ -12,6 +12,7 @@ endif()
 #
 ExternalProject_Add(project_png
         DEPENDS zlib
+        DEPENDS xz
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://sourceforge.net/projects/libpng/files/libpng16/1.6.37/libpng-1.6.37.tar.gz/download
         SOURCE_DIR ${COMMON_SRCS}/libpng-1.6.37

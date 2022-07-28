@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 3.19)
-
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -84,7 +82,6 @@ add_custom_target(icc_profiles
 add_subdirectory(ext/lerc)
 add_subdirectory(ext/webp)
 add_subdirectory(ext/jpeg)
-add_subdirectory(ext/jbigkit)
 add_subdirectory(ext/tiff)
 add_subdirectory(ext/png)
 add_subdirectory(ext/expat)
@@ -129,8 +126,7 @@ add_library(iiifhandler MODULE
         imgformats/IIIFIOJ2k.cpp imgformats/IIIFIOJ2k.h
         IIIFPhotometricInterpretation.h IIIFGetCanonicalUrl.cpp)
 
-add_dependencies(iiifhandler
-        icc_profiles)
+add_dependencies(iiifhandler icc_profiles)
 
 set_target_properties(iiifhandler PROPERTIES PREFIX "")
 
@@ -155,7 +151,6 @@ target_link_libraries(iiifhandler PRIVATE
         kdu
         kdu_aux
         expat
-        #xmp
         lcms2
         iconv
         gettext_intl
@@ -184,3 +179,10 @@ add_custom_command(TARGET iiifhandler POST_BUILD
 
 
 install(TARGETS iiifhandler DESTINATION ${COMMON_LOCAL}/share/cserver/)
+
+
+include(CTest)
+
+add_subdirectory(tests)
+
+enable_testing()

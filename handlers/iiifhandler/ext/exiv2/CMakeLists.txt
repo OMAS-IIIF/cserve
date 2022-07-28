@@ -22,6 +22,7 @@ ExternalProject_Add(project_exiv2
         DEPENDS expat
         DEPENDS gettext
         DEPENDS zlib
+        DEPENDS curl
         INSTALL_DIR ${COMMON_LOCAL}
         #URL https://github.com/lrosenth/exiv2/archive/refs/tags/IIIF_V10.zip
         GIT_REPOSITORY https://github.com/Exiv2/exiv2.git
@@ -52,12 +53,3 @@ endif()
 
 add_dependencies(exiv2 project_exiv2)
 
-#if(MAKE_SHARED_SIPI)
-#    add_library(xmp SHARED IMPORTED GLOBAL)
-#    set_property(TARGET xmp PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libexiv2-xmp${CMAKE_SHARED_LIBRARY_SUFFIX})
-#else()
-#    add_library(xmp STATIC IMPORTED GLOBAL)
-#    set_property(TARGET xmp PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libexiv2-xmp${CMAKE_STATIC_LIBRARY_SUFFIX})
-#endif()
-#
-#add_dependencies(xmp project_exiv2)

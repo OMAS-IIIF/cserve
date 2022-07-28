@@ -33,7 +33,7 @@ namespace cserve {
         IIIFQualityFormat quality_format;
         try {
             region = std::make_shared<IIIFRegion>(params.at(IIIF_REGION));
-            size = std::make_shared<IIIFSize>(params.at(IIIF_SIZE));
+            size = std::make_shared<IIIFSize>(params.at(IIIF_SIZE), _iiif_max_image_width, _iiif_max_image_height);
             rotation = IIIFRotation(params.at(IIIF_ROTATION));
             quality_format = IIIFQualityFormat(params.at(IIIF_QUALITY), params.at(IIIF_FORMAT));
         }
@@ -57,10 +57,6 @@ namespace cserve {
                 send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
                 return;
             }
-            catch (IIIFImageError &err) {
-                send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
-                return;
-            }
 
             infile = pre_flight_info["infile"];
 
@@ -75,7 +71,7 @@ namespace cserve {
                     }
                     try {
                         std::string tmpstr = pre_flight_info.at("size");
-                        restriction_size = std::make_shared<IIIFSize>(tmpstr);
+                        restriction_size = std::make_shared<IIIFSize>(tmpstr, _iiif_max_image_width, _iiif_max_image_height);
                         ok = true;
                     }
                     catch (const std::out_of_range &err) { ; // do nothing, no size restriction

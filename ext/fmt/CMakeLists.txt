@@ -8,7 +8,6 @@ include(ExternalProject)
 ExternalProject_Add(
         project_fmt
         INSTALL_DIR ${COMMON_LOCAL}
-#        URL https://github.com/fmtlib/fmt/archive/refs/heads/master.zip
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
         SOURCE_DIR ${COMMON_SRCS}/fmt-master
         CMAKE_ARGS -DFMT_DOC=OFF

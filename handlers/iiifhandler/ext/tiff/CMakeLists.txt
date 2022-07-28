@@ -9,7 +9,6 @@ include(ExternalProject)
 ExternalProject_Add(project_tiff
         DEPENDS xz
         DEPENDS jpeg
-        DEPENDS jbigkit
         DEPENDS webp
         DEPENDS lerc
         INSTALL_DIR ${COMMON_LOCAL}
@@ -21,7 +20,7 @@ ExternalProject_Add(project_tiff
         BUILD_COMMAND make
         INSTALL_COMMAND make test
         COMMAND make install
-        COMMAND ${CMAKE_COMMAND} -E copy ${COMMON_SRCS}/libtiff-latest/libtiff/tif_dir.h ${COMMON_LOCAL}/include/
+        COMMAND ${CMAKE_COMMAND} -E copy ${COMMON_SRCS}/libtiff-4.4.0/libtiff/tif_dir.h ${COMMON_LOCAL}/include/
         BUILD_IN_SOURCE 1
 )
 ExternalProject_Get_Property(project_tiff install_dir)

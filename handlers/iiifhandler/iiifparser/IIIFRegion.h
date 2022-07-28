@@ -22,13 +22,13 @@ namespace cserve {
         bool canonical_ok;
 
     public:
-        inline IIIFRegion() {
+        inline IIIFRegion() : x(0), y(0), w(0), h(0) {
             coord_type = FULL;
             rx = ry = rw = rh = 0.F;
             canonical_ok = false;
         }
 
-        inline IIIFRegion(int x, int y, size_t w, size_t h) {
+        inline IIIFRegion(int x, int y, size_t w, size_t h) : x(0), y(0), w(0), h(0) {
             coord_type = COORDS;
             rx = (float) x;
             ry = (float) y;
@@ -37,14 +37,10 @@ namespace cserve {
             canonical_ok = false;
         };
 
-        IIIFRegion(std::string str);
+        explicit IIIFRegion(std::string str);
 
-        /*!
-         * Get the coordinate type that has bee used for construction of the region
-         *
-         * \returns CoordType
-         */
-        inline CoordType getType() { return coord_type; };
+        [[nodiscard]]
+        inline CoordType getType() const { return coord_type; };
 
         /*!
          * Get the region parameters to do the actual cropping. The parameters returned are
@@ -68,6 +64,8 @@ namespace cserve {
          * \param[in] Length of the character buffer
          */
         void canonical(char *buf, int buflen);
+
+        std::string canonical();
 
         friend std::ostream &operator<<(std::ostream &lhs, const IIIFRegion &rhs);
     };

@@ -7,6 +7,8 @@ add_compile_options(-DCMS_NO_REGISTER_KEYWORD=1)
 # get lcms2
 #
 ExternalProject_Add(project_lcms2
+        DEPENDS jpeg
+        DEPENDS tiff
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://sourceforge.net/projects/lcms/files/latest/download
         SOURCE_DIR ${COMMON_SRCS}/lcms2-latest
