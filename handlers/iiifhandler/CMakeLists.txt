@@ -89,6 +89,8 @@ add_subdirectory(ext/gettext)
 add_subdirectory(ext/exiv2)
 add_subdirectory(ext/lcms2)
 add_subdirectory(ext/kakadu)
+add_subdirectory(ext/zstd)
+
 
 
 include_directories(
@@ -109,7 +111,7 @@ add_library(iiifhandler MODULE
         IIIFImage.cpp IIIFImage.h
         IIIFImgTools.cpp IIIFImgTools.h
         IIIFLua.cpp IIIFLua.h
-        AdobeRGB1998_icc.h USWebCoatedSWOP_icc.h Rec709-Rec1886_icc.h
+        #AdobeRGB1998_icc.h USWebCoatedSWOP_icc.h Rec709-Rec1886_icc.h
         iiifparser/IIIFIdentifier.cpp iiifparser/IIIFIdentifier.h
         iiifparser/IIIFQualityFormat.cpp iiifparser/IIIFQualityFormat.h
         iiifparser/IIIFRegion.cpp iiifparser/IIIFRegion.h
@@ -142,19 +144,21 @@ target_link_libraries(iiifhandler PRIVATE
         ssl
         crypto
         zlib
-        xz
         bzip2
         exiv2
         jpeg
         tiff
         png
+        webp
         kdu
         kdu_aux
         expat
         lcms2
         iconv
         gettext_intl
+        xz
         zlib
+        zstd
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
