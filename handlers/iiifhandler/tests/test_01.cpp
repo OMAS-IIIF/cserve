@@ -284,6 +284,8 @@ TEST_CASE("Testing IIIFSize class" "[IIIFSize]") {
         int reduce = -1;
         bool redonly;
         siz.get_size(600, 500, w, h, reduce, redonly);
+        REQUIRE(reduce == 0);
+        REQUIRE_FALSE(redonly);
         REQUIRE(w == 1200);
         REQUIRE(h == 1000);
 
@@ -292,6 +294,8 @@ TEST_CASE("Testing IIIFSize class" "[IIIFSize]") {
         int reduce1 = -1;
         bool redonly1;
         siz1.get_size(1000, 500, w1, h1, reduce1, redonly1);
+        REQUIRE(reduce == 0);
+        REQUIRE_FALSE(redonly);
         REQUIRE(w1 == 2000);
         REQUIRE(h1 == 1000);
 
@@ -300,6 +304,26 @@ TEST_CASE("Testing IIIFSize class" "[IIIFSize]") {
         int reduce2 = -1;
         bool redonly2;
         REQUIRE_THROWS_AS(siz2.get_size(3000, 2000, w2, h2, reduce2, redonly2), cserve::IIIFSizeError);
+    }
+
+    SECTION("IIIFSize 'pct:n") {
+        cserve::IIIFSize siz("pct:50", 3000, 4000);
+        size_t w, h;
+        int reduce = -1;
+        bool redonly;
+        siz.get_size(3000, 4000, w, h, reduce, redonly);
+        REQUIRE(reduce == 1);
+        REQUIRE(redonly);
+        REQUIRE(w == 1500);
+        REQUIRE(h == 2000);
+
+        cserve::IIIFSize siz1("pct:101", 3000, 4000);
+        size_t w1, h1;
+        int reduce1 = -1;
+        bool redonly1;
+        REQUIRE_THROWS_AS(siz1.get_size(3000, 4000, w1, h1, reduce1, redonly1), cserve::IIIFSizeError);
+
+
     }
 
 }

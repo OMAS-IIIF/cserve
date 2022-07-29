@@ -432,7 +432,7 @@ namespace cserve {
                 w = static_cast<size_t>(ceilf(img_w * percent / 100.F));
                 h = static_cast<size_t>(ceilf(img_h * percent / 100.F));
 
-                if (!upscaling && (w > img_w || h > img_h)) {
+                if (!upscaling && (percent > 100.0F)) {
                     throw IIIFSizeError(400, "Upscaling not allowed!");
                 }
 
