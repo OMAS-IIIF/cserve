@@ -66,8 +66,8 @@ target_link_libraries(iiif_tests_01 PRIVATE
         xz
         bzip2
         exiv2
-        jpeg
         tiff
+        turbojpeg
         png
         kdu
         kdu_aux
@@ -76,6 +76,7 @@ target_link_libraries(iiif_tests_01 PRIVATE
         iconv
         gettext_intl
         zlib
+        zstd
         Threads::Threads
         ${CMAKE_DL_LIBS})
 

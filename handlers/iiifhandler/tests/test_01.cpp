@@ -139,7 +139,7 @@ TEST_CASE("Testing IIIFSize class" "[IIIFSize]") {
         bool redonly2;
         REQUIRE_THROWS_AS(siz2.get_size(1200, 2000, w2, h2, reduce2, redonly2), cserve::IIIFSizeError);
 
-        cserve::IIIFSize siz3(2, 0, 0, 120*200);
+        cserve::IIIFSize siz3(2, 0, 0, 120 * 200);
         REQUIRE(siz3.get_type() == cserve::IIIFSize::REDUCE);
         size_t w3, h3;
         int reduce3 = -1;
@@ -195,7 +195,7 @@ TEST_CASE("Testing IIIFSize class" "[IIIFSize]") {
         REQUIRE(w3 == 3000);
         REQUIRE(h3 == 3000);
 
-        cserve::IIIFSize siz4("^max", 0, 0, 1000*1000);
+        cserve::IIIFSize siz4("^max", 0, 0, 1000 * 1000);
         size_t w4, h4;
         int reduce4 = -1;
         bool redonly4;
@@ -323,7 +323,49 @@ TEST_CASE("Testing IIIFSize class" "[IIIFSize]") {
         bool redonly1;
         REQUIRE_THROWS_AS(siz1.get_size(3000, 4000, w1, h1, reduce1, redonly1), cserve::IIIFSizeError);
 
-
+        cserve::IIIFSize siz2("pct:33.333", 3000, 4000);
+        size_t w2, h2;
+        int reduce2 = -1;
+        bool redonly2;
+        siz2.get_size(3000, 4000, w2, h2, reduce2, redonly2);
+        REQUIRE(reduce2 == 1);
+        REQUIRE_FALSE(redonly2);
+        REQUIRE(w2 == 1000);
+        REQUIRE(h2 == 1334);
     }
 
+    SECTION("IIIFSize '^pct:n") {
+        cserve::IIIFSize siz("^pct:200", 3000, 4000);
+        size_t w, h;
+        int reduce = -1;
+        bool redonly;
+        siz.get_size(1000, 2000, w, h, reduce, redonly);
+        REQUIRE(reduce == 0);
+        REQUIRE_FALSE(redonly);
+        REQUIRE(w == 2000);
+        REQUIRE(h == 4000);
+    }
+
+    SECTION("IIIFSize 'w,h'") {
+        cserve::IIIFSize siz("125,125", 3000, 4000);
+        size_t w, h;
+        int reduce = -1;
+        bool redonly;
+        siz.get_size(1000, 1000, w, h, reduce, redonly);
+        REQUIRE(reduce == 3);
+        REQUIRE(redonly);
+        REQUIRE(w == 125);
+        REQUIRE(h == 125);
+
+        cserve::IIIFSize siz1("125,125", 3000, 4000);
+        size_t w1, h1;
+        int reduce1 = -1;
+        bool redonly1;
+        siz1.get_size(1000, 2000, w1, h1, reduce1, redonly1);
+        REQUIRE(reduce1 == 3);
+        REQUIRE_FALSE(redonly1);
+        REQUIRE(w1 == 125);
+        REQUIRE(h1 == 125);
+
+    }
 }

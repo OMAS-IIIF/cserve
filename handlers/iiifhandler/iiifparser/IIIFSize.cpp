@@ -274,6 +274,7 @@ namespace cserve {
         if (reduce_p == -1) reduce_p = INT_MAX;
         int max_reduce = reduce_p;
         reduce_p = 0;
+        redonly_p = false;
 
         auto img_w_float = static_cast<float>(img_w);
         auto img_h_float = static_cast<float>(img_h);
@@ -352,7 +353,6 @@ namespace cserve {
                 h = ny;
                 break;
             }
-
             case IIIFSize::PIXELS_X: {
                 //
                 // first we check how far the new image width can be reached by a reduce factor
@@ -389,7 +389,6 @@ namespace cserve {
                 }
                 break;
             }
-
             case IIIFSize::PIXELS_Y: {
                 //
                 // first we check how far the new image height can be reached by a reduce factor
@@ -427,7 +426,6 @@ namespace cserve {
                 }
                 break;
             }
-
             case IIIFSize::PERCENTS: {
                 w = static_cast<size_t>(ceilf(img_w * percent / 100.F));
                 h = static_cast<size_t>(ceilf(img_h * percent / 100.F));
@@ -444,7 +442,6 @@ namespace cserve {
                     s *= 2.0;
                     reduce_p++;
                 }
-
                 if (fabs(s - r) < 1.0e-5) {
                     redonly = true;
                 }
@@ -474,7 +471,6 @@ namespace cserve {
                 }
                 break;
             }
-
             case IIIFSize::MAXDIM: {
                 float fx = static_cast<float>(nx) / img_w_float;
                 float fy = static_cast<float>(ny) / img_h_float;

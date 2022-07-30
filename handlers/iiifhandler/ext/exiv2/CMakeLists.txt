@@ -24,7 +24,6 @@ ExternalProject_Add(project_exiv2
         DEPENDS zlib
         DEPENDS curl
         INSTALL_DIR ${COMMON_LOCAL}
-        #URL https://github.com/lrosenth/exiv2/archive/refs/tags/IIIF_V10.zip
         GIT_REPOSITORY https://github.com/Exiv2/exiv2.git
         GIT_TAG main
         SOURCE_DIR ${COMMON_SRCS}/exiv2
@@ -43,7 +42,7 @@ ExternalProject_Add(project_exiv2
 )
 ExternalProject_Get_Property(project_exiv2 install_dir)
 
-if(MAKE_SHARED_SIPI)
+if(MAKE_SHARED_CSErVE)
     add_library(exiv2 SHARED IMPORTED GLOBAL)
     set_property(TARGET exiv2 PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libexiv2${CMAKE_SHARED_LIBRARY_SUFFIX})
 else()
