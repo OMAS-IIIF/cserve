@@ -81,7 +81,7 @@ add_custom_target(icc_profiles
 
 add_subdirectory(ext/lerc)
 add_subdirectory(ext/webp)
-add_subdirectory(ext/jpeg)
+add_subdirectory(ext/turbojpeg)
 add_subdirectory(ext/tiff)
 add_subdirectory(ext/png)
 add_subdirectory(ext/expat)
@@ -146,8 +146,8 @@ target_link_libraries(iiifhandler PRIVATE
         zlib
         bzip2
         exiv2
-        jpeg
         tiff
+        turbojpeg
         png
         webp
         kdu

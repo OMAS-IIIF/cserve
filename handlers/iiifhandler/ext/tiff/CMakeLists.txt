@@ -8,7 +8,7 @@ include(ExternalProject)
 
 ExternalProject_Add(project_tiff
         DEPENDS xz
-        DEPENDS jpeg
+        DEPENDS turbojpeg
         DEPENDS webp
         DEPENDS lerc
         INSTALL_DIR ${COMMON_LOCAL}
@@ -16,7 +16,11 @@ ExternalProject_Add(project_tiff
         URL http://download.osgeo.org/libtiff/tiff-4.4.0.tar.xz
         SOURCE_DIR ${COMMON_SRCS}/libtiff-4.4.0
         CONFIGURE_COMMAND   ${COMMON_SRCS}/libtiff-4.4.0/configure
-                            --prefix=${COMMON_LOCAL} --enable-shared --enable-static --libdir=${CONFIGURE_LIBDIR} --enable-cxx
+                            --prefix=${COMMON_LOCAL}
+                            --enable-shared
+                            --enable-static
+                            --libdir=${CONFIGURE_LIBDIR}
+                            --enable-cxx
         BUILD_COMMAND make
         INSTALL_COMMAND make test
         COMMAND make install
