@@ -299,15 +299,14 @@ namespace cserve {
                     if (!upscaling) {
                         throw IIIFSizeError(400, "Upscaling not allowed!");
                     }
+                    exact_match_w = false;
                 } else {
                     w = static_cast<size_t>(ceilf(img_w_float / static_cast<float>(sf_w)));
-
                     while ((w > nx) && (reduce_w < max_reduce)) {
                         sf_w *= 2;
                         w = static_cast<size_t>(ceilf(img_w_float / static_cast<float>(sf_w)));
                         reduce_w++;
                     }
-
                     if (w < nx) {
                         // we do not have an exact match. Go back one level with reduce
                         exact_match_w = false;
@@ -324,10 +323,10 @@ namespace cserve {
                     if (!upscaling) {
                         throw IIIFSizeError(400, "Upscaling not allowed!");
                     }
+                    exact_match_h = false;
                 } else {
                     h = static_cast<size_t>(ceilf(img_h_float / static_cast<float>(sf_h)));
-
-                    while ((h > ny) && (reduce_w < max_reduce)) {
+                    while ((h > ny) && (reduce_h < max_reduce)) {
                         sf_h *= 2;
                         h = static_cast<size_t>(ceilf(img_h_float / static_cast<float>(sf_h)));
                         reduce_h++;
@@ -340,13 +339,11 @@ namespace cserve {
                     }
                     if (h > ny) exact_match_h = false;
                 }
-
                 if (exact_match_w && exact_match_h && (reduce_w == reduce_h)) {
                     reduce_p = reduce_w;
                     redonly = true;
                 } else {
                     reduce_p = reduce_w < reduce_h ? reduce_w : reduce_h; // min()
-                    redonly = false;
                 }
 
                 w = nx;
