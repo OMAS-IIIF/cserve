@@ -204,6 +204,7 @@ namespace cserve {
                 root_obj["tiles"] = { tileobj };
             }
             root_obj["extraFormats"] = {"tif", "jp2"};
+            root_obj["extraQualities"] =  {"color", "gray", "bitonal"};
             root_obj["preferredFormats"] = {"jpg", "tif", "jp2", "png"};
             root_obj["extraFeatures"] = {"baseUriRedirect", "canonicalLinkHeader", "cors", "jsonldMediaType",
                     "mirroring", "profileLinkHeader", "regionByPct", "regionByPx", "regionSquare", "rotationArbitrary",

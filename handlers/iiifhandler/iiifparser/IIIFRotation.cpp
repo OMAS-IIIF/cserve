@@ -6,6 +6,7 @@
 #include "../IIIFError.h"
 #include "IIIFRotation.h"
 #include "../../../lib/Parsing.h"
+#include "fmt/format.h"
 
 static const char file_[] = __FILE__;
 
@@ -14,8 +15,7 @@ namespace cserve {
     IIIFRotation::IIIFRotation() {
         mirror = false;
         rotation = 0.F;
-        return;
-    }
+   }
 
     IIIFRotation::IIIFRotation(std::string str) {
         try {
@@ -33,6 +33,9 @@ namespace cserve {
             rotation = Parsing::parse_float(str);
         } catch (const Error &err) {
             throw IIIFError(file_, __LINE__, "Could not parse IIIF rotation parameter: " + str + " -> " + err.to_string());
+        }
+        if ((rotation < 0.0F) || (rotation >= 360.0F)) {
+            throw IIIFError(file_, __LINE__, fmt::format("Angle {} not allowed - must be [0.0-360.0|", rotation));
         }
     }
     //-------------------------------------------------------------------------

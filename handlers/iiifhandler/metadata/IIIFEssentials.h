@@ -82,12 +82,26 @@ namespace cserve {
 
         IIIFEssentials &operator=(IIIFEssentials &&other);
 
+        inline IIIFEssentials operator=(const std::string &str) {
+            return IIIFEssentials{str};
+        }
+
         /*!
         * Constructor taking a serialized packet (as string)
         *
         * \param[in] datastr Serialzed metadata packet
         */
         inline IIIFEssentials(const std::string &datastr) { parse(datastr); }
+
+        inline void clear() {
+            _is_set = false;
+            _use_icc = false;
+            _data_chksum.clear();
+            _icc_profile.clear();
+            _mimetype.clear();
+            _origname.clear();
+            _hash_type = none;
+        }
 
         /*!
         * Getter for original name
@@ -182,10 +196,15 @@ namespace cserve {
         * String conversion operator
         */
         inline operator std::string() const {
+            std::stringstream ss;
+            ss << *this;
+            return ss.str();
+            /*
             std::string tmpstr = _origname + "|" + _mimetype + "|" + hash_type_string() + "|" + _data_chksum;
             if (_use_icc) tmpstr += "|USE_ICC|"; else tmpstr += "|IGNORE_ICC|" ;
             if (!_icc_profile.empty()) tmpstr += _icc_profile; else tmpstr += "NULL";
             return tmpstr;
+            */
         }
 
         /*!

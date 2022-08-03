@@ -23,7 +23,7 @@ namespace cserve {
         //
         // getting the identifier (which in case of a PDF or multipage TIFF my contain a page id (identifier@pagenum)
         //
-        IIIFIdentifier sid = urldecode(params.at(IIIF_IDENTIFIER));
+        IIIFIdentifier sid{urldecode(params.at(IIIF_IDENTIFIER))};
         //
         // getting IIIF parameters
         //

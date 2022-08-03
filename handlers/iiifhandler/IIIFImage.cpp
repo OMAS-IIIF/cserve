@@ -100,7 +100,7 @@ namespace cserve {
         other.xmp = nullptr;
         other.icc = nullptr;
         other.exif = nullptr;
-        other.emdata = {};
+        other.emdata.clear();
         other.conobj = nullptr;
         other.skip_metadata = SKIP_NONE;
     }
@@ -210,7 +210,7 @@ namespace cserve {
             icc.reset();
             iptc.reset();
             exif.reset();
-            emdata = {};
+            emdata.clear();
             delete conobj;
 
             nx = other.nx;
@@ -238,7 +238,7 @@ namespace cserve {
             other.xmp.reset();
             other.icc.reset();
             other.exif.reset();
-            other.emdata = {};
+            other.emdata.clear();
             other.conobj = nullptr;
             other.skip_metadata = SKIP_NONE;
         }

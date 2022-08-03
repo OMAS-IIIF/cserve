@@ -38,6 +38,8 @@ namespace cserve {
          */
         IIIFIptc(const unsigned char *iptc, unsigned int len);
 
+        IIIFIptc(const std::vector<unsigned char> &iptc);
+
 
         /*!
          * Destructor
@@ -54,7 +56,7 @@ namespace cserve {
         * \param[out] len Length of the data in bytes
         * \returns Chunk of chars holding the IPTC data
         */
-        unsigned char *iptcBytes(unsigned int &len);
+        std::unique_ptr<unsigned char[]> iptcBytes(unsigned int &len);
 
         /*!
          * Returns the bytes of the IPTC data as std::vector

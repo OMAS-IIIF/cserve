@@ -38,18 +38,21 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
     SET(LUA_ARCH "linux")
 endif()
 
-add_executable (iiif_tests_01 test_01.cpp
-        ../IIIFError.cpp ../IIIFError.h
-        ../iiifparser/IIIFRegion.cpp ../iiifparser/IIIFRegion.h
-        ../iiifparser/IIIFSize.cpp ../iiifparser/IIIFSize.h)
-
 include_directories(
         ${CMAKE_SOURCE_DIR}/lib
         ${COMMON_LOCAL}/include
         /usr/local/include
 )
 
-target_link_libraries(iiif_tests_01 PRIVATE
+add_executable (iiifparser_tests test_iiifparser.cpp
+        ../IIIFError.cpp ../IIIFError.h
+        ../iiifparser/IIIFRegion.cpp ../iiifparser/IIIFRegion.h
+        ../iiifparser/IIIFSize.cpp ../iiifparser/IIIFSize.h
+        ../iiifparser/IIIFRotation.cpp ../iiifparser/IIIFRotation.h
+        ../iiifparser/IIIFQualityFormat.cpp ../iiifparser/IIIFQualityFormat.h
+        ../iiifparser/IIIFIdentifier.cpp ../iiifparser/IIIFIdentifier.h)
+
+target_link_libraries(iiifparser_tests PRIVATE
         cserve
         Catch2Main
         Catch2
@@ -80,7 +83,55 @@ target_link_libraries(iiif_tests_01 PRIVATE
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
-add_test(NAME iiif_tests_01 COMMAND iiif_tests_01 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+add_test(NAME iiifparser_tests COMMAND iiifparser_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable (metadata_tests test_metadata.cpp
+        ../IIIFError.cpp ../IIIFError.h
+        ../metadata/IIIFEssentials.cpp ../metadata/IIIFEssentials.h
+        ../metadata/IIIFExif.cpp ../metadata/IIIFExif.h
+        ../metadata/IIIFIptc.cpp ../metadata/IIIFIptc.h
+        ../metadata/IIIFIcc.cpp ../metadata/IIIFIcc.h)
+
+target_link_libraries(metadata_tests PRIVATE
+        cserve
+        Catch2Main
+        Catch2
+        fmt
+        magic
+        lua
+        sqlite3
+        jwtcpp
+        spdlog
+        curl
+        ssl
+        crypto
+        zlib
+        xz
+        bzip2
+        exiv2
+        tiff
+        turbojpeg
+        png
+        kdu
+        kdu_aux
+        expat
+        lcms2
+        iconv
+        gettext_intl
+        zlib
+        zstd
+        Threads::Threads
+        ${CMAKE_DL_LIBS})
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(metadata_tests PRIVATE
+            ${COREFOUNDATION_FRAMEWORK}
+            ${SYSTEMCONFIGURATION_FRAMEWORK})
+else()
+    target_link_libraries(metadata_tests lcms2 rt)
+endif()
+
+add_test(NAME metadata_tests COMMAND metadata_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 enable_testing()
 

@@ -75,7 +75,7 @@ namespace cserve {
          * \param[out] len Length of buffer returned
          * \returns Buffer with EXIF data
          */
-        unsigned char *exifBytes(unsigned int &len);
+        std::unique_ptr<unsigned char[]> exifBytes(unsigned int &len);
 
         /*!
          * Returns the bytes of the EXIF data as vector

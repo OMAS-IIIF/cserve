@@ -32,6 +32,12 @@ namespace cserve {
     }
     //============================================================================
 
+    IIIFIptc::IIIFIptc(const std::vector<unsigned char> &iptc) {
+        if (Exiv2::IptcParser::decode(iptcData, iptc.data(), iptc.size()) != 0) {
+            throw IIIFError(__file__, __LINE__, "No valid IPTC data!");
+        }
+    }
+
     IIIFIptc::~IIIFIptc() {}
 
     IIIFIptc &IIIFIptc::operator=(const IIIFIptc &rhs) {
@@ -49,10 +55,11 @@ namespace cserve {
     }
 
 
-    unsigned char * IIIFIptc::iptcBytes(unsigned int &len) {
+    std::unique_ptr<unsigned char[]> IIIFIptc::iptcBytes(unsigned int &len) {
         Exiv2::DataBuf databuf = Exiv2::IptcParser::encode(iptcData);
-        unsigned char *buf = new unsigned char[databuf.size()];
-        memcpy (buf, databuf.data(), databuf.size());
+        auto buf = std::make_unique<unsigned char[]>(databuf.size());
+        //unsigned char *buf = new unsigned char[databuf.size()];
+        memcpy (buf.get(), databuf.data(), databuf.size());
         len = databuf.size();
         return buf;
     }
@@ -60,13 +67,8 @@ namespace cserve {
 
     std::vector<unsigned char> IIIFIptc::iptcBytes(void) {
         unsigned int len = 0;
-        unsigned char *buf = iptcBytes(len);
-        std::vector<unsigned char> data;
-        if (buf != nullptr) {
-            data.reserve(len);
-            for (int i = 0; i < len; i++) data.push_back(buf[i]);
-            delete[] buf;
-        }
+        auto buf = iptcBytes(len);
+        std::vector<unsigned char> data(buf.get(), buf.get() + len);
         return data;
     }
     //============================================================================

@@ -30,7 +30,6 @@ namespace cserve {
             return;
         }
 
-
         if (quality == "default") {
             quality_type = IIIFQualityFormat::DEFAULT;
         } else if (quality == "color") {

@@ -97,44 +97,28 @@ namespace cserve {
     }
 
 
-    unsigned char * IIIFExif::exifBytes(unsigned int &len) {
-        unsigned char *tmpbuf = new unsigned char[binary_size];
-        memcpy (tmpbuf, binaryExif, binary_size);
-
+    std::unique_ptr<unsigned char[]> IIIFExif::exifBytes(unsigned int &len) {
         Exiv2::Blob blob;
         Exiv2::WriteMethod wm = Exiv2::ExifParser::encode(blob, binaryExif, binary_size, byteorder, exifData);
-        unsigned char *buf;
         if (wm == Exiv2::wmIntrusive) {
-            // we use blob
             len = blob.size();
-            buf = new unsigned char[len];
-            memcpy (buf, blob.data(), len);
-            delete [] tmpbuf; // cleanup tmpbuf!
-            /*
-            for (int i = 0; i < len; i++) {
-                cerr << i << " => " << hex << blob[i];
-                if (isprint(blob[i])) cerr << " \"" << blob[i] << "\"";
-                cerr << endl;
-            }
-            */
+            auto buf = std::make_unique<unsigned char[]>(len);
+            memcpy (buf.get(), blob.data(), len);
+            return std::move(buf);
         }
         else {
-            buf = tmpbuf;
             len = binary_size;
+            auto buf = std::make_unique<unsigned char[]>(binary_size);
+            memcpy (buf.get(), binaryExif, binary_size);
+            return std::move(buf);
         }
-        return buf;
     }
     //============================================================================
 
     std::vector<unsigned char> IIIFExif::exifBytes(void) {
         unsigned int len = 0;
-        unsigned char *buf = exifBytes(len);
-        std::vector<unsigned char> data;
-        if (buf != nullptr) {
-            data.reserve(len);
-            for (int i = 0; i < len; i++) data.push_back(buf[i]);
-            delete[] buf;
-        }
+        auto buf = exifBytes(len);
+        std::vector<unsigned char> data(buf.get(), buf.get() + len);
         return data;
     }
     //============================================================================

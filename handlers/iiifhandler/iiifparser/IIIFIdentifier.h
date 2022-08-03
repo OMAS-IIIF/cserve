@@ -13,17 +13,26 @@ namespace cserve {
     private:
         std::string identifier;
         int page;
+        void parse(const std::string &str);
     public:
-        inline IIIFIdentifier() {
-            page = 0;
-        }
+        inline IIIFIdentifier() : identifier(), page(0) { }
 
-        IIIFIdentifier(const std::string &str);
+        explicit IIIFIdentifier(const std::string &str);
 
+        IIIFIdentifier(const IIIFIdentifier &other);
+
+        IIIFIdentifier(IIIFIdentifier &&other) noexcept;
+
+        [[nodiscard]]
         const std::string &get_identifier() const {
             return identifier;
         }
 
+        IIIFIdentifier &operator=(const IIIFIdentifier &other);
+
+        IIIFIdentifier &operator=(IIIFIdentifier &&other);
+
+        [[nodiscard]]
         int get_page() const {
             return page;
         }

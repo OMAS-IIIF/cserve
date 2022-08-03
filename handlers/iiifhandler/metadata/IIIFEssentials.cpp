@@ -10,16 +10,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
 #include <vector>
 #include <array>
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
 
-#include "Global.h"
 #include "Error.h"
 #include "IIIFEssentials.h"
 
@@ -44,12 +43,9 @@ std::string base64Encode(const std::vector<unsigned char> &message) {
 
     size_t encodedSize = 4*ceil((double) message.size() / 3);
 
-    char *buffer = (char *) malloc(encodedSize + 1);
-    if(buffer == NULL) {
-        throw cserve::Error(file_, __LINE__, "Failed to allocate memory", errno);
-    }
+    auto buffer = std::make_unique<char[]>(encodedSize + 1);
 
-    stream = fmemopen(buffer, encodedSize + 1, "w");
+    stream = fmemopen(buffer.get(), encodedSize + 1, "w");
     b64 = BIO_new(BIO_f_base64());
     bio = BIO_new_fp(stream, BIO_NOCLOSE);
     bio = BIO_push(b64, bio);
@@ -59,8 +55,7 @@ std::string base64Encode(const std::vector<unsigned char> &message) {
     BIO_free_all(bio);
     fclose(stream);
 
-    std::string res(buffer);
-    free(buffer);
+    std::string res(buffer.get());
     return res;
 }
 
@@ -69,17 +64,15 @@ std::vector<unsigned char> base64Decode(const std::string &b64message) {
     BIO *b64;
     size_t decodedLength = calcDecodeLength(b64message);
 
-    unsigned char *buffer = (unsigned char *) malloc(decodedLength + 1);
-    if(buffer == NULL) {
-        cserve::Error(file_, __LINE__, "Failed to allocate memory", errno);
-    }
+    auto buffer = std::make_unique<unsigned char[]>(decodedLength + 1);
+    //unsigned char *buffer = (unsigned char *) malloc(decodedLength + 1);
     FILE* stream = fmemopen((char *) b64message.c_str(), b64message.size(), "r");
 
     b64 = BIO_new(BIO_f_base64());
     bio = BIO_new_fp(stream, BIO_NOCLOSE);
     bio = BIO_push(b64, bio);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-    decodedLength = BIO_read(bio, buffer, b64message.size());
+    decodedLength = BIO_read(bio, buffer.get(), b64message.size());
     buffer[decodedLength] = '\0';
 
     BIO_free_all(bio);
@@ -89,7 +82,6 @@ std::vector<unsigned char> base64Decode(const std::string &b64message) {
     data.reserve(decodedLength);
     for (int i = 0; i < decodedLength; i++) data.push_back(buffer[i]);
 
-    free(buffer);
     return data;
 }
 
@@ -135,7 +127,7 @@ namespace cserve {
     _data_chksum(data_chksum_p) {
         _is_set = true;
         _use_icc = false;
-        if (!_icc_profile.empty()) {
+        if (!icc_profile_p.empty()) {
             _icc_profile = base64Encode(icc_profile_p);
             _use_icc = true;
         }
