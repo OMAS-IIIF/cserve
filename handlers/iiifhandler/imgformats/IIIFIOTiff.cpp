@@ -9,22 +9,15 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include <cassert>
 #include <cstdlib>
 #include <syslog.h>
-#include <cstdarg>
 
 #include <string>
 #include <cstring>
-#include <iostream>
-#include <fstream>
 #include <cstdio>
 #include <cmath>
-
-#include <cstdlib>
 #include <cerrno>
 
-#include "Connection.h"
 #include "../IIIFError.h"
 #include "../IIIFImage.h"
 #include "IIIFIOTiff.h"
@@ -478,10 +471,19 @@ namespace cserve {
             rcm.reserve(colmap_len);
             gcm.reserve(colmap_len);
             bcm.reserve(colmap_len);
-            for (int ii = 0; ii < colmap_len; ii++) {
-                rcm[ii] = _rcm[ii];
-                gcm[ii] = _gcm[ii];
-                bcm[ii] = _bcm[ii];
+            if (colmap_len <= 256) {
+                for (int ii = 0; ii < colmap_len; ii++) {
+                    rcm[ii] = _rcm[ii] >> 8;
+                    gcm[ii] = _gcm[ii] >> 8;
+                    bcm[ii] = _bcm[ii] >> 8;
+                }
+            }
+            else {
+                for (int ii = 0; ii < colmap_len; ii++) {
+                    rcm[ii] = _rcm[ii];
+                    gcm[ii] = _gcm[ii];
+                    bcm[ii] = _bcm[ii];
+                }
             }
         }
 
@@ -514,7 +516,6 @@ namespace cserve {
         // reading TIFF Meatdata and adding the fields to the exif header.
         // We store the TIFF metadata in the private exifData member variable using addKeyVal.
         //
-
         char *str;
 
         if (1 == TIFFGetField(tif, TIFFTAG_IMAGEDESCRIPTION, &str)) {
@@ -631,7 +632,7 @@ namespace cserve {
             try {
                 img.icc = std::make_shared<IIIFIcc>(icc_buf, icc_len);
             } catch (IIIFError &err) {
-                syslog(LOG_ERR, "%s", err.to_string().c_str());
+                Server::logger()->error(err.to_string());
             }
         } else if (1 == TIFFGetField(tif, TIFFTAG_WHITEPOINT, &whitepoint_ti)) {
             whitepoint[0] = whitepoint_ti[0];
@@ -731,6 +732,7 @@ namespace cserve {
                 //
                 // rearrange the data to RGBRGBRGB…RGB
                 //
+                img.bpixels = std::move(inbuf);
                 img = separateToContig(std::move(img), sll); // convert to RGBRGBRGB... TODO:: ADAPT
             }
         } else {
@@ -794,8 +796,7 @@ namespace cserve {
 
                 img.nx = roi_w;
                 img.ny = roi_h;
-                //!! img.pixels = inbuf;
-
+                img.bpixels = std::move(inbuf);
                 //
                 // rearrange the data to RGBRGBRGB…RGB
                 //

@@ -80,7 +80,7 @@ namespace cserve {
         * \param[out] len Length of the data on bytes
         * \returns Chunk of chars holding the xmp data
         */
-        char *xmpBytes(unsigned int &len);
+        std::unique_ptr<char[]> xmpBytes(unsigned int &len);
 
         /*!
          * Returns the bytes of the RDF/XML data as std::string

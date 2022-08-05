@@ -128,12 +128,12 @@ namespace cserve {
         return *this;
     }
 
-    char * IIIFXmp::xmpBytes(unsigned int &len) {
-        char *__buf = new char[__xmpstr.length() + 1];
-        memcpy (__buf, __xmpstr.c_str(), __xmpstr.length());
-        __buf[__xmpstr.length()] = '\0';
+    std::unique_ptr<char[]> IIIFXmp::xmpBytes(unsigned int &len) {
+        auto buf_ = std::make_unique<char[]>(__xmpstr.length() + 1);
+        memcpy (buf_.get(), __xmpstr.c_str(), __xmpstr.length());
+        buf_[__xmpstr.length()] = '\0';
         len = __xmpstr.length();
-        return __buf; // provisional code until Exiv2::Xmp is threadsafe
+        return std::move(buf_); // provisional code until Exiv2::Xmp is threadsafe
         // TODO: Testing required if now Exiv2::Xmp is thread save
 
         /*
@@ -159,13 +159,8 @@ namespace cserve {
 
     std::string IIIFXmp::xmpBytes(void) {
         unsigned int len = 0;
-        char *buf = xmpBytes(len);
-        std::string data;
-        if (buf != nullptr) {
-            data.reserve(len);
-            for (int i = 0; i < len; i++) data.push_back(buf[i]);
-            delete[] buf;
-        }
+        auto buf = xmpBytes(len);
+        std::string data(buf.get(), buf.get() + len);
         return data;
     }
     //============================================================================

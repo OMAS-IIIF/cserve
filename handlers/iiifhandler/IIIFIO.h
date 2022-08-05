@@ -23,15 +23,12 @@
 
 namespace cserve {
 
-
-
     /*!
      * This is the virtual base class for all classes implementing image I/O.
      */
     class IIIFIO {
     public:
         virtual ~IIIFIO() = default;
-
 
         /*!
          * Method used to read an image file

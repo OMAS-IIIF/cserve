@@ -2,17 +2,16 @@ cmake_minimum_required(VERSION 3.14.5)
 project(tiff_builder C CXX)
 include(ExternalProject)
 
-#
-# get libtiff-4.0.6
-#
-
 ExternalProject_Add(project_tiff
         DEPENDS xz
+        DEPENDS zlib
         DEPENDS turbojpeg
         DEPENDS webp
         DEPENDS lerc
+        DEPENDS zstd
+        DEPENDS jbigkit
         INSTALL_DIR ${COMMON_LOCAL}
-        TEST_BEFORE_INSTALL 1
+        # TEST_BEFORE_INSTALL 1
         URL http://download.osgeo.org/libtiff/tiff-4.4.0.tar.xz
         SOURCE_DIR ${COMMON_SRCS}/libtiff-4.4.0
         CONFIGURE_COMMAND   ${COMMON_SRCS}/libtiff-4.4.0/configure
@@ -21,6 +20,22 @@ ExternalProject_Add(project_tiff
                             --enable-static
                             --libdir=${CONFIGURE_LIBDIR}
                             --enable-cxx
+                            --enable-jpeg
+                            --with-jpeg-include-dir=${COMMON_LOCAL}/include
+                            --with-jpeg-lib-dir=${COMMON_LOCAL}/lib
+                            --with-lerc-include-dir=${COMMON_LOCAL}/include
+                            --with-lerc-lib-dir=${COMMON_LOCAL}/lib
+                            --with-webp-include-dir=${COMMON_LOCAL}/include/webp
+                            --with-webp-lib-dir=${COMMON_LOCAL}/lib
+                            --with-webp-include-dir=${COMMON_LOCAL}/include/lzma
+                            --with-webp-lib-dir=${COMMON_LOCAL}/lib
+                            --with-zlib-include-dir=${COMMON_LOCAL}/include
+                            --with-zlib-lib-dir=${COMMON_LOCAL}/lib
+                            --with-zstd-include-dir=${COMMON_LOCAL}/include
+                            --with-zstd-lib-dir=${COMMON_LOCAL}/lib
+                            --with-jbig-include-dir=${COMMON_LOCAL}/include
+                            --with-jbig-lib-dir=${COMMON_LOCAL}/lib
+
         BUILD_COMMAND make
         INSTALL_COMMAND make test
         COMMAND make install

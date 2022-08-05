@@ -15,7 +15,7 @@ ExternalProject_Add(project_xz
 )
 ExternalProject_Get_Property(project_xz install_dir)
 
-if(MAKE_SHARED_SIPI)
+if(MAKE_SHARED_CSERVE)
     add_library(xz SHARED IMPORTED GLOBAL)
     set_property(TARGET xz PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/liblzma${CMAKE_SHARED_LIBRARY_SUFFIX})
 else()

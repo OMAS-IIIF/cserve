@@ -82,6 +82,8 @@ add_custom_target(icc_profiles
 add_subdirectory(ext/lerc)
 add_subdirectory(ext/webp)
 add_subdirectory(ext/turbojpeg)
+add_subdirectory(ext/zstd)
+add_subdirectory(ext/jbigkit)
 add_subdirectory(ext/tiff)
 add_subdirectory(ext/png)
 add_subdirectory(ext/expat)
@@ -89,8 +91,6 @@ add_subdirectory(ext/gettext)
 add_subdirectory(ext/exiv2)
 add_subdirectory(ext/lcms2)
 add_subdirectory(ext/kakadu)
-add_subdirectory(ext/zstd)
-
 
 
 include_directories(
@@ -128,7 +128,20 @@ add_library(iiifhandler MODULE
         imgformats/IIIFIOJ2k.cpp imgformats/IIIFIOJ2k.h
         IIIFPhotometricInterpretation.h IIIFGetCanonicalUrl.cpp)
 
-add_dependencies(iiifhandler icc_profiles)
+add_dependencies(iiifhandler
+        icc_profiles
+        lerc
+        webp
+        turbojpeg
+        tiff
+        png
+        expat
+        gettext
+        exiv2
+        lcms2
+        kdu kdu_aux
+        zstd
+        jbigkit)
 
 set_target_properties(iiifhandler PROPERTIES PREFIX "")
 
@@ -150,6 +163,8 @@ target_link_libraries(iiifhandler PRIVATE
         turbojpeg
         png
         webp
+        lerc
+        jbigkit
         kdu
         kdu_aux
         expat

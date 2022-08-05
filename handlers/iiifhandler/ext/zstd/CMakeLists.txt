@@ -27,4 +27,5 @@ else()
     add_library(zstd STATIC IMPORTED GLOBAL)
     set_property(TARGET zstd PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libzstd${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
+
 add_dependencies(zstd project_zstd)

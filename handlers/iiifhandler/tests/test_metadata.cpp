@@ -14,6 +14,7 @@
 #include "../metadata/IIIFExif.h"
 #include "../metadata/IIIFIptc.h"
 #include "../metadata/IIIFIcc.h"
+#include "../metadata//IIIFXmp.h"
 
 #include "tiffio.h"
 
@@ -27,6 +28,7 @@ std::shared_ptr<unsigned char[]> iptc_from_tiff(const std::string &filename, uns
         return iptc;
     }
     TIFFClose(tif);
+    len = 0;
     return nullptr;
 }
 
@@ -40,6 +42,21 @@ std::shared_ptr<unsigned char[]> icc_from_tiff(const std::string &filename, unsi
         return icc;
     }
     TIFFClose(tif);
+    len = 0;
+    return nullptr;
+}
+
+std::shared_ptr<char[]> xmp_from_tiff(const std::string &filename, unsigned int &len) {
+    char *xmp_content = nullptr;
+
+    TIFF *tif = TIFFOpen(filename.c_str(), "r");
+    if (TIFFGetField(tif, TIFFTAG_XMLPACKET, &len, &xmp_content) == 1) {
+        auto xmp = std::make_unique<char[]>(len);
+        memcpy(xmp.get(), xmp_content, len);
+        return xmp;
+    }
+    TIFFClose(tif);
+    len = 0;
     return nullptr;
 }
 
@@ -176,5 +193,20 @@ TEST_CASE("Testing IIIFIcc class", "[IIIFIcc]") {
         REQUIRE(profile != nullptr);
         unsigned int formatter = icc.iccFormatter(16);
         REQUIRE(formatter == 262170);
+    }
+}
+
+TEST_CASE("Testing IIIFXmp class", "[IIIFXmp]") {
+    SECTION("IIIFXmp basic") {
+        unsigned int len;
+        auto xmpbuf = xmp_from_tiff("data/IMG_8067.tiff",len);
+        REQUIRE(len == 18845);
+        REQUIRE_NOTHROW(cserve::IIIFXmp(xmpbuf.get(), len));
+        cserve::IIIFXmp xmp(xmpbuf.get(), len);
+        unsigned int len2;
+        auto xmp2 = xmp.xmpBytes(len2);
+        REQUIRE(xmp2 != nullptr);
+        std::string xmp_str = xmp.xmpBytes();
+        REQUIRE(xmp_str.size() == 18845);
     }
 }
