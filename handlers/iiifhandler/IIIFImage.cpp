@@ -694,6 +694,7 @@ namespace cserve {
     }
 
 
+
     [[maybe_unused]]
     bool IIIFImage::crop(const std::shared_ptr<IIIFRegion> &region) {
         int x, y;
@@ -738,7 +739,7 @@ namespace cserve {
     /****************************************************************************/
 #define POSITION(x, y, c, n) ((n)*((y)*nx + (x)) + c)
 
-    byte IIIFImage::bilinn(std::unique_ptr<byte[]> &buf, int nx, float x, float y, int c, int n) {
+    byte IIIFImage::bilinn(const byte *buf, int nx, float x, float y, int c, int n) {
         int ix, iy;
         float rx, ry;
         ix = (int) x;
@@ -764,7 +765,7 @@ namespace cserve {
 
     /*==========================================================================*/
 
-    word IIIFImage::bilinn(std::unique_ptr<word[]> &buf, int nx, float x, float y, int c, int n) {
+    word IIIFImage::bilinn(const word *buf, int nx, float x, float y, int c, int n) {
         int ix, iy;
         float rx, ry;
         ix = (int) x;
@@ -845,13 +846,13 @@ namespace cserve {
         if (bps == 8) {
             auto boutbuf = std::make_unique<byte[]>(nnx * nny * nc);
             float rx, ry;
-
+            auto raw_input = bpixels.get();
             for (size_t j = 0; j < nny; j++) {
                 ry = ylut[j];
                 for (size_t i = 0; i < nnx; i++) {
                     rx = xlut[i];
                     for (size_t k = 0; k < nc; k++) {
-                        boutbuf[nc * (j * nnx + i) + k] = bilinn(bpixels, nx, rx, ry, k, nc);
+                        boutbuf[nc * (j * nnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
                     }
                 }
             }
@@ -861,12 +862,13 @@ namespace cserve {
             auto woutbuf = std::make_unique<word[]>(nnx * nny * nc);
             float rx, ry;
 
+            auto raw_input = wpixels.get();
             for (size_t j = 0; j < nny; j++) {
                 ry = ylut[j];
                 for (size_t i = 0; i < nnx; i++) {
                     rx = xlut[i];
                     for (size_t k = 0; k < nc; k++) {
-                        woutbuf[nc * (j * nnx + i) + k] = bilinn(wpixels, nx, rx, ry, k, nc);
+                        woutbuf[nc * (j * nnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
                     }
                 }
             }
@@ -921,12 +923,13 @@ namespace cserve {
             auto boutbuf = std::make_unique<byte[]>(nnnx * nnny * nc);
             float rx, ry;
 
+            auto raw_input = bpixels.get();
             for (size_t j = 0; j < nnny; j++) {
                 ry = ylut[j];
                 for (size_t i = 0; i < nnnx; i++) {
                     rx = xlut[i];
                     for (size_t k = 0; k < nc; k++) {
-                        boutbuf[nc * (j * nnnx + i) + k] = bilinn(bpixels, nx, rx, ry, k, nc);
+                        boutbuf[nc * (j * nnnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
                     }
                 }
             }
@@ -935,12 +938,13 @@ namespace cserve {
             auto woutbuf = std::make_unique<word[]>(nnnx * nnny * nc);
             float rx, ry;
 
+            auto raw_input = wpixels.get();
             for (size_t j = 0; j < nnny; j++) {
                 ry = ylut[j];
                 for (size_t i = 0; i < nnnx; i++) {
                     rx = xlut[i];
                     for (size_t k = 0; k < nc; k++) {
-                        woutbuf[nc * (j * nnnx + i) + k] = bilinn(wpixels, nx, rx, ry, k, nc);
+                        woutbuf[nc * (j * nnnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
                     }
                 }
             }
@@ -990,7 +994,6 @@ namespace cserve {
                         }
                     }
                 }
-
                 wpixels = std::move(woutbuf);
             }
         }
@@ -1170,6 +1173,7 @@ namespace cserve {
 
             if (bps == 8) {
                 auto boutbuf = std::make_unique<byte[]>(nnx * nny * nc);
+                auto raw_input = bpixels.get();
                 byte bg = 0;
                 for (size_t j = 0; j < nny; j++) {
                     for (size_t i = 0; i < nnx; i++) {
@@ -1182,7 +1186,7 @@ namespace cserve {
                             }
                         } else {
                             for (size_t k = 0; k < nc; k++) {
-                                boutbuf[nc * (j * nnx + i) + k] = bilinn(bpixels, nx, rx, ry, k, nc);
+                                boutbuf[nc * (j * nnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
                             }
                         }
                     }
@@ -1191,6 +1195,7 @@ namespace cserve {
                 bpixels = std::move(boutbuf);
             } else if (bps == 16) {
                 auto woutbuf = std::make_unique<word[]>(nnx * nny * nc);
+                auto raw_input = wpixels.get();
                 word bg = 0;
 
                 for (size_t j = 0; j < nny; j++) {
@@ -1204,7 +1209,7 @@ namespace cserve {
                             }
                         } else {
                             for (size_t k = 0; k < nc; k++) {
-                                woutbuf[nc * (j * nnx + i) + k] = bilinn(wpixels, nx, rx, ry, k, nc);
+                                woutbuf[nc * (j * nnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
                             }
                         }
                     }
@@ -1308,10 +1313,11 @@ namespace cserve {
             ylut[j] = (float) (wm_ny * j) / (float) ny;
         }
 
+        auto raw_wmbuf = wmbuf.get();
         if (bps == 8) {
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
-                    byte val = IIIFImage::bilinn(wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
+                    byte val = IIIFImage::bilinn(raw_wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
 
                     for (size_t k = 0; k < nc; k++) {
                         float nval = (bpixels[nc * (j * nx + i) + k] / 255.) * (1.0F + val / 2550.0F) + val / 2550.0F;
@@ -1323,7 +1329,7 @@ namespace cserve {
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
                     for (size_t k = 0; k < nc; k++) {
-                        byte val = bilinn(wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
+                        byte val = bilinn(raw_wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
                         float nval =
                                 (wpixels[nc * (j * nx + i) + k] / 65535.0F) * (1.0F + val / 655350.0F) + val / 352500.F;
                         wpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? (word) 65535 : (word) floor(nval * 65535. + .5);

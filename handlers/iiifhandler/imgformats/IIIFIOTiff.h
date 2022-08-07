@@ -57,7 +57,7 @@ namespace cserve {
                        bool force_bps_8,
                        ScalingQuality scaling_quality) override;
 
-        IIIFImgInfo getDim(const std::string &filepath, int pagenum) override;
+        IIIFImgInfo getDim(const std::string &filepath, int pagenum = 0) override;
 
         /*!
          * Write a TIFF image to a file, stdout or to a memory buffer

@@ -20,6 +20,7 @@
 
 #include "../IIIFError.h"
 #include "../IIIFImage.h"
+#include "../IIIFImgTools.h"
 #include "IIIFIOTiff.h"
 #include "../../../lib/Cserve.h"
 
@@ -443,17 +444,10 @@ namespace cserve {
             img.photo = (PhotometricInterpretation) stmp;
         }
 
-        //
-        // if we have a palette TIFF with a colormap, it gets complicated. We will have to
-        // read the colormap and later convert the image to RGB, since we do internally
-        // not support palette images.
-        //
-
 
         std::vector<uint16_t> rcm;
         std::vector<uint16_t> gcm;
         std::vector<uint16_t> bcm;
-
         int colmap_len = 0;
         if (img.photo == PALETTE) {
             uint16_t *_rcm = nullptr, *_gcm = nullptr, *_bcm = nullptr;
@@ -512,12 +506,7 @@ namespace cserve {
             }
         }
 
-        //
-        // reading TIFF Meatdata and adding the fields to the exif header.
-        // We store the TIFF metadata in the private exifData member variable using addKeyVal.
-        //
         char *str;
-
         if (1 == TIFFGetField(tif, TIFFTAG_IMAGEDESCRIPTION, &str)) {
             img.ensure_exif();
             img.exif->addKeyVal(std::string("Exif.Image.ImageDescription"), std::string(str));
@@ -695,12 +684,16 @@ namespace cserve {
             img.essential_metadata(se);
         }
 
+        short compression{COMPRESSION_NONE};
+        TIFFGetField(tif, TIFFTAG_COMPRESSION, &compression);
+
+
         std::unique_ptr<uint8_t[]> inbuf;
-        if ((region == nullptr) || (region->getType() == IIIFRegion::FULL)) {
+
+        if ((region == nullptr) || (region->getType() == IIIFRegion::FULL) || (compression != COMPRESSION_NONE)) {
             if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGB...
                 uint32_t i;
                 inbuf = std::make_unique<uint8_t[]>(img.ny * sll);
-                //!! auto *dataptr = new uint8_t[img.ny * sll];
 
                 auto *raw_inbuf = inbuf.get();
                 for (i = 0; i < img.ny; i++) {
@@ -710,12 +703,8 @@ namespace cserve {
                                              fmt::format("TIFFReadScanline failed on scanline {} in file '{}'", i, filepath));
                     }
                 }
-
-                //!! img.pixels = dataptr;
             } else if (planar == PLANARCONFIG_SEPARATE) { // RRRRR…RRR GGGGG…GGGG BBBBB…BBB
                 inbuf = std::make_unique<uint8_t[]>(img.nc * img.ny * sll);
-                //!! auto *dataptr = new uint8[img.nc * img.ny * sll];
-
                 auto *raw_inbuf = inbuf.get();
                 for (uint32_t j = 0; j < img.nc; j++) {
                     for (uint32_t i = 0; i < img.ny; i++) {
@@ -726,14 +715,13 @@ namespace cserve {
                         }
                     }
                 }
-
-                //!! img.pixels = dataptr;
-
                 //
                 // rearrange the data to RGBRGBRGB…RGB
                 //
-                img.bpixels = std::move(inbuf);
-                img = separateToContig(std::move(img), sll); // convert to RGBRGBRGB... TODO:: ADAPT
+                inbuf = separateToContig(std::move(inbuf), img.nx, img.ny, img.nc, sll);
+            }
+            if ((region != nullptr) && (region->getType() != IIIFRegion::FULL)) {
+                inbuf = crop(std::move(inbuf), img.nx, img.ny, img.nc, region);
             }
         } else {
             int roi_x, roi_y;
@@ -756,13 +744,10 @@ namespace cserve {
                 }
             }
 
-            //!!  auto *dataptr = new uint8_t[sll];
             inbuf = std::make_unique<uint8_t[]>(ps * roi_w * roi_h * img.nc);
             auto *raw_inbuf = inbuf.get();
             auto dataptr = std::make_unique<uint8_t[]>(ps * roi_w * roi_h * img.nc);
             auto *raw_dataptr = dataptr.get();
-
-            // auto *inbuf = new uint8_t[ps * roi_w * roi_h * img.nc];
 
             if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGBRGBRGBRGBRGB
                 for (uint32_t i = 0; i < roi_h; i++) {
@@ -775,10 +760,8 @@ namespace cserve {
 
                     memcpy(raw_inbuf + ps * i * roi_w * img.nc, raw_dataptr + ps * roi_x * img.nc, ps * roi_w * img.nc);
                 }
-
                 img.nx = roi_w;
                 img.ny = roi_h;
-                //!! img.pixels = inbuf;
             } else if (planar == PLANARCONFIG_SEPARATE) { // RRRRR…RRR GGGGG…GGGG BBBBB…BBB
                 for (uint32_t j = 0; j < img.nc; j++) {
                     for (uint32_t i = 0; i < roi_h; i++) {
@@ -793,14 +776,12 @@ namespace cserve {
                         memcpy(raw_inbuf + ps * roi_w * (j * roi_h + i), raw_dataptr + ps * roi_x, ps * roi_w);
                     }
                 }
-
                 img.nx = roi_w;
                 img.ny = roi_h;
-                img.bpixels = std::move(inbuf);
                 //
                 // rearrange the data to RGBRGBRGB…RGB
                 //
-                img = separateToContig(std::move(img), roi_w * ps); // convert to RGBRGBRGB...
+                inbuf = separateToContig(std::move(inbuf), img.nx, img.ny, img.nc, roi_w * ps); // convert to RGBRGBRGB...
             }
         }
         TIFFClose(tif);
@@ -868,6 +849,7 @@ namespace cserve {
             img.photo = RGB;
             img.nc = 3;
         }
+
         if (img.bps <= 8) {
             img.bpixels = std::move(inbuf);
         } else {
@@ -875,6 +857,7 @@ namespace cserve {
             std::unique_ptr<uint16_t[]> inbuf16(raw_tmpptr);
             img.wpixels = std::move(inbuf16);
         }
+
 
         if (img.icc == nullptr) {
             switch (img.photo) {
@@ -916,27 +899,24 @@ namespace cserve {
                                     unsigned char u;
                                     signed char s;
                                 } v{};
-                                v.u = inbuf[img.nc * (y * img.nx + x) + 1];
-                                inbuf[img.nc * (y * img.nx + x) + 1] = 128 + v.s;
-                                v.u = inbuf[img.nc * (y * img.nx + x) + 2];
-                                inbuf[img.nc * (y * img.nx + x) + 2] = 128 + v.s;
+                                v.u = img.bpixels[img.nc * (y * img.nx + x) + 1];
+                                img.bpixels[img.nc * (y * img.nx + x) + 1] = 128 + v.s;
+                                v.u = img.bpixels[img.nc * (y * img.nx + x) + 2];
+                                img.bpixels[img.nc * (y * img.nx + x) + 2] = 128 + v.s;
                             }
                         }
                         img.icc = std::make_shared<IIIFIcc>(icc_LAB);
                     } else if (img.bps == 16) {
-                        //!! auto *data = (unsigned short *) img.pixels;
-                        auto raw_tmpptr = (uint16_t *) inbuf.release();
-                        std::unique_ptr<uint16_t[]> inbuf16(raw_tmpptr);
                         for (size_t y = 0; y < img.ny; y++) {
                             for (size_t x = 0; x < img.nx; x++) {
                                 union {
                                     unsigned short u;
                                     signed short s;
                                 } v{};
-                                v.u = inbuf16[img.nc * (y * img.nx + x) + 1];
-                                inbuf16[img.nc * (y * img.nx + x) + 1] = 32768 + v.s;
-                                v.u = inbuf16[img.nc * (y * img.nx + x) + 2];
-                                inbuf16[img.nc * (y * img.nx + x) + 2] = 32768 + v.s;
+                                v.u = img.wpixels[img.nc * (y * img.nx + x) + 1];
+                                img.wpixels[img.nc * (y * img.nx + x) + 1] = 32768 + v.s;
+                                v.u = img.wpixels[img.nc * (y * img.nx + x) + 2];
+                                img.wpixels[img.nc * (y * img.nx + x) + 2] = 32768 + v.s;
                             }
                         }
                         img.icc = std::make_shared<IIIFIcc>(icc_LAB);
@@ -1099,6 +1079,13 @@ namespace cserve {
             }
         } else {
             TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, (uint16_t) img.bps);
+            try {
+                std::string compression = params.at(TIFF_COMPRESSION);
+                if (compression == "COMPRESSION_LZW") {
+                    TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
+                }
+            }
+            catch (const std::out_of_range &err) { }
         }
         if (img.photo == PhotometricInterpretation::CIELAB) {
             if (img.bps == 8) {
@@ -1266,9 +1253,9 @@ namespace cserve {
                 TIFFWriteScanline(tif, rawdata + i * img.nc * img.nx, (int) i, 0);
             }
         } else if (img.bps == 16) {
-            uint16_t *rawdata = (uint16_t *) img.bpixels.get();
+            uint16_t *rawdata = (uint16_t *) img.wpixels.get();
             for (size_t i = 0; i < img.ny; i++) {
-                TIFFWriteScanline(tif, rawdata + i * img.nc * img.nx * 2, (int) i, 0);
+                TIFFWriteScanline(tif, rawdata + i * img.nc * img.nx, (int) i, 0);
             }
         }
         //

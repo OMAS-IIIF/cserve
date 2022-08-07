@@ -10,6 +10,30 @@ static const char file_[] = __FILE__;
 
 namespace cserve {
 
+    std::unique_ptr<uint8_t[]> separateToContig(std::unique_ptr<uint8_t[]> inbuf, int nx, int ny, int nc, int sll) {
+        auto tmpptr = std::make_unique<uint8_t[]>(nc * ny * nx);
+        for (unsigned int k = 0; k < nc; k++) {
+            for (unsigned int j = 0; j < ny; j++) {
+                for (unsigned int i = 0; i < nx; i++) {
+                    tmpptr[nc * (j * nx + i) + k] = inbuf[k * ny * sll + j * nx + i];
+                }
+            }
+        }
+        return std::move(tmpptr);
+    }
+
+    std::unique_ptr<uint16_t[]> separateToContig(std::unique_ptr<uint16_t[]> inbuf, int nx, int ny, int nc, int sll) {
+        auto tmpptr = std::make_unique<uint16_t[]>(nc * ny * nx);
+        for (unsigned int k = 0; k < nc; k++) {
+            for (unsigned int j = 0; j < ny; j++) {
+                for (unsigned int i = 0; i < nx; i++) {
+                    tmpptr[nc * (j * nx + i) + k] = inbuf[k * ny * sll + j * nx + i];
+                }
+            }
+        }
+        return std::move(tmpptr);
+    }
+
     IIIFImage separateToContig(IIIFImage img, unsigned int sll) {
         //
         // rearrange RRRRRR...GGGGG...BBBBB data  to RGBRGBRGB…RGB
@@ -40,6 +64,45 @@ namespace cserve {
         }
         return img;
     }
+
+    std::unique_ptr<byte[]> crop(std::unique_ptr<byte[]> inbuf, int nx, int ny, int nc, const std::shared_ptr<IIIFRegion> &region) {
+        if (region->getType() == IIIFRegion::FULL) {
+            return std::move(inbuf);
+        }
+        int x, y;
+        size_t width, height;
+        region->crop_coords(nx, ny, x, y, width, height);
+        auto outbuf = std::make_unique<byte[]>(width * height * nc);
+
+        for (size_t j = 0; j < height; j++) {
+            for (size_t i = 0; i < width; i++) {
+                for (size_t k = 0; k < nc; k++) {
+                    outbuf[nc * (j * width + i) + k] = inbuf[nc * ((j + y) * nx + (i + x)) + k];
+                }
+            }
+        }
+        return std::move(outbuf);
+    }
+
+    std::unique_ptr<word[]> crop(std::unique_ptr<word[]> inbuf, int nx, int ny, int nc, const std::shared_ptr<IIIFRegion> &region) {
+        if (region->getType() == IIIFRegion::FULL) {
+            return std::move(inbuf);
+        }
+        int x, y;
+        size_t width, height;
+        region->crop_coords(nx, ny, x, y, width, height);
+        auto outbuf = std::make_unique<word[]>(width * height * nc);
+
+        for (size_t j = 0; j < height; j++) {
+            for (size_t i = 0; i < width; i++) {
+                for (size_t k = 0; k < nc; k++) {
+                    outbuf[nc * (j * width + i) + k] = inbuf[nc * ((j + y) * nx + (i + x)) + k];
+                }
+            }
+        }
+        return std::move(outbuf);
+    }
+
 
 
     std::unique_ptr<byte[]> cvrt1BitTo8Bit(const IIIFImage &img, unsigned int sll, unsigned int black, unsigned int white) {

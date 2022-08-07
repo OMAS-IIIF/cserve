@@ -16,6 +16,14 @@ namespace cserve {
  */
     IIIFImage separateToContig(IIIFImage img, unsigned int sll);
 
+    std::unique_ptr<uint8_t[]> separateToContig(std::unique_ptr<uint8_t[]> inbuf, int nx, int ny, int nc, int sll);
+
+    std::unique_ptr<uint16_t[]> separateToContig(std::unique_ptr<uint16_t[]> inbuf, int nx, int ny, int nc, int sll);
+
+    std::unique_ptr<byte[]> crop(std::unique_ptr<byte[]> inbuf, int nx, int ny, int nc, const std::shared_ptr<IIIFRegion> &region);
+
+    std::unique_ptr<word[]> crop(std::unique_ptr<word[]> inbuf, int nx, int ny, int nc, const std::shared_ptr<IIIFRegion> &region);
+
     /*!
      * Converts a bitonal 1 bit image to a bitonal 8 bit image
      *

@@ -90,7 +90,8 @@ namespace cserve {
         J2K_Cblk,
         J2K_Cuse_sop,
         J2K_Stiles,
-        J2K_rates
+        J2K_rates,
+        TIFF_COMPRESSION
     } IIIFCompressionParamName;
 
     typedef std::unordered_map<int, std::string> IIIFCompressionParams;
@@ -145,9 +146,9 @@ class IIIFImageError : public IIIFError {
         friend class IIIFIOPng;     //!< I/O class for the PNG file format
     private:
         static std::unordered_map<std::string, std::shared_ptr<IIIFIO>> io; //!< member variable holding a map of I/O class instances for the different file formats
-        static byte bilinn(std::unique_ptr<byte[]> &buf, int nx, float x, float y, int c, int n);
+        static byte bilinn(const byte *buf, int nx, float x, float y, int c, int n);
 
-        static word bilinn(std::unique_ptr<word[]> &buf, int nx, float x, float y, int c, int n);
+        static word bilinn(const word *buf, int nx, float x, float y, int c, int n);
 
         void ensure_exif();
 
