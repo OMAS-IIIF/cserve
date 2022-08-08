@@ -141,7 +141,7 @@ endif()
 add_test(NAME metadata_tests COMMAND metadata_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 
-add_executable (image_tests test_image.cpp
+add_executable (tiff_tests test_tiff_format.cpp
         ../IIIFError.cpp ../IIIFError.h
         ../IIIFIO.h
         ../IIIFImage.cpp ../IIIFImage.h
@@ -162,7 +162,7 @@ add_executable (image_tests test_image.cpp
         ../imgformats/IIIFIOJ2k.cpp ../imgformats/IIIFIOJ2k.h
         ../IIIFPhotometricInterpretation.h ../IIIFGetCanonicalUrl.cpp)
 
-target_link_libraries(image_tests PRIVATE
+target_link_libraries(tiff_tests PRIVATE
         cserve
         Catch2Main
         Catch2
@@ -197,14 +197,81 @@ target_link_libraries(image_tests PRIVATE
         ${CMAKE_DL_LIBS})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(image_tests PRIVATE
+    target_link_libraries(tiff_tests PRIVATE
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
-    target_link_libraries(image_tests lcms2 rt)
+    target_link_libraries(tiff_tests lcms2 rt)
 endif()
 
-add_test(NAME image_tests COMMAND image_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+add_test(NAME tiff_tests COMMAND tiff_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+#------------------------------------------------------------
+
+add_executable (png_tests test_png_format.cpp
+        ../IIIFError.cpp ../IIIFError.h
+        ../IIIFIO.h
+        ../IIIFImage.cpp ../IIIFImage.h
+        ../IIIFImgTools.cpp ../IIIFImgTools.h
+        ../iiifparser/IIIFIdentifier.cpp ../iiifparser/IIIFIdentifier.h
+        ../iiifparser/IIIFQualityFormat.cpp ../iiifparser/IIIFQualityFormat.h
+        ../iiifparser/IIIFRegion.cpp ../iiifparser/IIIFRegion.h
+        ../iiifparser/IIIFRotation.cpp ../iiifparser/IIIFRotation.h
+        ../iiifparser/IIIFSize.cpp ../iiifparser/IIIFSize.h
+        ../metadata/IIIFEssentials.cpp ../metadata/IIIFEssentials.h
+        ../metadata/IIIFExif.cpp ../metadata/IIIFExif.h
+        ../metadata/IIIFIcc.cpp ../metadata/IIIFIcc.h
+        ../metadata/IIIFIptc.cpp ../metadata/IIIFIptc.h
+        ../metadata/IIIFXmp.cpp ../metadata/IIIFXmp.h
+        ../imgformats/IIIFIOTiff.cpp ../imgformats/IIIFIOTiff.h
+        ../imgformats/IIIFIOPng.cpp ../imgformats/IIIFIOPng.h
+        ../imgformats/IIIFIOJpeg.cpp ../imgformats/IIIFIOJpeg.h
+        ../imgformats/IIIFIOJ2k.cpp ../imgformats/IIIFIOJ2k.h
+        ../IIIFPhotometricInterpretation.h ../IIIFGetCanonicalUrl.cpp)
+
+target_link_libraries(png_tests PRIVATE
+        cserve
+        Catch2Main
+        Catch2
+        fmt
+        magic
+        lua
+        sqlite3
+        jwtcpp
+        spdlog
+        curl
+        ssl
+        crypto
+        zlib
+        xz
+        bzip2
+        exiv2
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu
+        kdu_aux
+        expat
+        lcms2
+        iconv
+        gettext_intl
+        zlib
+        zstd
+        Threads::Threads
+        ${CMAKE_DL_LIBS})
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(png_tests PRIVATE
+            ${COREFOUNDATION_FRAMEWORK}
+            ${SYSTEMCONFIGURATION_FRAMEWORK})
+else()
+    target_link_libraries(png_tests lcms2 rt)
+endif()
+
+add_test(NAME png_tests COMMAND png_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 enable_testing()
 

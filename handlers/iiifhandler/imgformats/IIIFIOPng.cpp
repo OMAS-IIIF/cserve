@@ -25,8 +25,6 @@
 #include "../../../lib/Cserve.h"
 
 
-
-
 // bad hack in order to include definitions in png.h on debian systems
 #if !defined(PNG_TEXT_SUPPORTED)
 #  define PNG_TEXT_SUPPORTED 1
@@ -329,47 +327,49 @@ namespace cserve {
 
     IIIFImgInfo IIIFIOPng::getDim(const std::string &filepath, int pagenum) {
         FILE *infile;
-        IIIFImgInfo info;
         unsigned char header[8];
-
+        png_structp png_ptr;
+        png_infop info_ptr;
+        png_infop end_info;
         //
         // open the input file
         //
         if ((infile = fopen(filepath.c_str(), "rb")) == nullptr) {
-            info.success = IIIFImgInfo::FAILURE;
-            return info;
+            throw IIIFImageError(file_, __LINE__, fmt::format("Cannot open PNG file '{}'", filepath));
         }
+
         fread(header, 1, 8, infile);
+
         if (png_sig_cmp(header, 0, 8) != 0) {
             fclose(infile);
-            info.success = IIIFImgInfo::FAILURE;
-            return info;
+            throw IIIFImageError(file_, __LINE__, fmt::format("'{}' is not a PNG file", filepath));
         }
-
-        png_structp png_ptr;
-        png_infop info_ptr;
-        png_infop end_info;
-
-        if ((png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (png_voidp) nullptr, (png_error_ptr) iiif_error_fn,
-                                              (png_error_ptr) iiif_warning_fn)) == nullptr) {
+        if ((png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (png_voidp) nullptr, iiif_error_fn,
+                                              (png_error_ptr) nullptr)) == nullptr) {
             fclose(infile);
-            throw IIIFImageError(file_, __LINE__, fmt::format("Error reading PNG file '{}': Could not allocate mempry fpr png_structp !", filepath));
+            throw IIIFImageError(file_, __LINE__, fmt::format("Error reading PNG file '{}': Could not allocate memory fpr png_structp !", filepath));
         }
         if ((info_ptr = png_create_info_struct(png_ptr)) == nullptr) {
             fclose(infile);
-            throw IIIFImageError(file_, __LINE__, fmt::format("Error reading PNG file '{}': Could not allocate mempry fpr png_infop !", filepath));
+            throw IIIFImageError(file_, __LINE__, fmt::format("Error reading PNG file '{}': Could not allocate memory fpr png_infop !", filepath));
         }
         if ((end_info = png_create_info_struct(png_ptr)) == nullptr) {
             fclose(infile);
             throw IIIFImageError(file_, __LINE__, fmt::format("Error reading PNG file '{}': Could not allocate mempry fpr png_infop !", filepath));
         }
-
         png_init_io(png_ptr, infile);
         png_set_sig_bytes(png_ptr, 8);
+        png_read_info(png_ptr, info_ptr);
 
+        IIIFImgInfo info{};
         info.width = png_get_image_width(png_ptr, info_ptr);
         info.height = png_get_image_height(png_ptr, info_ptr);
         info.success = IIIFImgInfo::DIMS;
+
+        IIIFImage img{};
+        img.nx = png_get_image_width(png_ptr, info_ptr);
+        img.ny = png_get_image_height(png_ptr, info_ptr);
+        fclose(infile);
 
         png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
 
