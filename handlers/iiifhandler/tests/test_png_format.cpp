@@ -59,7 +59,7 @@ void deleteDirectoryContents(const std::string &dir_path) {
 TEST_CASE("Image tests", "PNG") {
     cserve::IIIFIOPng pngio;
 
-    SECTION("PNG") {
+    SECTION("8Bit") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = pngio.read("data/png_rgb8.png",
@@ -85,6 +85,118 @@ TEST_CASE("Image tests", "PNG") {
         REQUIRE(res == CommandResult{"0 (0)", 0});
         std::filesystem::remove("scratch/png_rgb8.png");
         std::filesystem::remove("scratch/out.png");
-
     }
+
+    SECTION("8BitAlpha") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = pngio.read("data/png_rgb8_alpha.png",
+                                           0,
+                                           region,
+                                           size,
+                                           false,
+                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        REQUIRE(img.getNx() == 1200);
+        REQUIRE(img.getNy() == 900);
+        REQUIRE(img.getNc() == 4);
+        REQUIRE(img.getBps() == 8);
+        REQUIRE(img.getPhoto() == cserve::RGB);
+
+        auto info = pngio.getDim("data/png_rgb8_alpha.png", 0);
+        REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
+        REQUIRE(info.width == 1200);
+        REQUIRE(info.height == 900);
+
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb8_alpha.png", compression));
+        auto res = Command::exec("compare -quiet -metric mae data/png_rgb8_alpha.png scratch/png_rgb8_alpha.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/png_rgb8_alpha.png");
+        std::filesystem::remove("scratch/out.png");
+    }
+
+    SECTION("16Bit") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = pngio.read("data/png_rgb16.png",
+                                           0,
+                                           region,
+                                           size,
+                                           false,
+                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        REQUIRE(img.getNx() == 600);
+        REQUIRE(img.getNy() == 600);
+        REQUIRE(img.getNc() == 3);
+        REQUIRE(img.getBps() == 16);
+        REQUIRE(img.getPhoto() == cserve::RGB);
+
+        auto info = pngio.getDim("data/png_rgb16.png", 0);
+        REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
+        REQUIRE(info.width == 600);
+        REQUIRE(info.height == 600);
+
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb16.png", compression));
+        auto res = Command::exec("compare -quiet -metric mae data/png_rgb16.png scratch/png_rgb16.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/png_rgb16.png");
+        std::filesystem::remove("scratch/out.png");
+    }
+
+    SECTION("16BitAlpha") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = pngio.read("data/png_rgb16_alpha.png",
+                                           0,
+                                           region,
+                                           size,
+                                           false,
+                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        REQUIRE(img.getNx() == 600);
+        REQUIRE(img.getNy() == 600);
+        REQUIRE(img.getNc() == 4);
+        REQUIRE(img.getBps() == 16);
+        REQUIRE(img.getPhoto() == cserve::RGB);
+
+        auto info = pngio.getDim("data/png_rgb16_alpha.png", 0);
+        REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
+        REQUIRE(info.width == 600);
+        REQUIRE(info.height == 600);
+
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb16_alpha.png", compression));
+        auto res = Command::exec("compare -quiet -metric mae data/png_rgb16_alpha.png scratch/png_rgb16_alpha.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/png_rgb16_alpha.png");
+        std::filesystem::remove("scratch/out.png");
+    }
+
+    SECTION("8BitPalette") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = pngio.read("data/png_palette8.png",
+                                           0,
+                                           region,
+                                           size,
+                                           false,
+                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        REQUIRE(img.getNx() == 150);
+        REQUIRE(img.getNy() == 200);
+        REQUIRE(img.getNc() == 1);
+        REQUIRE(img.getBps() == 8);
+        REQUIRE(img.getPhoto() == cserve::MINISBLACK);
+
+        auto info = pngio.getDim("data/png_palette8.png", 0);
+        REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
+        REQUIRE(info.width == 150);
+        REQUIRE(info.height == 200);
+
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(pngio.write(img, "scratch/png_palette8.png", compression));
+        auto res = Command::exec("compare -quiet -metric mae data/png_palette8.png scratch/png_palette8.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/png_palette8.png");
+        std::filesystem::remove("scratch/out.png");
+    }
+
 }
