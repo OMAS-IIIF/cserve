@@ -199,4 +199,39 @@ TEST_CASE("Image tests", "PNG") {
         std::filesystem::remove("scratch/out.png");
     }
 
+    SECTION("RGB8BitIccEs") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = pngio.read("data/png_rgb8_icc_es.png",
+                                           0,
+                                           region,
+                                           size,
+                                           false,
+                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        REQUIRE(img.getNx() == 1200);
+        REQUIRE(img.getNy() == 900);
+        REQUIRE(img.getNc() == 3);
+        REQUIRE(img.getBps() == 8);
+        REQUIRE(img.getPhoto() == cserve::RGB);
+
+        REQUIRE(img.essential_metadata().is_set());
+        REQUIRE(img.essential_metadata().origname() == "png_rgb8_icc.png");
+        REQUIRE(img.essential_metadata().mimetype() == "image/png");
+        REQUIRE(img.essential_metadata().hash_type() == cserve::sha256);
+        REQUIRE(img.essential_metadata().data_chksum() == "011c7a3835c50c56cb45ee80ba3097e171a94e71f57362d2a252d8e5bb8e5aa3");
+        REQUIRE_FALSE(img.essential_metadata().use_icc());
+
+        auto info = pngio.getDim("data/png_rgb8_icc_es.png", 0);
+        REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
+        REQUIRE(info.width == 1200);
+        REQUIRE(info.height == 900);
+
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb8_icc_es.png", compression));
+        auto res = Command::exec("compare -quiet -metric mae data/png_rgb8_icc_es.png scratch/png_rgb8_icc_es.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/png_rgb8_icc_es.png");
+        std::filesystem::remove("scratch/out.png");
+    }
+
 }
