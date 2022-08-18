@@ -163,10 +163,9 @@ namespace cserve {
         img.nc = png_get_channels(png_ptr, info_ptr);
 
         png_uint_32 res_x, res_y;
+        float fres_x{0.0F}, fres_y{0.0F};
         int unit_type;
         if (png_get_pHYs(png_ptr, info_ptr, &res_x, &res_y, &unit_type)) {
-            img.exif = std::make_shared<IIIFExif>();
-            float fres_x, fres_y;
             if (unit_type == PNG_RESOLUTION_METER) {
                 fres_x = res_x / 39.37007874015748;
                 fres_y = res_y / 39.37007874015748;
@@ -175,9 +174,6 @@ namespace cserve {
                 fres_x = res_x;
                 fres_y = res_y;
             }
-            img.exif->addKeyVal("Exif.Image.XResolution", fres_x);
-            img.exif->addKeyVal("Exif.Image.YResolution", fres_x);
-            img.exif->addKeyVal("Exif.Image.ResolutionUnit", 2); // DPI
         }
 
         int colortype = png_get_color_type(png_ptr, info_ptr);
@@ -222,7 +218,12 @@ namespace cserve {
         png_text *png_texts;
         int num_comments = png_get_text(png_ptr, info_ptr, &png_texts, nullptr);
 
+        std::cerr << "========= " << filepath << " ===========" << std::endl;
         for (int i = 0; i < num_comments; i++) {
+            std::cerr << "  PNG_META KEY='" << png_texts[i].key << "'" << std::endl;
+            std::cerr << "  PNG_META TEXT_LENGTH=" << png_texts[i].text_length << std::endl;
+            std::cerr << "  PNG_META TEXT='" << png_texts[i].text << "'" << std::endl;
+            std::cerr << "  PNG_META ITEXT_LENGTH=" << png_texts[i].itxt_length << std::endl;
             if (strcmp(png_texts[i].key, xmp_tag) == 0) {
                 img.xmp = std::make_shared<IIIFXmp>((char *) png_texts[i].text, (int) png_texts[i].text_length);
             } else if (strcmp(png_texts[i].key, exif_tag) == 0) {
@@ -242,6 +243,15 @@ namespace cserve {
             } else {
                 Server::logger()->warn(fmt::format("PNG-COMMENT: key=\"{}\" text=\"{}\"\n", png_texts[i].key, png_texts[i].text));
             }
+        }
+
+        if (fres_x > 0.0F && fres_y > 0.0F) {
+            if (img.exif == nullptr) {
+                img.exif = std::make_shared<IIIFExif>();
+            }
+            img.exif->addKeyVal("Exif.Image.XResolution", fres_x);
+            img.exif->addKeyVal("Exif.Image.YResolution", fres_y);
+            img.exif->addKeyVal("Exif.Image.ResolutionUnit", 2); // DPI
         }
 
         png_size_t sll = png_get_rowbytes(png_ptr, info_ptr);
@@ -506,18 +516,21 @@ namespace cserve {
 
         std::vector<unsigned char> exif_buf;
         if (img.exif) {
+            std::cerr << filepath << " WRITE_EXIF: " << exif_buf.size() << " bytes" << std::endl;
             exif_buf = img.exif->exifBytes();
             chunk_ptr.add_zTXt(exif_tag, (char *) exif_buf.data(), exif_buf.size());
         }
 
         std::vector<unsigned char> iptc_buf;
         if (img.iptc) {
+            std::cerr << filepath << " WRITE_IPTC: " << iptc_buf.size() << " bytes" << std::endl;
             iptc_buf = img.iptc->iptcBytes();
             chunk_ptr.add_zTXt(iptc_tag, (char *) iptc_buf.data(), iptc_buf.size());
         }
 
         std::string xmp_buf;
         if (img.xmp != nullptr) {
+            std::cerr << filepath << " WRITE_XMP: " << xmp_buf.size() << " bytes" << std::endl;
             xmp_buf = img.xmp->xmpBytes();
             chunk_ptr.add_iTXt(xmp_tag, (char *) xmp_buf.data(), xmp_buf.size());
         }
@@ -528,6 +541,7 @@ namespace cserve {
             char iiif_buf[512 + 1];
             strncpy(iiif_buf, esstr.c_str(), 512);
             iiif_buf[512] = '\0';
+            std::cerr << filepath << " WRITE_ESSENTAL: " << len << " bytes" << std::endl;
             chunk_ptr.add_iTXt(sipi_tag, iiif_buf, len);
         }
 

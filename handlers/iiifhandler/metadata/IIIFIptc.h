@@ -64,6 +64,10 @@ namespace cserve {
          */
         std::vector<unsigned char> iptcBytes(void);
 
+        inline Exiv2::Iptcdatum getValByKey(const std::string key_p) {
+            return iptcData[key_p];
+        }
+
         /*!
          * The overloaded << operator which is used to write the IPTC data formatted to the outstream
          *

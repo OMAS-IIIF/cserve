@@ -7,6 +7,7 @@
 #include "catch2/catch_all.hpp"
 #include "../IIIFImage.h"
 #include "../imgformats/IIIFIOPng.h"
+#include "../imgformats/IIIFIOTiff.h"
 
 struct CommandResult {
     std::string output;
@@ -59,6 +60,21 @@ void deleteDirectoryContents(const std::string &dir_path) {
 TEST_CASE("Image tests", "PNG") {
     cserve::IIIFIOPng pngio;
 
+    SECTION("TEMP") {
+        cserve::IIIFIOTiff tiffio;
+        tiffio.initLibrary();
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = tiffio.read("data/IMG_8207.tiff",
+                                           0,
+                                           region,
+                                           size,
+                                           false,
+                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(pngio.write(img, "data/IMG_8207.png", compression));
+    }
+
     SECTION("8Bit") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
@@ -85,6 +101,38 @@ TEST_CASE("Image tests", "PNG") {
         REQUIRE(res == CommandResult{"0 (0)", 0});
         std::filesystem::remove("scratch/png_rgb8.png");
         std::filesystem::remove("scratch/out.png");
+    }
+
+    SECTION("Metadata") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = pngio.read("data/IMG_8207.png",
+                                           0,
+                                           region,
+                                           size,
+                                           false,
+                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        auto exif = img.getExif();
+        REQUIRE(exif != nullptr);
+        std::cerr << "EXIF: " << *exif << std::endl;
+        std::string artist;
+        REQUIRE(exif->getValByKey("Exif.Image.Artist", artist));
+        REQUIRE(artist == "Lukas Rosenthaler");
+
+        auto iptc = img.getIptc();
+        REQUIRE(iptc != nullptr);
+        auto val = iptc->getValByKey("Iptc.Application2.Caption");
+        REQUIRE(val.toString() == "Storage tracks at Bastia station");
+
+        auto icc = img.getIcc();
+        REQUIRE(icc != nullptr);
+        auto profile = icc->getIccProfile();
+        cmsUInt32Number psiz = cmsGetProfileInfo(profile, cmsInfoDescription, "en", "US", nullptr, 0);
+        auto pbufw = std::make_unique<wchar_t[]>(psiz);
+        cmsGetProfileInfo(profile, cmsInfoDescription, "en", "US", pbufw.get(), psiz);
+        std::wstring ws(pbufw.get());
+        std::string pbuf(ws.begin(), ws.end());
+        REQUIRE(pbuf == "sRGB IEC61966-2.1");
     }
 
     SECTION("8BitAlpha") {

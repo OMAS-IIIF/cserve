@@ -231,6 +231,14 @@ class IIIFImageError : public IIIFError {
         [[nodiscard]]
         inline PhotometricInterpretation getPhoto() const { return photo; }
 
+        inline std::shared_ptr<IIIFExif> getExif() const { return exif; }
+
+        inline std::shared_ptr<IIIFIptc> getIptc() const { return iptc; }
+
+        inline std::shared_ptr<IIIFXmp> getXmp() const { return xmp; }
+
+        inline std::shared_ptr<IIIFIcc> getIcc() const { return icc; }
+
         /*! Destructor
          *
          * Destroys the image and frees all the resources associated with it
