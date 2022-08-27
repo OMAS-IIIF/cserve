@@ -23,8 +23,6 @@ ExternalProject_Add(project_tiff
                             --enable-jpeg
                             --with-jpeg-include-dir=${COMMON_LOCAL}/include
                             --with-jpeg-lib-dir=${COMMON_LOCAL}/lib
-                            --with-lerc-include-dir=${COMMON_LOCAL}/include
-                            --with-lerc-lib-dir=${COMMON_LOCAL}/lib
                             --with-webp-include-dir=${COMMON_LOCAL}/include/webp
                             --with-webp-lib-dir=${COMMON_LOCAL}/lib
                             --with-webp-include-dir=${COMMON_LOCAL}/include/lzma

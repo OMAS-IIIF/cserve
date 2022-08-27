@@ -65,6 +65,7 @@ namespace cserve {
         const std::lock_guard<std::mutex> lock(debug_mutex);
         std::cerr << ">>>DEBUG line=" << line << ": " << str << std::endl;
     };
+
 }
 
 #endif

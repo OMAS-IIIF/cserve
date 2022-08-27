@@ -8,8 +8,11 @@ include(ExternalProject)
 ExternalProject_Add(project_zlib
         INSTALL_DIR ${COMMON_LOCAL}
         URL http://zlib.net/zlib-1.2.12.tar.gz
-        SOURCE_DIR ${COMMON_SRCS}/zlib-1.2.12
-        CONFIGURE_COMMAND ${COMMON_SRCS}/zlib-1.2.12/configure
+        #GIT_REPOSITORY https://github.com/glennrp/zlib.git
+        #GIT_TAG master
+        SOURCE_DIR ${COMMON_SRCS}/zlib
+        #CMAKE_ARGS -DBUILD_SHARED_LIBS:BOOL=${MAKE_SHARED_CSERVE}
+        CONFIGURE_COMMAND ${COMMON_SRCS}/zlib/configure
             --prefix=${COMMON_LOCAL}
             --static
             # --shared

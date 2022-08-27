@@ -59,22 +59,7 @@ void deleteDirectoryContents(const std::string &dir_path) {
 
 TEST_CASE("Image tests", "PNG") {
     cserve::IIIFIOPng pngio;
-
-    SECTION("TEMP") {
-        cserve::IIIFIOTiff tiffio;
-        tiffio.initLibrary();
-        auto region = std::make_shared<cserve::IIIFRegion>("full");
-        auto size = std::make_shared<cserve::IIIFSize>("max");
-        cserve::IIIFImage img = tiffio.read("data/IMG_8207.tiff",
-                                           0,
-                                           region,
-                                           size,
-                                           false,
-                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
-        cserve::IIIFCompressionParams compression;
-        REQUIRE_NOTHROW(pngio.write(img, "data/IMG_8207.png", compression));
-    }
-
+    
     SECTION("8Bit") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
@@ -114,7 +99,6 @@ TEST_CASE("Image tests", "PNG") {
                                            {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
         auto exif = img.getExif();
         REQUIRE(exif != nullptr);
-        std::cerr << "EXIF: " << *exif << std::endl;
         std::string artist;
         REQUIRE(exif->getValByKey("Exif.Image.Artist", artist));
         REQUIRE(artist == "Lukas Rosenthaler");
@@ -133,6 +117,12 @@ TEST_CASE("Image tests", "PNG") {
         std::wstring ws(pbufw.get());
         std::string pbuf(ws.begin(), ws.end());
         REQUIRE(pbuf == "sRGB IEC61966-2.1");
+
+        auto essential = img.essential_metadata();
+        REQUIRE(essential.origname() == "IMG_8207.tiff");
+        REQUIRE(essential.mimetype() == "image/tiff");
+        REQUIRE(essential.hash_type() == cserve::HashType::sha256);
+        REQUIRE(essential.data_chksum() == "bc8eb26df171005e7019a449c0442964be26b74561d506322db55bf151ec673e");
     }
 
     SECTION("8BitAlpha") {

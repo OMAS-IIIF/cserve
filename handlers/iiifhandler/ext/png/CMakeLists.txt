@@ -15,6 +15,8 @@ ExternalProject_Add(project_png
         DEPENDS xz
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://sourceforge.net/projects/libpng/files/libpng16/1.6.37/libpng-1.6.37.tar.gz/download
+        #GIT_REPOSITORY https://github.com/glennrp/libpng.git
+        #GIT_TAG libpng16
         SOURCE_DIR ${COMMON_SRCS}/libpng-1.6.37
         CMAKE_ARGS  ${SHARED_OPTION}
                     -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
