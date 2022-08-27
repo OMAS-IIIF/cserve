@@ -59,34 +59,6 @@ void deleteDirectoryContents(const std::string &dir_path) {
 
 TEST_CASE("Image tests", "PNG") {
     cserve::IIIFIOPng pngio;
-    
-    SECTION("8Bit") {
-        auto region = std::make_shared<cserve::IIIFRegion>("full");
-        auto size = std::make_shared<cserve::IIIFSize>("max");
-        cserve::IIIFImage img = pngio.read("data/png_rgb8.png",
-                                           0,
-                                           region,
-                                           size,
-                                           false,
-                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
-        REQUIRE(img.getNx() == 1200);
-        REQUIRE(img.getNy() == 900);
-        REQUIRE(img.getNc() == 3);
-        REQUIRE(img.getBps() == 8);
-        REQUIRE(img.getPhoto() == cserve::RGB);
-
-        auto info = pngio.getDim("data/png_rgb8.png", 0);
-        REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
-        REQUIRE(info.width == 1200);
-        REQUIRE(info.height == 900);
-
-        cserve::IIIFCompressionParams compression;
-        REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb8.png", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/png_rgb8.png scratch/png_rgb8.png scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
-        std::filesystem::remove("scratch/png_rgb8.png");
-        std::filesystem::remove("scratch/out.png");
-    }
 
     SECTION("Metadata") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
@@ -123,6 +95,34 @@ TEST_CASE("Image tests", "PNG") {
         REQUIRE(essential.mimetype() == "image/tiff");
         REQUIRE(essential.hash_type() == cserve::HashType::sha256);
         REQUIRE(essential.data_chksum() == "bc8eb26df171005e7019a449c0442964be26b74561d506322db55bf151ec673e");
+    }
+
+    SECTION("8Bit") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = pngio.read("data/png_rgb8.png",
+                                           0,
+                                           region,
+                                           size,
+                                           false,
+                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        REQUIRE(img.getNx() == 1200);
+        REQUIRE(img.getNy() == 900);
+        REQUIRE(img.getNc() == 3);
+        REQUIRE(img.getBps() == 8);
+        REQUIRE(img.getPhoto() == cserve::RGB);
+
+        auto info = pngio.getDim("data/png_rgb8.png", 0);
+        REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
+        REQUIRE(info.width == 1200);
+        REQUIRE(info.height == 900);
+
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb8.png", compression));
+        auto res = Command::exec("compare -quiet -metric mae data/png_rgb8.png scratch/png_rgb8.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/png_rgb8.png");
+        std::filesystem::remove("scratch/out.png");
     }
 
     SECTION("8BitAlpha") {
