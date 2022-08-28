@@ -307,5 +307,54 @@ endif()
 
 add_test(NAME jpeg_tests COMMAND jpeg_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
+#------------------------------------------------------------
+
+add_executable (j2k_tests test_j2k_format.cpp)
+
+target_link_libraries(j2k_tests PRIVATE
+        cserve
+        iiiflib
+        Catch2Main
+        Catch2
+        fmt
+        magic
+        lua
+        sqlite3
+        jwtcpp
+        spdlog
+        curl
+        ssl
+        crypto
+        zlib
+        xz
+        bzip2
+        exiv2
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu
+        kdu_aux
+        expat
+        lcms2
+        iconv
+        gettext_intl
+        zlib
+        zstd
+        Threads::Threads
+        ${CMAKE_DL_LIBS})
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(j2k_tests PRIVATE
+            ${COREFOUNDATION_FRAMEWORK}
+            ${SYSTEMCONFIGURATION_FRAMEWORK})
+else()
+    target_link_libraries(j2k_tests lcms2 rt)
+endif()
+
+add_test(NAME j2k_tests COMMAND j2k_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 enable_testing()
 
