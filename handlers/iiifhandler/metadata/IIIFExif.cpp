@@ -29,8 +29,8 @@ namespace cserve {
     IIIFExif::IIIFExif(const IIIFExif &other) {
         binary_size = other.binary_size;
         byteorder = other.byteorder;
-        binaryExif = new unsigned char[binary_size];
-        memcpy (binaryExif, other.binaryExif, binary_size);
+        binaryExif = std::make_unique<unsigned char[]>(binary_size);
+        memcpy (binaryExif.get(), other.binaryExif.get(), binary_size);
         exifData = other.exifData;
     }
 
@@ -50,8 +50,8 @@ namespace cserve {
         //
         // first we save the binary exif... we use it later for constructing a binary exif again!
         //
-        binaryExif = new unsigned char[len];
-        memcpy (binaryExif, exif, len);
+        binaryExif = std::make_shared<unsigned char>(len);
+        memcpy (binaryExif.get(), exif, len);
         binary_size = len;
 
         //
@@ -66,16 +66,14 @@ namespace cserve {
     }
     //============================================================================
 
-    IIIFExif::~IIIFExif() {
-        delete [] binaryExif;
-    }
+    IIIFExif::~IIIFExif() {}
 
     IIIFExif &IIIFExif::operator=(const IIIFExif &other) {
         if (this != &other) {
             binary_size = other.binary_size;
             byteorder = other.byteorder;
-            binaryExif = new unsigned char[binary_size];
-            memcpy (binaryExif, other.binaryExif, binary_size);
+            binaryExif = std::make_shared<unsigned char>(binary_size);
+            memcpy(binaryExif.get(), other.binaryExif.get(), binary_size);
             exifData = other.exifData;
         }
         return *this;
@@ -97,25 +95,21 @@ namespace cserve {
     }
 
 
-    std::unique_ptr<unsigned char[]> IIIFExif::exifBytes(unsigned int &len) {
+    std::shared_ptr<unsigned char[]> IIIFExif::exifBytes(unsigned int &len) {
         Exiv2::Blob blob;
-        Exiv2::WriteMethod wm = Exiv2::ExifParser::encode(blob, binaryExif, binary_size, byteorder, exifData);
+        Exiv2::WriteMethod wm = Exiv2::ExifParser::encode(blob, binaryExif.get(), binary_size, byteorder, exifData);
         if (wm == Exiv2::wmIntrusive) {
-            len = blob.size();
-            auto buf = std::make_unique<unsigned char[]>(len);
-            memcpy (buf.get(), blob.data(), len);
-            return std::move(buf);
-        }
-        else {
-            len = binary_size;
+            binary_size = blob.size();
             auto buf = std::make_unique<unsigned char[]>(binary_size);
-            memcpy (buf.get(), binaryExif, binary_size);
-            return std::move(buf);
+            memcpy (buf.get(), blob.data(), binary_size);
+            binaryExif =  std::move(buf);
         }
+        len = binary_size;
+        return binaryExif;
     }
     //============================================================================
 
-    std::vector<unsigned char> IIIFExif::exifBytes(void) {
+    std::vector<unsigned char> IIIFExif::exifBytes() {
         unsigned int len = 0;
         auto buf = exifBytes(len);
         std::vector<unsigned char> data(buf.get(), buf.get() + len);
@@ -478,22 +472,26 @@ namespace cserve {
     //____________________________________________________________________________
     // string values
     //
-    bool IIIFExif::getValByKey(const std::string key_p, std::string &str_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
-        if (pos == exifData.end()) {
+    bool IIIFExif::getValByKey(const std::string& key_p, std::string &str_p) {
+        try {
+            Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
+            auto pos = exifData.findKey(key);
+            if (pos == exifData.end()) {
+                return false;
+            }
+            Exiv2::Value::UniquePtr v = pos->getValue();
+            str_p = v->toString();
+            return v->ok();
+        } catch (const Exiv2::Error &err) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
-        str_p = v->toString();
-        return v->ok();
     }
     //============================================================================
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::string &str_p) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -505,7 +503,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<std::string> &str_p) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -521,9 +519,9 @@ namespace cserve {
     //____________________________________________________________________________
     // unsigned char values
     //
-    bool IIIFExif::getValByKey(const std::string key_p, unsigned char &uc) {
+    bool IIIFExif::getValByKey(const std::string& key_p, unsigned char &uc) {
         Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -536,7 +534,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, unsigned char &uc) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -549,7 +547,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<unsigned char> &vuc) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -564,9 +562,9 @@ namespace cserve {
     //____________________________________________________________________________
     // float values
     //
-    bool IIIFExif::getValByKey(const std::string key_p, float &f) {
+    bool IIIFExif::getValByKey(const std::string& key_p, float &f) {
         Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -579,7 +577,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, float &f) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -592,7 +590,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<float> &f) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -608,9 +606,9 @@ namespace cserve {
     //____________________________________________________________________________
     // Rational values
     //
-    bool IIIFExif::getValByKey(const std::string key_p, Exiv2::Rational &r) {
+    bool IIIFExif::getValByKey(const std::string& key_p, Exiv2::Rational &r) {
         Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -623,7 +621,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, Exiv2::Rational &r) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -636,7 +634,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<Exiv2::Rational> &r) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -652,9 +650,9 @@ namespace cserve {
     //____________________________________________________________________________
     // short values
     //
-    bool IIIFExif::getValByKey(const std::string key_p, short &s) {
+    bool IIIFExif::getValByKey(const std::string& key_p, short &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -667,7 +665,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, short &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -680,7 +678,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<short> &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -696,9 +694,9 @@ namespace cserve {
     //____________________________________________________________________________
     // unsigned short values
     //
-    bool IIIFExif::getValByKey(const std::string key_p, unsigned short &s) {
+    bool IIIFExif::getValByKey(const std::string& key_p, unsigned short &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -711,7 +709,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, unsigned short &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -724,7 +722,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<unsigned short> &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -740,9 +738,9 @@ namespace cserve {
     //____________________________________________________________________________
     // int values
     //
-    bool IIIFExif::getValByKey(const std::string key_p, int &s) {
+    bool IIIFExif::getValByKey(const std::string& key_p, int &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -755,7 +753,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, int &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -768,7 +766,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<int> &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -784,9 +782,9 @@ namespace cserve {
     //____________________________________________________________________________
     // unsigned int values
     //
-    bool IIIFExif::getValByKey(const std::string key_p, unsigned int &s) {
+    bool IIIFExif::getValByKey(const std::string& key_p, unsigned int &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -799,7 +797,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, unsigned int &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -812,7 +810,7 @@ namespace cserve {
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<unsigned int> &s) {
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::ExifData::iterator pos = exifData.findKey(key);
+        auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
@@ -826,8 +824,8 @@ namespace cserve {
 
 
     std::ostream &operator<< (std::ostream &outstr, IIIFExif &rhs) {
-        Exiv2::ExifData::const_iterator end = rhs.exifData.end();
-        for (Exiv2::ExifData::const_iterator i = rhs.exifData.begin(); i != end; ++i) {
+        auto end = rhs.exifData.end();
+        for (auto i = rhs.exifData.begin(); i != end; ++i) {
             const char* tn = i->typeName();
             outstr << std::setw(44) << std::setfill(' ') << std::left
                 << i->key() << " "

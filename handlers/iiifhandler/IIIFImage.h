@@ -146,9 +146,9 @@ class IIIFImageError : public IIIFError {
         friend class IIIFIOPng;     //!< I/O class for the PNG file format
     private:
         static std::unordered_map<std::string, std::shared_ptr<IIIFIO>> io; //!< member variable holding a map of I/O class instances for the different file formats
-        static byte bilinn(const byte *buf, int nx, float x, float y, int c, int n);
+        static byte bilinn(const byte *buf, int nx, double x, double y, int c, int n);
 
-        static word bilinn(const word *buf, int nx, float x, float y, int c, int n);
+        static word bilinn(const word *buf, int nx, double x, double y, int c, int n);
 
         void ensure_exif();
 

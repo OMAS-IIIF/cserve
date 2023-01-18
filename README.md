@@ -33,6 +33,9 @@ Cserve needs the following external libraries:
 #### Prerequisites
 
 The following packages have to be install locally:
+
+- On OS X: `brew install inih` (required by exiv2)
+
 - python > 3.9
 - for testing (with pip3):
   - pytest

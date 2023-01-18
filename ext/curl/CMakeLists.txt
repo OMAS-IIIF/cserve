@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.14.5)
 project(curl_builder C CXX)
 include(ExternalProject)
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
 #
 # Setting up openssl - things...
 #
@@ -32,6 +38,7 @@ ExternalProject_Add(project_curl
         DEPENDS crypto
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://curl.haxx.se/download/curl-7.80.0.tar.gz
+        ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/curl-7.80.0
         CMAKE_ARGS  -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
                     -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}

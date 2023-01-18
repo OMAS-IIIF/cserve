@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.19)
 project(libbzip2_builder C CXX)
 include(ExternalProject)
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
 #
 # get
 #

@@ -6,10 +6,17 @@ include(ExternalProject)
 #
 # libwebp
 #
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
 ExternalProject_Add(project_webp
         DEPENDS xz
         INSTALL_DIR ${COMMON_LOCAL}
         GIT_REPOSITORY https://github.com/webmproject/libwebp.git
+        GIT_TAG main
         SOURCE_DIR ${COMMON_SRCS}/libwebp-latest
         CMAKE_ARGS -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
         -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}

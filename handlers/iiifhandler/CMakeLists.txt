@@ -133,6 +133,7 @@ add_dependencies(iiifhandler
         lerc
         webp
         turbojpeg
+        sharpyuv
         tiff
         png
         expat

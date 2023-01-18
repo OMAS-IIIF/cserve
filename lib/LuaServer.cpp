@@ -31,10 +31,10 @@
 
 #include "sole.hpp"
 
-#include <jwt-cpp/jwt.h>
 #include <nlohmann/json.hpp>
-#include <utility>
 #include "NlohmannTraits.h"
+#include <jwt-cpp/jwt.h>
+#include <utility>
 
 using ms = std::chrono::milliseconds;
 using get_time = std::chrono::steady_clock;
@@ -2258,7 +2258,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             lua_pushstring(L, tmpstr.c_str());
             return 2;
         }
-        catch (const jwt::token_verification_exception &err) {
+        catch (const jwt::error::token_verification_exception &err) {
             lua_settop(L, 0); // clear stack
             lua_pushboolean(L, false);
             std::string tmpstr = std::string("'server.decode_jwt(token)': Verification of signature failed: ") + err.what();

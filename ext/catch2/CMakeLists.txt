@@ -1,7 +1,12 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.24.0)
 project(libcatch2_builder C CXX)
 include(ExternalProject)
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
 #
 # get fmt
 #
@@ -9,6 +14,7 @@ ExternalProject_Add(
         project_catch2
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://github.com/catchorg/Catch2/archive/refs/heads/devel.zip
+        ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/Catch2-devel
         CMAKE_ARGS -DCMAKE_PREFIX_PATH=${COMMON_LOCAL} -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL} -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}
 )

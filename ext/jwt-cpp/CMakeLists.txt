@@ -14,9 +14,17 @@ include(ExternalProject)
 #set(OPENSSL_ROOT_DIR ${COMMON_LOCAL})
 #include(FindOpenSSL REQUIRED)
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
+
 ExternalProject_Add(project_jwtcpp
         DEPENDS ssl
         DEPENDS crypto
+        DEPENDS nlohmann
         INSTALL_DIR ${COMMON_LOCAL}
         GIT_REPOSITORY https://github.com/Thalhammer/jwt-cpp.git
         SOURCE_DIR ${COMMON_SRCS}/jwt-cpp

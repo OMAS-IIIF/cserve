@@ -10,11 +10,18 @@ endif()
 #
 # get and compile png
 #
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
 ExternalProject_Add(project_png
         DEPENDS zlib
         DEPENDS xz
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://sourceforge.net/projects/libpng/files/libpng16/1.6.37/libpng-1.6.37.tar.gz/download
+        ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/libpng-1.6.37
         CMAKE_ARGS  ${SHARED_OPTION}
                     -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}

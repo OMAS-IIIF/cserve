@@ -8,16 +8,12 @@ include_directories(
         /usr/include
 )
 
-#
-# get exiv2
-#
-#if(MAKE_SHARED_SIPI)
-#    set(XMPDSK_LIBFILE "libxmpsdk${CMAKE_STATIC_LIBRARY_SUFFIX}")
-#else()
-#    set(XMPDSK_LIBFILE "libxmpsdk${CMAKE_STATIC_LIBRARY_SUFFIX}")
-#endif()
-#
-#set(CMAKE_MODULE_PATH "${COMMON_LOCAL};/usr/local;${CMAKE_MODULE_PATH}")
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
 ExternalProject_Add(project_exiv2
         DEPENDS expat
         DEPENDS gettext
@@ -28,7 +24,6 @@ ExternalProject_Add(project_exiv2
         GIT_TAG main
         SOURCE_DIR ${COMMON_SRCS}/exiv2
 
-        #CMAKE_ARGS -DBUILD_SHARED_LIBS=OFF -DEXIV2_ENABLE_VIDEO=ON -DCMAKE_MODULE_PATH=${COMMON_LOCAL} -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL} -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}
         CMAKE_ARGS -DBUILD_SHARED_LIBS:BOOL=${MAKE_SHARED_CSERVE}
             -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
             -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}
@@ -37,7 +32,6 @@ ExternalProject_Add(project_exiv2
             -DEXIV2_BUILD_EXIV2_COMMAND:BOOL=OFF
             -DEXIV2_BUILD_UNIT_TESTS:BOOL=OFF
             -DEXIV2_BUILD_FUZZ_TESTS:BOOL=OFF
-
         BUILD_IN_SOURCE 1
 )
 ExternalProject_Get_Property(project_exiv2 install_dir)

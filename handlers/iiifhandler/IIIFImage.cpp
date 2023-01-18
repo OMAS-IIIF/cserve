@@ -739,53 +739,53 @@ namespace cserve {
     /****************************************************************************/
 #define POSITION(x, y, c, n) ((n)*((y)*nx + (x)) + c)
 
-    byte IIIFImage::bilinn(const byte *buf, int nx, float x, float y, int c, int n) {
+    byte IIIFImage::bilinn(const byte *buf, int nx, double x, double y, int c, int n) {
         int ix, iy;
-        float rx, ry;
+        double rx, ry;
         ix = (int) x;
         iy = (int) y;
-        rx = x - (float) ix;
-        ry = y - (float) iy;
+        rx = x - (double) ix;
+        ry = y - (double) iy;
 
         if ((rx < 1.0e-2) && (ry < 1.0e-2)) {
             return (buf[POSITION(ix, iy, c, n)]);
         } else if (rx < 1.0e-2) {
-            return ((byte) (((float) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (float) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry)) + 0.5));
+            return ((byte) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
+                             (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry))));
         } else if (ry < 1.0e-2) {
-            return ((byte) (((float) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (float) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry)) + 0.5));
+            return ((byte) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
+                             (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry))));
         } else {
-            return ((byte) (((float) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (float) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
-                             (float) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
-                             (float) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry) + 0.5));
+            return ((byte) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
+                             (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
+                             (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
+                             (double) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry)));
         }
     }
 
     /*==========================================================================*/
 
-    word IIIFImage::bilinn(const word *buf, int nx, float x, float y, int c, int n) {
+    word IIIFImage::bilinn(const word *buf, int nx, double x, double y, int c, int n) {
         int ix, iy;
-        float rx, ry;
+        double rx, ry;
         ix = (int) x;
         iy = (int) y;
-        rx = x - (float) ix;
-        ry = y - (float) iy;
+        rx = x - (double) ix;
+        ry = y - (double) iy;
 
         if ((rx < 1.0e-2) && (ry < 1.0e-2)) {
             return (buf[POSITION(ix, iy, c, n)]);
         } else if (rx < 1.0e-2) {
-            return ((word) (((float) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (float) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry)) + 0.5));
+            return ((word) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
+                             (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry))));
         } else if (ry < 1.0e-2) {
-            return ((word) (((float) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (float) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry)) + 0.5));
+            return ((word) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
+                             (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry))));
         } else {
-            return ((word) (((float) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (float) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
-                             (float) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
-                             (float) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry) + 0.5));
+            return ((word) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
+                             (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
+                             (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
+                             (double) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry)));
         }
     }
     /*==========================================================================*/
@@ -797,10 +797,10 @@ namespace cserve {
         auto ylut = std::make_unique<size_t[]>(nny);
 
         for (size_t i = 0; i < nnx; i++) {
-            xlut[i] = (size_t) (i * (nx - 1) / (nnx - 1) + 0.5);
+            xlut[i] = (size_t) lround(i * (nx - 1) / (double) (nnx - 1));
         }
         for (size_t i = 0; i < nny; i++) {
-            ylut[i] = (size_t) (i * (ny - 1) / (nny - 1 ) + 0.5);
+            ylut[i] = (size_t) lround(i * (ny - 1) / (double) (nny - 1 ));
         }
 
         if (bps == 8) {
@@ -833,19 +833,19 @@ namespace cserve {
     }
 
     bool IIIFImage::scaleMedium(size_t nnx, size_t nny) {
-        auto xlut = std::make_unique<float[]>(nnx);
-        auto ylut = std::make_unique<float[]>(nny);
+        auto xlut = std::make_unique<double[]>(nnx);
+        auto ylut = std::make_unique<double[]>(nny);
 
         for (size_t i = 0; i < nnx; i++) {
-            xlut[i] = (float) (i * (nx - 1)) / (float) (nnx - 1);
+            xlut[i] = (double) (i * (nx - 1)) / (double) (nnx - 1);
         }
         for (size_t j = 0; j < nny; j++) {
-            ylut[j] = (float) (j * (ny - 1)) / (float) (nny - 1);
+            ylut[j] = (double) (j * (ny - 1)) / (double) (nny - 1);
         }
 
         if (bps == 8) {
             auto boutbuf = std::make_unique<byte[]>(nnx * nny * nc);
-            float rx, ry;
+            double rx, ry;
             auto raw_input = bpixels.get();
             for (size_t j = 0; j < nny; j++) {
                 ry = ylut[j];
@@ -860,7 +860,7 @@ namespace cserve {
             bpixels = std::move(boutbuf) ;
         } else if (bps == 16) {
             auto woutbuf = std::make_unique<word[]>(nnx * nny * nc);
-            float rx, ry;
+            double rx, ry;
 
             auto raw_input = wpixels.get();
             for (size_t j = 0; j < nny; j++) {
@@ -909,19 +909,19 @@ namespace cserve {
             nnny = nny;
         }
 
-        auto xlut = std::make_unique<float[]>(nnnx);
-        auto ylut = std::make_unique<float[]>(nnny);
+        auto xlut = std::make_unique<double[]>(nnnx);
+        auto ylut = std::make_unique<double[]>(nnny);
 
         for (size_t i = 0; i < nnnx; i++) {
-            xlut[i] = (float) (i * (nx - 1)) / (float) (nnnx - 1);
+            xlut[i] = (double) (i * (nx - 1)) / (double) (nnnx - 1);
         }
         for (size_t j = 0; j < nnny; j++) {
-            ylut[j] = (float) (j * (ny - 1)) / (float) (nnny - 1);
+            ylut[j] = (double) (j * (ny - 1)) / (double) (nnny - 1);
         }
 
         if (bps == 8) {
             auto boutbuf = std::make_unique<byte[]>(nnnx * nnny * nc);
-            float rx, ry;
+            double rx, ry;
 
             auto raw_input = bpixels.get();
             for (size_t j = 0; j < nnny; j++) {
@@ -936,7 +936,7 @@ namespace cserve {
             bpixels = std::move(boutbuf);
         } else if (bps == 16) {
             auto woutbuf = std::make_unique<word[]>(nnnx * nnny * nc);
-            float rx, ry;
+            double rx, ry;
 
             auto raw_input = wpixels.get();
             for (size_t j = 0; j < nnny; j++) {
@@ -1035,6 +1035,11 @@ namespace cserve {
 
         while (angle < 0.) angle += 360.;
         while (angle >= 360.) angle -= 360.;
+
+        if (angle == 0.) {
+            return true;
+        }
+
         if (angle == 90.) {
             //
             // abcdef     mga
@@ -1144,32 +1149,32 @@ namespace cserve {
             nx = nnx;
             ny = nny;
         } else { // all other angles
-            float phi = M_PI * angle / 180.0f;
-            float ptx = nx / 2.f - .5f;
-            float pty = ny / 2.f - .5f;
+            double phi = M_PI * angle / 180.0;
+            double ptx = nx / 2. - .5;
+            double pty = ny / 2. - .5;
 
-            float si = sinf(-phi);
-            float co = cosf(-phi);
+            double si = sin(-phi);
+            double co = cos(-phi);
 
             size_t nnx;
             size_t nny;
 
             if ((angle > 0.) && (angle < 90.)) {
-                nnx = floor((float) nx * cosf(phi) + (float) ny * sinf(phi) + .5);
-                nny = floor((float) nx * sinf(phi) + (float) ny * cosf(phi) + .5);
+                nnx = floor((double) nx * cosf(phi) + (double) ny * sinf(phi) + .5);
+                nny = floor((double) nx * sinf(phi) + (double) ny * cosf(phi) + .5);
             } else if ((angle > 90.) && (angle < 180.)) {
-                nnx = floor(-((float) nx) * cosf(phi) + (float) ny * sinf(phi) + .5);
-                nny = floor((float) nx * sin(phi) - (float) ny * cosf(phi) + .5);
+                nnx = floor(-((double) nx) * cosf(phi) + (double) ny * sinf(phi) + .5);
+                nny = floor((double) nx * sin(phi) - (double) ny * cosf(phi) + .5);
             } else if ((angle > 180.) && (angle < 270.)) {
-                nnx = floor(-((float) nx) * cosf(phi) - (float) ny * sinf(phi) + .5);
-                nny = floor(-((float) nx) * sinf(phi) - (float) ny * cosf(phi) + .5);
+                nnx = floor(-((double) nx) * cosf(phi) - (double) ny * sinf(phi) + .5);
+                nny = floor(-((double) nx) * sinf(phi) - (double) ny * cosf(phi) + .5);
             } else {
-                nnx = floor((float) nx * cosf(phi) - (float) ny * sinf(phi) + .5);
-                nny = floor(-((float) nx) * sinf(phi) + (float) ny * cosf(phi) + .5);
+                nnx = floor((double) nx * cosf(phi) - (double) ny * sinf(phi) + .5);
+                nny = floor(-((double) nx) * sinf(phi) + (double) ny * cosf(phi) + .5);
             }
 
-            float pptx = ptx * (float) nnx / (float) nx;
-            float ppty = pty * (float) nny / (float) ny;
+            double pptx = ptx * (double) nnx / (double) nx;
+            double ppty = pty * (double) nny / (double) ny;
 
             if (bps == 8) {
                 auto boutbuf = std::make_unique<byte[]>(nnx * nny * nc);
@@ -1177,10 +1182,10 @@ namespace cserve {
                 byte bg = 0;
                 for (size_t j = 0; j < nny; j++) {
                     for (size_t i = 0; i < nnx; i++) {
-                        float rx = ((float) i - pptx) * co - ((float) j - ppty) * si + ptx;
-                        float ry = ((float) i - pptx) * si + ((float) j - ppty) * co + pty;
+                        double rx = ((double) i - pptx) * co - ((double) j - ppty) * si + ptx;
+                        double ry = ((double) i - pptx) * si + ((double) j - ppty) * co + pty;
 
-                        if ((rx < 0.0) || (rx >= (float) (nx - 1)) || (ry < 0.0) || (ry >= (float) (ny - 1))) {
+                        if ((rx < 0.0) || (rx >= (double) (nx - 1)) || (ry < 0.0) || (ry >= (double) (ny - 1))) {
                             for (size_t k = 0; k < nc; k++) {
                                 boutbuf[nc * (j * nnx + i) + k] = bg;
                             }
@@ -1200,10 +1205,10 @@ namespace cserve {
 
                 for (size_t j = 0; j < nny; j++) {
                     for (size_t i = 0; i < nnx; i++) {
-                        float rx = ((float) i - pptx) * co - ((float) j - ppty) * si + ptx;
-                        float ry = ((float) i - pptx) * si + ((float) j - ppty) * co + pty;
+                        double rx = ((double) i - pptx) * co - ((double) j - ppty) * si + ptx;
+                        double ry = ((double) i - pptx) * si + ((double) j - ppty) * co + pty;
 
-                        if ((rx < 0.0) || (rx >= (float) (nx - 1)) || (ry < 0.0) || (ry >= (float) (ny - 1))) {
+                        if ((rx < 0.0) || (rx >= (double) (nx - 1)) || (ry < 0.0) || (ry >= (double) (ny - 1))) {
                             for (size_t k = 0; k < nc; k++) {
                                 woutbuf[nc * (j * nnx + i) + k] = bg;
                             }
@@ -1300,17 +1305,14 @@ namespace cserve {
             throw IIIFImageError(file_, __LINE__, "Cannot read watermark file " + wmfilename);
         }
 
-        auto xlut = std::make_unique<float[]>(nx);
-        auto ylut = std::make_unique<float[]>(ny);
-
-        //float *xlut = new float[nx];
-        //float *ylut = new float[ny];
+        auto xlut = std::make_unique<double[]>(nx);
+        auto ylut = std::make_unique<double[]>(ny);
 
         for (size_t i = 0; i < nx; i++) {
-            xlut[i] = (float) (wm_nx * i) / (float) nx;
+            xlut[i] = (double) (wm_nx * i) / (double) nx;
         }
         for (size_t j = 0; j < ny; j++) {
-            ylut[j] = (float) (wm_ny * j) / (float) ny;
+            ylut[j] = (double) (wm_ny * j) / (double) ny;
         }
 
         auto raw_wmbuf = wmbuf.get();
@@ -1320,7 +1322,7 @@ namespace cserve {
                     byte val = IIIFImage::bilinn(raw_wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
 
                     for (size_t k = 0; k < nc; k++) {
-                        float nval = (bpixels[nc * (j * nx + i) + k] / 255.) * (1.0F + val / 2550.0F) + val / 2550.0F;
+                        double nval = (bpixels[nc * (j * nx + i) + k] / 255.) * (1.0 + val / 2550.0) + val / 2550.0;
                         bpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? 255 : floor(nval * 255. + .5);
                     }
                 }
@@ -1330,8 +1332,8 @@ namespace cserve {
                 for (size_t i = 0; i < nx; i++) {
                     for (size_t k = 0; k < nc; k++) {
                         byte val = bilinn(raw_wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
-                        float nval =
-                                (wpixels[nc * (j * nx + i) + k] / 65535.0F) * (1.0F + val / 655350.0F) + val / 352500.F;
+                        double nval =
+                                (wpixels[nc * (j * nx + i) + k] / 65535.0) * (1.0 + val / 655350.0) + val / 352500.;
                         wpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? (word) 65535 : (word) floor(nval * 65535. + .5);
                     }
                 }

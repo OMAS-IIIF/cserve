@@ -38,7 +38,7 @@ namespace cserve {
      */
     class IIIFExif {
     private:
-        unsigned char *binaryExif;
+        std::shared_ptr<unsigned char[]> binaryExif;
         unsigned int binary_size;
         Exiv2::ExifData exifData;   //!< Private member variable holding the exiv2 EXIF data
         Exiv2::ByteOrder byteorder; //!< Private member holding the byteorder of the EXIF data
@@ -49,8 +49,18 @@ namespace cserve {
          */
         IIIFExif();
 
+        /*!
+         * Copy Constructor with deep copy
+         *
+         * @param other
+         */
         IIIFExif(const IIIFExif &other);
 
+        /*!
+         * Move constructor
+         *
+         * @param other
+         */
         IIIFExif(IIIFExif &&other);
 
 
@@ -65,8 +75,20 @@ namespace cserve {
 
         ~IIIFExif();
 
+        /*!
+         * Copy assignment
+         *
+         * @param other
+         * @return
+         */
         IIIFExif &operator=(const IIIFExif &other);
 
+        /*!
+         * Move assignment
+         *
+         * @param other
+         * @return
+         */
         IIIFExif &operator=(IIIFExif &&other);
 
         /*!
@@ -75,7 +97,7 @@ namespace cserve {
          * \param[out] len Length of buffer returned
          * \returns Buffer with EXIF data
          */
-        std::unique_ptr<unsigned char[]> exifBytes(unsigned int &len);
+        std::shared_ptr<unsigned char[]> exifBytes(unsigned int &len);
 
         /*!
          * Returns the bytes of the EXIF data as vector
@@ -411,7 +433,7 @@ namespace cserve {
          * \param[out] str_p Value as string
          * \returns true, if key is existing and the value could be retrieved, false otherwise
          */
-        bool getValByKey(const std::string key_p, std::string &str_p);
+        bool getValByKey(const std::string& key_p, std::string &str_p);
 
         /*!
          * Retrieve a value from the EXIF data using the key
@@ -428,7 +450,7 @@ namespace cserve {
         //____________________________________________________________________________
         // unsigned char values
         //
-        bool getValByKey(const std::string key_p, unsigned char &uc);
+        bool getValByKey(const std::string& key_p, unsigned char &uc);
 
         bool getValByKey(uint16_t tag, const std::string &groupName, unsigned char &uc);
 
@@ -444,7 +466,7 @@ namespace cserve {
          * \param[out] val_p Value as float
          * \returns true, if key is existing and the value could be retrieved, false otherwise
          */
-        bool getValByKey(const std::string key_p, float &val_p);
+        bool getValByKey(const std::string& key_p, float &val_p);
 
         /*!
          * Retrieve a value from the EXIF data using the key
@@ -467,7 +489,7 @@ namespace cserve {
          * \param[out] s Value as Exiv2::Rational
          * \returns true, if key is existing and the value could be retrieved, false otherwise
          */
-        bool getValByKey(const std::string key_p, Exiv2::Rational &r);
+        bool getValByKey(const std::string& key_p, Exiv2::Rational &r);
 
         /*!
          * Retrieve a value from the EXIF data using the key
@@ -490,7 +512,7 @@ namespace cserve {
          * \param[out] s Value as short
          * \returns true, if key is existing and the value could be retrieved, false otherwise
          */
-        bool getValByKey(const std::string key_p, short &s);
+        bool getValByKey(const std::string& key_p, short &s);
 
         /*!
          * Retrieve a value from the EXIF data using the key
@@ -513,7 +535,7 @@ namespace cserve {
          * \param[out] s Value as unsigned short
          * \returns true, if key is existing and the value could be retrieved, false otherwise
          */
-        bool getValByKey(const std::string key_p, unsigned short &s);
+        bool getValByKey(const std::string& key_p, unsigned short &s);
 
         /*!
          * Retrieve a value from the EXIF data using the key
@@ -536,7 +558,7 @@ namespace cserve {
          * \param[out] s Value as int
          * \returns true, if key is existing and the value could be retrieved, false otherwise
          */
-        bool getValByKey(const std::string key_p, int &s);
+        bool getValByKey(const std::string& key_p, int &s);
 
         /*!
          * Retrieve a value from the EXIF data using the key
@@ -559,7 +581,7 @@ namespace cserve {
          * \param[out] s Value as unsigned int
          * \returns true, if key is existing and the value could be retrieved, false otherwise
          */
-        bool getValByKey(const std::string key_p, unsigned int &s);
+        bool getValByKey(const std::string& key_p, unsigned int &s);
 
         /*!
          * Retrieve a value from the EXIF data using the key

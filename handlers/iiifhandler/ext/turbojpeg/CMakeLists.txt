@@ -5,9 +5,16 @@ include(ExternalProject)
 #
 # get libjpeg-turbo
 #
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
 ExternalProject_Add(project_turbojpeg
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/2.0.7-esr.tar.gz
+        ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/libjpeg-turbo
         CMAKE_ARGS -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
         -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}

@@ -6,11 +6,18 @@ add_compile_options(-DCMS_NO_REGISTER_KEYWORD=1)
 #
 # get lcms2
 #
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
 ExternalProject_Add(project_lcms2
         DEPENDS turbojpeg
         DEPENDS tiff
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://sourceforge.net/projects/lcms/files/latest/download
+        ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/lcms2-latest
         CONFIGURE_COMMAND   ${COMMON_SRCS}/lcms2-latest/configure
                             --prefix=${COMMON_LOCAL}

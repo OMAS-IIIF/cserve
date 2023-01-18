@@ -624,7 +624,7 @@ namespace cserve {
     static int SImage_rotate(lua_State *L) {
         int top = lua_gettop(L);
 
-        if (top != 2) {
+        if ((top < 2) || (top > 3)) {
             lua_pop(L, top);
             lua_pushboolean(L, false);
             lua_pushstring(L, "IIIFImage.rotate(): Incorrect number of arguments");
@@ -635,14 +635,23 @@ namespace cserve {
 
         if (!lua_isnumber(L, 2)) {
             lua_pushboolean(L, false);
-            lua_pushstring(L, "IIIFImage.rotate(): Incorrect  arguments");
+            lua_pushstring(L, "IIIFImage.rotate(): Incorrect  argument for angle");
             return 2;
         }
 
         float angle = lua_tonumber(L, 2);
+        bool mirror{false};
+        if (top == 3) {
+            if (!lua_isboolean (L, 3)) {
+                lua_pushboolean(L, false);
+                lua_pushstring(L, "IIIFImage.rotate(): Incorrect  argument for mirror");
+                return 2;
+            }
+            mirror = lua_toboolean(L, 3);
+        }
         lua_pop(L, top);
 
-        img->image->rotate(angle); // does not throw an exception!
+        img->image->rotate(angle, mirror); // does not throw an exception!
 
         lua_pushboolean(L, true);
         lua_pushnil(L);

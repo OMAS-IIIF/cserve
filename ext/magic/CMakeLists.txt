@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.19)
 project(libmagic_builder C CXX)
 include(ExternalProject)
 
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else ()
+    unset(timestamp_policy)
+endif ()
+
 #
 # get libmagic (file)
 #
@@ -9,9 +15,10 @@ ExternalProject_Add(project_magic
         DEPENDS xz
         DEPENDS bzip2
         INSTALL_DIR ${COMMON_LOCAL}
-        URL http://ftp.astron.com/pub/file/file-5.41.tar.gz
-        SOURCE_DIR ${COMMON_SRCS}/file-5.41
-        CONFIGURE_COMMAND ${COMMON_SRCS}/file-5.41/configure --enable-static --enable-shared --prefix=${COMMON_LOCAL}
+        URL http://ftp.astron.com/pub/file/file-5.44.tar.gz
+        ${timestamp_policy}
+        SOURCE_DIR ${COMMON_SRCS}/file-5.44
+        CONFIGURE_COMMAND ${COMMON_SRCS}/file-5.44/configure --enable-static --enable-shared --prefix=${COMMON_LOCAL}
         BUILD_COMMAND make
         INSTALL_COMMAND make INSTALL_LIB=${CONFIGURE_LIBDIR} install INSTALL_TOP=${COMMON_LOCAL}
         BUILD_IN_SOURCE 1)

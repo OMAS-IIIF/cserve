@@ -5,6 +5,12 @@ include(ExternalProject)
 #
 # libwebp
 #
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
 ExternalProject_Add(project_lerc
         DEPENDS xz
         INSTALL_DIR ${COMMON_LOCAL}
@@ -24,4 +30,13 @@ else()
     set_property(TARGET lerc PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/liblerc${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
 
+if(MAKE_SHARED_CSERVE)
+    add_library(sharpyuv SHARED IMPORTED GLOBAL)
+    set_property(TARGET sharpyuv PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libsharpyuv${CMAKE_SHARED_LIBRARY_SUFFIX})
+else()
+    add_library(sharpyuv STATIC IMPORTED GLOBAL)
+    set_property(TARGET sharpyuv PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libsharpyuv${CMAKE_STATIC_LIBRARY_SUFFIX})
+endif()
+
 add_dependencies(lerc project_lerc)
+add_dependencies(sharpyuv project_lerc)

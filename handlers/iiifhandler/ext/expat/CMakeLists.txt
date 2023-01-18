@@ -1,10 +1,17 @@
-cmake_minimum_required(VERSION 3.14.5)
+cmake_minimum_required(VERSION 3.24.0)
 project(expat_builder C CXX)
 include(ExternalProject)
+
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
 
 ExternalProject_Add(project_expat
         INSTALL_DIR ${COMMON_LOCAL}
         URL https://github.com/libexpat/libexpat/releases/download/R_2_4_8/expat-2.4.8.tar.bz2
+        ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/expat
         CONFIGURE_COMMAND ${COMMON_SRCS}/expat/configure
             --prefix=${COMMON_LOCAL}

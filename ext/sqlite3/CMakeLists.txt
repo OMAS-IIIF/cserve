@@ -2,14 +2,21 @@ cmake_minimum_required(VERSION 3.14.5)
 project(sqlite_builder C CXX)
 include(ExternalProject)
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24.0)
+    set(timestamp_policy DOWNLOAD_EXTRACT_TIMESTAMP OLD)
+else()
+    unset(timestamp_policy)
+endif()
+
 #https://www.sqlite.org/2020/sqlite-autoconf-3310000.tar.gz
 # get sqlite3
 #
 ExternalProject_Add(project_sqlite3
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://www.sqlite.org/2021/sqlite-autoconf-3360000.tar.gz
-        SOURCE_DIR ${COMMON_SRCS}/sqlite-autoconf-3360000
-        CONFIGURE_COMMAND ${COMMON_SRCS}/sqlite-autoconf-3360000/configure --enable-fts5  --prefix=${COMMON_LOCAL} --enable-shared --enable-static --libdir=${CONFIGURE_LIBDIR}
+        URL "https://www.sqlite.org/2022/sqlite-autoconf-3400100.tar.gz"
+        ${timestamp_policy}
+        SOURCE_DIR ${COMMON_SRCS}/sqlite
+        CONFIGURE_COMMAND ${COMMON_SRCS}/sqlite/configure --enable-fts5  --prefix=${COMMON_LOCAL} --enable-shared --enable-static --libdir=${CONFIGURE_LIBDIR}
         BUILD_COMMAND make CFLAGS=-DSQLITE_ENABLE_RTREE=1
         BUILD_IN_SOURCE 1
         )
