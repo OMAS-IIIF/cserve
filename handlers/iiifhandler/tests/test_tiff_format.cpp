@@ -122,6 +122,37 @@ TEST_CASE("Image tests", "TIFF") {
         REQUIRE(img2.getPhoto() == cserve::RGB);
     }
 
+    SECTION("Metadata") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = tiffio.read("data/IMG_8207.tiff",
+                                            0,
+                                            region,
+                                            size,
+                                            false,
+                                            {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        auto exif = img.getExif();
+        REQUIRE(exif != nullptr);
+        std::string artist;
+        REQUIRE(exif->getValByKey("Exif.Image.Artist", artist));
+        REQUIRE(artist == "Lukas Rosenthaler");
+
+        auto iptc = img.getIptc();
+        REQUIRE(iptc != nullptr);
+        auto val = iptc->getValByKey("Iptc.Application2.Caption");
+        REQUIRE(val.toString() == "Storage tracks at Bastia station");
+
+        auto icc = img.getIcc();
+        REQUIRE(icc != nullptr);
+        auto profile = icc->getIccProfile();
+        cmsUInt32Number psiz = cmsGetProfileInfo(profile, cmsInfoDescription, "en", "US", nullptr, 0);
+        auto pbufw = std::make_unique<wchar_t[]>(psiz);
+        cmsGetProfileInfo(profile, cmsInfoDescription, "en", "US", pbufw.get(), psiz);
+        std::wstring ws(pbufw.get());
+        std::string pbuf( ws.begin(), ws.end());
+        REQUIRE(pbuf == "sRGB IEC61966-2.1");
+    }
+
     SECTION("EssentialMetadata") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");

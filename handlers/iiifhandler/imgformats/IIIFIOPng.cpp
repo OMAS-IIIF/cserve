@@ -66,6 +66,8 @@ namespace cserve {
         void add_zTXt(char *key, char *data, unsigned int len);
 
         void add_iTXt(char *key, char *data, unsigned int len);
+
+        void add_text(char *key, char *data, unsigned int len);
     };
 
     png_text *PngTextPtr::next() {
@@ -83,25 +85,39 @@ namespace cserve {
 
     void PngTextPtr::add_zTXt(char *key, char *data, unsigned int len) {
         png_text *tmp = this->next();
+        memset(tmp, 0, sizeof(png_text));
         tmp->compression = PNG_TEXT_COMPRESSION_zTXt;
         tmp->key = key;
         tmp->text = (char *) data;
         tmp->text_length = len;
         tmp->itxt_length = 0;
-        tmp->lang = (char *) "";
-        tmp->lang_key = (char *) "";
+        tmp->lang = nullptr;
+        tmp->lang_key = nullptr;
     }
     //=============================================
 
+    void PngTextPtr::add_text(char *key, char *str, unsigned int len = 0) {
+        png_text *tmp = this->next();
+        memset(tmp, 0, sizeof(png_text));
+        tmp->compression = PNG_TEXT_COMPRESSION_NONE;
+        tmp->key = key;
+        tmp->text = str;
+        tmp->text_length = len;
+        tmp->itxt_length = 0;
+        tmp->lang = nullptr;
+        tmp->lang_key = nullptr;
+    }
+
     void PngTextPtr::add_iTXt(char *key, char *data, unsigned int len) {
         png_text *tmp = this->next();
+        memset(tmp, 0, sizeof(png_text));
         tmp->compression = PNG_ITXT_COMPRESSION_zTXt;
         tmp->key = key;
         tmp->text = data;
         tmp->text_length = 0;
         tmp->itxt_length = len;
-        tmp->lang = (char *) "";
-        tmp->lang_key = (char *) "";
+        tmp->lang = nullptr;
+        tmp->lang_key = nullptr;
     }
     //=============================================
 
@@ -163,10 +179,9 @@ namespace cserve {
         img.nc = png_get_channels(png_ptr, info_ptr);
 
         png_uint_32 res_x, res_y;
+        float fres_x{0.0F}, fres_y{0.0F};
         int unit_type;
         if (png_get_pHYs(png_ptr, info_ptr, &res_x, &res_y, &unit_type)) {
-            img.exif = std::make_shared<IIIFExif>();
-            float fres_x, fres_y;
             if (unit_type == PNG_RESOLUTION_METER) {
                 fres_x = res_x / 39.37007874015748;
                 fres_y = res_y / 39.37007874015748;
@@ -175,9 +190,6 @@ namespace cserve {
                 fres_x = res_x;
                 fres_y = res_y;
             }
-            img.exif->addKeyVal("Exif.Image.XResolution", fres_x);
-            img.exif->addKeyVal("Exif.Image.YResolution", fres_x);
-            img.exif->addKeyVal("Exif.Image.ResolutionUnit", 2); // DPI
         }
 
         int colortype = png_get_color_type(png_ptr, info_ptr);
@@ -219,29 +231,59 @@ namespace cserve {
                 img.icc = std::make_shared<IIIFIcc>((unsigned char *) profile, (int) proflen);
             }
         }
+
+        png_byte *exifbuf;
+        unsigned int exifbuf_len;
+        if (png_get_eXIf_1(png_ptr, info_ptr, &exifbuf_len, &exifbuf) > 0) {
+            img.exif = std::make_shared<IIIFExif>(exifbuf, exifbuf_len);
+        }
+
         png_text *png_texts;
         int num_comments = png_get_text(png_ptr, info_ptr, &png_texts, nullptr);
 
         for (int i = 0; i < num_comments; i++) {
+            int png_text_len;
+            if ((png_texts[i].compression == PNG_TEXT_COMPRESSION_NONE) || (png_texts[i].compression == PNG_TEXT_COMPRESSION_zTXt)) {
+                png_text_len = png_texts[i].text_length;
+            }
+            else if ((png_texts[i].compression == PNG_ITXT_COMPRESSION_NONE) || (png_texts[i].compression == PNG_ITXT_COMPRESSION_zTXt)) {
+                png_text_len = png_texts[i].itxt_length;
+            }
             if (strcmp(png_texts[i].key, xmp_tag) == 0) {
-                img.xmp = std::make_shared<IIIFXmp>((char *) png_texts[i].text, (int) png_texts[i].text_length);
-            } else if (strcmp(png_texts[i].key, exif_tag) == 0) {
                 try {
-                    img.exif = std::make_shared<IIIFExif>((unsigned char *) png_texts[i].text,
-                                                           (unsigned int) png_texts[i].text_length);
+                    img.xmp = std::make_shared<IIIFXmp>((char *) png_texts[i].text, png_text_len);
                 }
-                catch (IIIFError &err) {
-                    Server::logger()->warn("Creating EXIF datablock failed.");
+                catch(const IIIFError &err) {
+                    Server::logger()->warn("Couldn't get XMP Info: {}", err.to_string());
                 }
-            } else if (strcmp(png_texts[i].key, iptc_tag) == 0) {
-                img.iptc = std::make_shared<IIIFIptc>((unsigned char *) png_texts[i].text,
-                                                       (unsigned int) png_texts[i].text_length);
-            } else if (strcmp(png_texts[i].key, sipi_tag) == 0) {
+            }
+            else if (strcmp(png_texts[i].key, iptc_tag) == 0) {
+                try {
+                    img.iptc = std::make_shared<IIIFIptc>(png_texts[i].text);
+                }
+                catch(const IIIFError &err) {
+                    Server::logger()->warn("Couldn't get IPTC Info: {}", err.to_string());
+                }
+            }
+            else if (strcmp(png_texts[i].key, sipi_tag) == 0) {
                 IIIFEssentials se(png_texts[i].text);
                 img.essential_metadata(se);
-            } else {
+            }
+            else if (strcmp(png_texts[i].key, exif_tag) == 0) {
+                // do nothing!
+            }
+            else {
                 Server::logger()->warn(fmt::format("PNG-COMMENT: key=\"{}\" text=\"{}\"\n", png_texts[i].key, png_texts[i].text));
             }
+        }
+
+        if (fres_x > 0.0F && fres_y > 0.0F) {
+            if (img.exif == nullptr) {
+                img.exif = std::make_shared<IIIFExif>();
+            }
+            img.exif->addKeyVal("Exif.Image.XResolution", fres_x);
+            img.exif->addKeyVal("Exif.Image.YResolution", fres_y);
+            img.exif->addKeyVal("Exif.Image.ResolutionUnit", 2); // DPI
         }
 
         png_size_t sll = png_get_rowbytes(png_ptr, info_ptr);
@@ -498,22 +540,25 @@ namespace cserve {
             }
         }
 
-        PngTextPtr chunk_ptr(4);
+        std::vector<unsigned char> exif_buf;
+        if (img.exif) {
+            exif_buf = img.exif->exifBytes();
+            png_set_eXIf_1(png_ptr, info_ptr, exif_buf.size(), exif_buf.data());
+        }
+
+        PngTextPtr chunk_ptr;
 
         //
         // other metadata comes here
         //
-
-        std::vector<unsigned char> exif_buf;
-        if (img.exif) {
-            exif_buf = img.exif->exifBytes();
-            chunk_ptr.add_zTXt(exif_tag, (char *) exif_buf.data(), exif_buf.size());
-        }
-
-        std::vector<unsigned char> iptc_buf;
+        std::unique_ptr<char[]> iptc_tmp;
         if (img.iptc) {
-            iptc_buf = img.iptc->iptcBytes();
-            chunk_ptr.add_zTXt(iptc_tag, (char *) iptc_buf.data(), iptc_buf.size());
+            unsigned int len;
+            auto iptc_hex = img.iptc->iptcHexBytes(len);
+            iptc_tmp = std::make_unique<char[]>(len + 1);
+            memcpy (iptc_tmp.get(), iptc_hex.get(), len);
+            iptc_tmp[len] = '\0';
+            chunk_ptr.add_zTXt(iptc_tag, iptc_tmp.get(), len);
         }
 
         std::string xmp_buf;
@@ -534,6 +579,7 @@ namespace cserve {
         if (chunk_ptr.num() > 0) {
             png_set_text(png_ptr, info_ptr, chunk_ptr.ptr(), chunk_ptr.num());
         }
+        png_write_info(png_ptr, info_ptr);
 
         auto *row_pointers = (png_bytep *) png_malloc(png_ptr, img.ny * sizeof(png_byte *));
 
@@ -551,7 +597,6 @@ namespace cserve {
 
         png_set_rows(png_ptr, info_ptr, row_pointers);
 
-        png_write_info(png_ptr, info_ptr);
         png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_SWAP_ENDIAN,
                       nullptr); // we expect the data to be little endian...
         png_write_end(png_ptr, info_ptr);

@@ -29,6 +29,7 @@
 #include "spdlog/fmt/bundled/format.h"
 
 #define ICC_MARKER  (JPEG_APP0 + 2)    /* JPEG marker code for ICC */
+#define ESSENTIAL_METADATA_MARKER (JPEG_APP0 + 7)
 //#define ICC_OVERHEAD_LEN  14        /* size of non-profile data in APP2 */
 //#define MAX_BYTES_IN_MARKER  65533    /* maximum data len of a JPEG marker */
 
@@ -37,7 +38,6 @@ static const char file_[] = __FILE__;
 
 
 namespace cserve {
-    //static std::mutex inlock;
 
     inline bool getbyte(int &c, FILE *f) {
         if ((c = getc(f)) == EOF) {
@@ -655,6 +655,14 @@ namespace cserve {
                     unaligned_memcpy(icc_buffer + icc_buffer_len, pos + 14, (size_t) len);
                     icc_buffer_len += len;
                 }
+            } else if (marker->marker == ESSENTIAL_METADATA_MARKER) {
+                if (strncmp("SIPI", (char *) marker->data, 4) == 0) {
+                    unsigned char *ptr = (unsigned char *) marker->data + 4;
+                    size_t datalen = (*ptr << 24) | (*(ptr + 1) << 16) | (*(ptr + 2) << 8) | (*(ptr + 3));
+                    std::string es_str{(char *) marker->data + 8, datalen};
+                    IIIFEssentials se(es_str);
+                    img.essential_metadata(se);
+                }
             } else if (marker->marker == JPEG_APP0 + 13) { // PHOTOSHOP MARKER....
                 if (strncmp("Photoshop 3.0", (char *) marker->data, 14) == 0) {
                     parse_photoshop(img, (char *) marker->data + 14, (int) marker->data_length - 14);
@@ -1132,6 +1140,28 @@ namespace cserve {
             }
         }
 
+        if (img.essential_metadata().is_set()) {
+            char start[]{'S', 'I', 'P', 'I'};// = "SIPI\000";
+            size_t start_l = sizeof(start);
+            std::string es_str = img.essential_metadata();
+            unsigned char siz[4];
+            siz[0] = (unsigned char) ((es_str.size() >> 24) & 0x000000ff);
+            siz[1] = (unsigned char) ((es_str.size() >> 16) & 0x000000ff);
+            siz[2] = (unsigned char) ((es_str.size() >> 8) & 0x000000ff);
+            siz[3] = (unsigned char) (es_str.size() & 0x000000ff);
+            auto eschunk = std::make_unique<char[]>(start_l + 4 + es_str.size());
+            unaligned_memcpy(eschunk.get(), start, (size_t) start_l);
+            unaligned_memcpy(eschunk.get() + start_l, siz, (size_t) 4);
+            unaligned_memcpy(eschunk.get() + start_l + 4, es_str.data(), es_str.size());
+            try {
+                jpeg_write_marker(&cinfo, ESSENTIAL_METADATA_MARKER, (JOCTET *) eschunk.get(), start_l + 4 + es_str.size());
+            } catch (JpegError &jpgerr) {
+                jpeg_destroy_compress(&cinfo);
+                if (outfile != -1) close(outfile);
+                throw IIIFImageError(file_, __LINE__, fmt::format("Error writing JPEG SIPI marker: ", jpgerr.what()));
+            }
+        }
+
         if (img.iptc != nullptr) {
             std::vector<unsigned char> buf = img.iptc->iptcBytes();
             if (buf.size() <= 65535) {
@@ -1146,10 +1176,10 @@ namespace cserve {
                 auto iptcchunk = std::make_unique<char[]>(start_l + 4 + buf.size());
                 unaligned_memcpy(iptcchunk.get(), start, (size_t) start_l);
                 unaligned_memcpy(iptcchunk.get() + start_l, siz, (size_t) 4);
-                unaligned_memcpy(iptcchunk.get() + start_l + 4, buf.data(), (size_t) buf.size());
+                unaligned_memcpy(iptcchunk.get() + start_l + 4, buf.data(), buf.size());
 
                 try {
-                    jpeg_write_marker(&cinfo, JPEG_APP0 + 13, (JOCTET *) iptcchunk.get(), start_l + buf.size());
+                    jpeg_write_marker(&cinfo, JPEG_APP0 + 13, (JOCTET *) iptcchunk.get(), start_l + 4 + buf.size());
                 } catch (JpegError &jpgerr) {
                     jpeg_destroy_compress(&cinfo);
                     if (outfile != -1) close(outfile);

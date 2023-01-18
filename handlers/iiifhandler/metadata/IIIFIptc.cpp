@@ -9,13 +9,17 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
+#include <cstdlib>
+
 #include "../IIIFError.h"
 #include "IIIFIptc.h"
-#include <stdlib.h>
 
-static const char __file__[] = __FILE__;
+
+static const char file_[] = __FILE__;
 
 namespace cserve {
+
+
 
     IIIFIptc::IIIFIptc(const IIIFIptc &rhs) {
         iptcData = rhs.iptcData;
@@ -27,14 +31,31 @@ namespace cserve {
 
     IIIFIptc::IIIFIptc(const unsigned char *iptc, unsigned int len) {
         if (Exiv2::IptcParser::decode(iptcData, iptc, (uint32_t) len) != 0) {
-            throw IIIFError(__file__, __LINE__, "No valid IPTC data!");
+            throw IIIFError(file_, __LINE__, "No valid IPTC data!");
         }
     }
-    //============================================================================
 
     IIIFIptc::IIIFIptc(const std::vector<unsigned char> &iptc) {
         if (Exiv2::IptcParser::decode(iptcData, iptc.data(), iptc.size()) != 0) {
-            throw IIIFError(__file__, __LINE__, "No valid IPTC data!");
+            throw IIIFError(file_, __LINE__, "No valid IPTC data!");
+        }
+    }
+
+    IIIFIptc::IIIFIptc(const char *hexbuf) {
+        if ((strlen(hexbuf) % 2) != 0) {
+            throw IIIFError(file_, __LINE__, "No valid HEX-form IPTC data !");
+        }
+        char hexnum[]{'\0', '\0', '\0'};
+        std::vector<unsigned char> buf(strlen(hexbuf)/2);
+        for (int i = 0; i < strlen(hexbuf); i += 2) {
+            hexnum[0] = hexbuf[i];
+            hexnum[1] = hexbuf[i + 1];
+            char *e;
+            int c = strtol(hexnum, &e, 16);
+            buf.push_back(c);
+        }
+        if (Exiv2::IptcParser::decode(iptcData, buf.data(), buf.size()) != 0) {
+            throw IIIFError(file_, __LINE__, "No valid IPTC data!");
         }
     }
 
@@ -54,7 +75,6 @@ namespace cserve {
         return *this;
     }
 
-
     std::unique_ptr<unsigned char[]> IIIFIptc::iptcBytes(unsigned int &len) {
         Exiv2::DataBuf databuf = Exiv2::IptcParser::encode(iptcData);
         auto buf = std::make_unique<unsigned char[]>(databuf.size());
@@ -72,6 +92,25 @@ namespace cserve {
         return data;
     }
     //============================================================================
+
+    std::unique_ptr<char[]> IIIFIptc::iptcHexBytes(unsigned int &len) {
+        char hex[]{'0', '1', '2', '3', '4', '5', '6','7',
+                   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
+        Exiv2::DataBuf databuf = Exiv2::IptcParser::encode(iptcData);
+        auto buf = std::make_unique<char[]>(2*databuf.size() + 1);
+        int i = 0;
+        for (auto b: databuf) {
+            buf[2*i] = hex[(b & 0xF0) >> 4];
+            buf[2*i + 1] = hex[b & 0x0F];
+            ++i;
+        }
+        buf[2*i] = '\0';
+        len = 2*databuf.size();
+        return buf;
+    }
+    //============================================================================
+
 
     std::ostream &operator<< (std::ostream &outstr, IIIFIptc &rhs) {
         Exiv2::IptcData::iterator end = rhs.iptcData.end();
