@@ -83,6 +83,8 @@ target_link_libraries(iiifparser_tests PRIVATE
         gettext_intl
         zlib
         zstd
+        sharpyuv
+        deflate
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -127,6 +129,8 @@ target_link_libraries(metadata_tests PRIVATE
         gettext_intl
         zlib
         zstd
+        sharpyuv
+        deflate
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -195,6 +199,8 @@ target_link_libraries(tiff_tests PRIVATE
         gettext_intl
         zlib
         zstd
+        sharpyuv
+        deflate
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -245,6 +251,8 @@ target_link_libraries(png_tests PRIVATE
         gettext_intl
         zlib
         zstd
+        sharpyuv
+        deflate
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -294,6 +302,8 @@ target_link_libraries(jpeg_tests PRIVATE
         gettext_intl
         zlib
         zstd
+        deflate
+        sharpyuv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -343,6 +353,8 @@ target_link_libraries(j2k_tests PRIVATE
         gettext_intl
         zlib
         zstd
+        deflate
+        sharpyuv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 

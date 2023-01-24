@@ -30,13 +30,15 @@ ExternalProject_Add(project_exiv2
             -DEXIV2_ENABLE_XMP:BOOL=ON
             -DEXIV2_BUILD_SAMPLES:BOOL=OFF
             -DEXIV2_BUILD_EXIV2_COMMAND:BOOL=OFF
+            -DEXIV2_ENABLE_INIH:BOOL=OFF
+            -DEXIV2_ENABLE_BROTLI:BOOL=OFF
             -DEXIV2_BUILD_UNIT_TESTS:BOOL=OFF
             -DEXIV2_BUILD_FUZZ_TESTS:BOOL=OFF
         BUILD_IN_SOURCE 1
 )
 ExternalProject_Get_Property(project_exiv2 install_dir)
 
-if(MAKE_SHARED_CSErVE)
+if(MAKE_SHARED_CSERVE)
     add_library(exiv2 SHARED IMPORTED GLOBAL)
     set_property(TARGET exiv2 PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libexiv2${CMAKE_SHARED_LIBRARY_SUFFIX})
 else()

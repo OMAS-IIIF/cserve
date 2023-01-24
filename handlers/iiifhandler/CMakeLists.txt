@@ -83,6 +83,7 @@ add_subdirectory(ext/lerc)
 add_subdirectory(ext/webp)
 add_subdirectory(ext/turbojpeg)
 add_subdirectory(ext/zstd)
+add_subdirectory(ext/deflate)
 add_subdirectory(ext/jbigkit)
 add_subdirectory(ext/tiff)
 add_subdirectory(ext/png)
@@ -130,19 +131,20 @@ add_library(iiifhandler MODULE
 
 add_dependencies(iiifhandler
         icc_profiles
-        lerc
-        webp
         turbojpeg
-        sharpyuv
         tiff
         png
         expat
         gettext
         exiv2
         lcms2
+        lerc
+        webp
         kdu kdu_aux
         zstd
-        jbigkit)
+        jbigkit
+        deflate
+        sharpyuv)
 
 set_target_properties(iiifhandler PROPERTIES PREFIX "")
 
@@ -175,6 +177,8 @@ target_link_libraries(iiifhandler PRIVATE
         xz
         zlib
         zstd
+        deflate
+        sharpyuv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -199,7 +203,6 @@ add_custom_command(TARGET iiifhandler POST_BUILD
 
 
 install(TARGETS iiifhandler DESTINATION ${COMMON_LOCAL}/share/cserver/)
-
 
 include(CTest)
 

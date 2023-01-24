@@ -14,6 +14,8 @@ endif()
 
 ExternalProject_Add(project_webp
         DEPENDS xz
+        DEPENDS lerc
+        DEPENDS sharpyuv
         INSTALL_DIR ${COMMON_LOCAL}
         GIT_REPOSITORY https://github.com/webmproject/libwebp.git
         GIT_TAG main
@@ -31,4 +33,13 @@ else()
     set_property(TARGET webp PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libwebp${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
 
+if(MAKE_SHARED_SIPI)
+    add_library(sharp SHARED IMPORTED GLOBAL)
+    set_property(TARGET sharp PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libsharp${CMAKE_SHARED_LIBRARY_SUFFIX})
+else()
+    add_library(sharp STATIC IMPORTED GLOBAL)
+    set_property(TARGET sharp PROPERTY IMPORTED_LOCATION ${CONFIGURE_LIBDIR}/libsharp${CMAKE_STATIC_LIBRARY_SUFFIX})
+endif()
+
 add_dependencies(webp project_webp)
+add_dependencies(sharp project_webp)

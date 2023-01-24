@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14.5)
 project(tiff_builder C CXX)
 include(ExternalProject)
 
-if(MAKE_SHARED_SIPI)
+if(MAKE_SHARED_CSERVE)
     SET(TIFF_LIBRARY "libtiff${CMAKE_SHARED_LIBRARY_SUFFIX}")
     SET(TIFFXX_LIBRARY "libtiffxx${CMAKE_SHARED_LIBRARY_SUFFIX}")
 else()
@@ -20,6 +20,7 @@ endif()
 ExternalProject_Add(project_tiff
         DEPENDS xz
         DEPENDS zlib
+        DEPENDS deflate
         DEPENDS lerc
         DEPENDS turbojpeg
         DEPENDS webp
@@ -27,11 +28,10 @@ ExternalProject_Add(project_tiff
         DEPENDS zstd
         DEPENDS jbigkit
         INSTALL_DIR ${COMMON_LOCAL}
-        # TEST_BEFORE_INSTALL 1
+        SOURCE_DIR ${COMMON_SRCS}/libtiff-4.5.0
         URL http://download.osgeo.org/libtiff/tiff-4.5.0.tar.xz
         ${timestamp_policy}
         DOWNLOAD_DIR ${COMMON_SRCS}/downloads
-        SOURCE_DIR ${COMMON_SRCS}/libtiff-4.5.0
         CMAKE_ARGS  -Dtiff-tools:BOOL=OFF
                     -Dtiff-tests:BOOL=OFF
                     -Dtiff-contrib:BOOL=OFF
@@ -40,17 +40,12 @@ ExternalProject_Add(project_tiff
                     -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
                     -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
                     -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}
-        #INSTALL_COMMAND make test
-        COMMAND make install
-        message(STATUS "******* ${COMMON_SRCS}/libtiff-4.5.0/libtiff/tif_dir.h")
-#        COMMAND ${CMAKE_COMMAND} -E copy ${COMMON_SRCS}/libtiff-4.5.0/libtiff/tif_dir.h ${COMMON_LOCAL}/include/
-        COMMAND cp ${COMMON_SRCS}/libtiff-4.5.0/libtiff/tif_dir.h ${COMMON_LOCAL}/include/
-#       COMMAND ${CMAKE_COMMAND} -E copy
-#        ${COMMON_SRCS}/libtiff-4.5.0/libtiff/tif_dir.h
-#        ${COMMON_LOCAL}/include/
         BUILD_IN_SOURCE 1
 )
 
+ExternalProject_Add_Step(project_tiff after_build
+        COMMENT "Copy tif_dir.h.."
+        COMMAND ${CMAKE_COMMAND} -E copy ${COMMON_SRCS}/libtiff-4.5.0/libtiff/tif_dir.h ${COMMON_LOCAL}/include/)
 
 ExternalProject_Get_Property(project_tiff install_dir)
 if(MAKE_SHARED_CSERVE)
