@@ -100,7 +100,7 @@ add_executable (metadata_tests test_metadata.cpp
 
 target_link_libraries(metadata_tests PRIVATE
         cserve
-        #Catch2Main
+        Catch2Main
         Catch2
         fmt
         magic
@@ -142,8 +142,9 @@ else()
     target_link_libraries(metadata_tests lcms2 rt)
 endif()
 
-add_test(NAME metadata_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND metadata_tests)
-
+add_test(NAME metadata_tests
+        COMMAND metadata_tests
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(iiiflib STATIC
         ../IIIFError.cpp ../IIIFError.h

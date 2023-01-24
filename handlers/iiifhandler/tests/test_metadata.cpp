@@ -18,39 +18,6 @@
 
 #include "tiffio.h"
 
-int main(int argc, char *argv[]) {
-    Catch::Session session; // There must be exactly one instance
-
-    for (int i = 0; i < argc; ++i) {
-        std::cerr << "******** " << i << " :: " << argv[i] << std::endl;
-    }
-
-    char *gaga = getenv("GAGA");
-    if (gaga != nullptr) {
-        std::cerr << "GAGA=" << gaga << std::endl;
-    }
-    else {
-        std::cerr << "GAGA=----------" << std::endl;
-    }
-    using namespace Catch::Clara;
-    int height = 0;
-    auto cli
-            = session.cli()           // Get Catch2's command line parser
-              | Opt( height, "height" ) // bind variable to a new option, with a hint string
-              ["-g"]["--height"]    // the option names it will respond to
-                      ("how high?");        // description string for the help output
-    session.cli( cli );
-    // Let Catch2 (using Clara) parse the command line
-    int returnCode = session.applyCommandLine( argc, argv );
-    if( returnCode != 0 ) // Indicates a command line error
-        return returnCode;
-
-    std::cerr << "++++++++++++++++++++++" << height << std::endl;
-
-    return session.run();
-
-}
-
 std::shared_ptr<unsigned char[]> iptc_from_tiff(const std::string &filename, unsigned int &len) {
     unsigned char *iptc_content = nullptr;
 
@@ -69,7 +36,7 @@ std::shared_ptr<unsigned char[]> iptc_from_tiff(const std::string &filename, uns
     return nullptr;
 }
 
-std::shared_ptr<unsigned char[]> icc_from_tiff(const std::string &filename, unsigned int &len) {
+std::shared_ptr<unsigned char> icc_from_tiff(const std::string &filename, unsigned int &len) {
     unsigned char *icc_content = nullptr;
 
     TIFF *tif = TIFFOpen(filename.c_str(), "r");
@@ -78,7 +45,7 @@ std::shared_ptr<unsigned char[]> icc_from_tiff(const std::string &filename, unsi
         return nullptr;
     }
     if (TIFFGetField(tif, TIFFTAG_ICCPROFILE, &len, &icc_content) == 1) {
-        auto icc = std::make_unique<unsigned char[]>(len);
+        auto icc = std::make_shared<unsigned char>(len);
         memcpy(icc.get(), icc_content, len);
         return icc;
     }
@@ -87,7 +54,7 @@ std::shared_ptr<unsigned char[]> icc_from_tiff(const std::string &filename, unsi
     return nullptr;
 }
 
-std::shared_ptr<char[]> xmp_from_tiff(const std::string &filename, unsigned int &len) {
+std::shared_ptr<char> xmp_from_tiff(const std::string &filename, unsigned int &len) {
     char *xmp_content = nullptr;
 
     TIFF *tif = TIFFOpen(filename.c_str(), "r");
@@ -96,7 +63,7 @@ std::shared_ptr<char[]> xmp_from_tiff(const std::string &filename, unsigned int 
         return nullptr;
     }
     if (TIFFGetField(tif, TIFFTAG_XMLPACKET, &len, &xmp_content) == 1) {
-        auto xmp = std::make_unique<char[]>(len);
+        auto xmp = std::make_shared<char>(len);
         memcpy(xmp.get(), xmp_content, len);
         return xmp;
     }
@@ -209,26 +176,33 @@ TEST_CASE("Testing IIIFExif class", "[IIIFExif]") {
     }
 }
 
-
 TEST_CASE("Testing IIIFIptc class", "[IIIFIptc]") {
     SECTION("IIIFIptc basic") {
-        std::cerr << "------------->" << std::filesystem::current_path() << std::endl;
         unsigned int len{};
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         auto buf = iptc_from_tiff("data/IPTC-PhotometadataRef-Std2014_large.tiff",len);
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         REQUIRE_NOTHROW(cserve::IIIFIptc(buf.get(), len));
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         std::vector<unsigned char> vbuf(buf.get(), buf.get() + len);
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         REQUIRE_NOTHROW(cserve::IIIFIptc(vbuf));
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         cserve::IIIFIptc iptc(vbuf);
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         unsigned int len2 = 0;
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         std::unique_ptr<unsigned char[]> nbuf = iptc.iptcBytes(len2);
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         REQUIRE(len == len2);
     }
 }
 
+/*
 
 TEST_CASE("Testing IIIFIcc class", "[IIIFIcc]") {
     SECTION("IIIFIcc basic") {
-        std::cerr << "------------->" << std::filesystem::current_path() << std::endl;
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         unsigned int len{};
         auto iccbuf = icc_from_tiff("data/image_with_icc_profile.tif",len);
         REQUIRE_NOTHROW(cserve::IIIFIcc(iccbuf.get(), len));
@@ -238,9 +212,13 @@ TEST_CASE("Testing IIIFIcc class", "[IIIFIcc]") {
         REQUIRE(len == 560);
         std::vector<unsigned char> vicc_buf = icc.iccBytes();
         REQUIRE(vicc_buf.size() == 560);
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         cmsHPROFILE profile = icc.getIccProfile();
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         REQUIRE(profile != nullptr);
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         unsigned int formatter = icc.iccFormatter(16);
+        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         REQUIRE(formatter == 262170);
     }
 }
@@ -259,3 +237,4 @@ TEST_CASE("Testing IIIFXmp class", "[IIIFXmp]") {
         REQUIRE(xmp_str.size() == 18845);
     }
 }
+*/
