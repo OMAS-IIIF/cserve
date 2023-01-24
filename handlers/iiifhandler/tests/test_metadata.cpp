@@ -7,9 +7,9 @@
 #include <fstream>
 
 #include <lcms2.h>
+#include <unistd.h>
 
 #include "catch2/catch_all.hpp"
-#include "../IIIFError.h"
 #include "../metadata/IIIFEssentials.h"
 #include "../metadata/IIIFExif.h"
 #include "../metadata/IIIFIptc.h"
@@ -18,10 +18,47 @@
 
 #include "tiffio.h"
 
+int main(int argc, char *argv[]) {
+    Catch::Session session; // There must be exactly one instance
+
+    for (int i = 0; i < argc; ++i) {
+        std::cerr << "******** " << i << " :: " << argv[i] << std::endl;
+    }
+
+    char *gaga = getenv("GAGA");
+    if (gaga != nullptr) {
+        std::cerr << "GAGA=" << gaga << std::endl;
+    }
+    else {
+        std::cerr << "GAGA=----------" << std::endl;
+    }
+    using namespace Catch::Clara;
+    int height = 0;
+    auto cli
+            = session.cli()           // Get Catch2's command line parser
+              | Opt( height, "height" ) // bind variable to a new option, with a hint string
+              ["-g"]["--height"]    // the option names it will respond to
+                      ("how high?");        // description string for the help output
+    session.cli( cli );
+    // Let Catch2 (using Clara) parse the command line
+    int returnCode = session.applyCommandLine( argc, argv );
+    if( returnCode != 0 ) // Indicates a command line error
+        return returnCode;
+
+    std::cerr << "++++++++++++++++++++++" << height << std::endl;
+
+    return session.run();
+
+}
+
 std::shared_ptr<unsigned char[]> iptc_from_tiff(const std::string &filename, unsigned int &len) {
     unsigned char *iptc_content = nullptr;
 
     TIFF *tif = TIFFOpen(filename.c_str(), "r");
+    if (tif == nullptr) {
+        UNSCOPED_INFO("TIFFOpen failed on: " << filename);
+        return nullptr;
+    }
     if (TIFFGetField(tif, TIFFTAG_RICHTIFFIPTC, &len, &iptc_content) != 0) {
         auto iptc = std::make_unique<unsigned char[]>(len);
         memcpy(iptc.get(), iptc_content, len);
@@ -36,6 +73,10 @@ std::shared_ptr<unsigned char[]> icc_from_tiff(const std::string &filename, unsi
     unsigned char *icc_content = nullptr;
 
     TIFF *tif = TIFFOpen(filename.c_str(), "r");
+    if (tif == nullptr) {
+        UNSCOPED_INFO("TIFFOpen failed on: " << filename);
+        return nullptr;
+    }
     if (TIFFGetField(tif, TIFFTAG_ICCPROFILE, &len, &icc_content) == 1) {
         auto icc = std::make_unique<unsigned char[]>(len);
         memcpy(icc.get(), icc_content, len);
@@ -50,6 +91,10 @@ std::shared_ptr<char[]> xmp_from_tiff(const std::string &filename, unsigned int 
     char *xmp_content = nullptr;
 
     TIFF *tif = TIFFOpen(filename.c_str(), "r");
+    if (tif == nullptr) {
+        UNSCOPED_INFO("TIFFOpen failed on: " << filename);
+        return nullptr;
+    }
     if (TIFFGetField(tif, TIFFTAG_XMLPACKET, &len, &xmp_content) == 1) {
         auto xmp = std::make_unique<char[]>(len);
         memcpy(xmp.get(), xmp_content, len);
@@ -164,9 +209,11 @@ TEST_CASE("Testing IIIFExif class", "[IIIFExif]") {
     }
 }
 
+
 TEST_CASE("Testing IIIFIptc class", "[IIIFIptc]") {
     SECTION("IIIFIptc basic") {
-        unsigned int len;
+        std::cerr << "------------->" << std::filesystem::current_path() << std::endl;
+        unsigned int len{};
         auto buf = iptc_from_tiff("data/IPTC-PhotometadataRef-Std2014_large.tiff",len);
         REQUIRE_NOTHROW(cserve::IIIFIptc(buf.get(), len));
         std::vector<unsigned char> vbuf(buf.get(), buf.get() + len);
@@ -178,9 +225,11 @@ TEST_CASE("Testing IIIFIptc class", "[IIIFIptc]") {
     }
 }
 
+
 TEST_CASE("Testing IIIFIcc class", "[IIIFIcc]") {
     SECTION("IIIFIcc basic") {
-        unsigned int len;
+        std::cerr << "------------->" << std::filesystem::current_path() << std::endl;
+        unsigned int len{};
         auto iccbuf = icc_from_tiff("data/image_with_icc_profile.tif",len);
         REQUIRE_NOTHROW(cserve::IIIFIcc(iccbuf.get(), len));
         REQUIRE_NOTHROW(cserve::IIIFIcc(cserve::icc_AdobeRGB));

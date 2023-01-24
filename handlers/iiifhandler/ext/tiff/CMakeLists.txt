@@ -43,7 +43,8 @@ ExternalProject_Add(project_tiff
         BUILD_IN_SOURCE 1
 )
 
-ExternalProject_Add_Step(project_tiff after_build
+ExternalProject_Add_Step(project_tiff gaga
+        DEPENDEES install
         COMMENT "Copy tif_dir.h.."
         COMMAND ${CMAKE_COMMAND} -E copy ${COMMON_SRCS}/libtiff-4.5.0/libtiff/tif_dir.h ${COMMON_LOCAL}/include/)
 
