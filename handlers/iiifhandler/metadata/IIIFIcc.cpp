@@ -231,15 +231,15 @@ namespace cserve {
         return *this;
     }
 
-    unsigned char *IIIFIcc::iccBytes(unsigned int &len) {
-        unsigned char *buf = nullptr;
+    std::unique_ptr<unsigned char[]> IIIFIcc::iccBytes(unsigned int &len) {
+        std::unique_ptr<unsigned char[]> buf = nullptr;
         len = 0;
         if (icc_profile != nullptr) {
             if (!cmsSaveProfileToMem(icc_profile, nullptr, &len)) {
                 throw IIIFError(file_, __LINE__, "cmsSaveProfileToMem failed");
             }
-            buf = new unsigned char[len];
-            if (!cmsSaveProfileToMem(icc_profile, buf, &len))  {
+            buf = std::make_unique<unsigned char[]>(len);
+            if (!cmsSaveProfileToMem(icc_profile, buf.get(), &len))  {
                 throw IIIFError(file_, __LINE__, "cmsSaveProfileToMem failed");
             }
         }
@@ -248,13 +248,8 @@ namespace cserve {
 
     std::vector<unsigned char> IIIFIcc::iccBytes() {
         unsigned int len = 0;
-        unsigned char *buf = iccBytes(len);
-        std::vector<unsigned char> data;
-        if (buf != nullptr) {
-            data.reserve(len);
-            for (int i = 0; i < len; i++) data.push_back(buf[i]);
-            delete[] buf;
-        }
+        auto buf = iccBytes(len);
+        std::vector<unsigned char> data (buf.get(), buf.get() + len);
         return data;
     }
 

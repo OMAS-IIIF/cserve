@@ -31,6 +31,7 @@ namespace cserve {
 
     IIIFIptc::IIIFIptc(const unsigned char *iptc, unsigned int len) {
         if (Exiv2::IptcParser::decode(iptcData, iptc, (uint32_t) len) != 0) {
+            std::cerr << "GAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAG" << std::endl;
             throw IIIFError(file_, __LINE__, "No valid IPTC data!");
         }
     }

@@ -938,13 +938,13 @@ namespace cserve {
                     switch (icc_type) {
                         case icc_undefined: {
                             unsigned int icc_len;
-                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len).get();
                             jp2_family_colour.init(icc_bytes);
                             break;
                         }
                         case icc_unknown: {
                             unsigned int icc_len;
-                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len).get();
                             jp2_family_colour.init(icc_bytes);
                             break;
                         }
@@ -954,13 +954,13 @@ namespace cserve {
                         }
                         case icc_AdobeRGB: {
                             unsigned int icc_len;
-                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len).get();
                             jp2_family_colour.init(icc_bytes);
                             break;
                         }
                         case icc_RGB: { // TODO: DOES NOT WORK AS EXPECTED!!!!! Fallback below
                             unsigned int icc_len;
-                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len).get();
                             jp2_family_colour.init(icc_bytes);
                             break;
                         }
@@ -970,7 +970,7 @@ namespace cserve {
                         }
                         case icc_GRAY_D50: {
                             unsigned int icc_len;
-                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len).get();
                             jp2_family_colour.init(icc_bytes); // TODO: DOES NOT WORK AS EXPECTED!!!!! Fallback below
                             break;
                         }
@@ -993,7 +993,7 @@ namespace cserve {
                         };
                         default: {
                             unsigned int icc_len;
-                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len);
+                            auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len).get();
                             jp2_family_colour.init(icc_bytes);
                         }
                     }

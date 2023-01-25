@@ -50,7 +50,7 @@ namespace cserve {
         //
         // first we save the binary exif... we use it later for constructing a binary exif again!
         //
-        binaryExif = std::make_shared<unsigned char>(len);
+        binaryExif = std::make_unique<unsigned char[]>(len);
         memcpy (binaryExif.get(), exif, len);
         binary_size = len;
 
@@ -72,7 +72,7 @@ namespace cserve {
         if (this != &other) {
             binary_size = other.binary_size;
             byteorder = other.byteorder;
-            binaryExif = std::make_shared<unsigned char>(binary_size);
+            binaryExif = std::make_unique<unsigned char[]>(binary_size);
             memcpy(binaryExif.get(), other.binaryExif.get(), binary_size);
             exifData = other.exifData;
         }
@@ -100,9 +100,9 @@ namespace cserve {
         Exiv2::WriteMethod wm = Exiv2::ExifParser::encode(blob, binaryExif.get(), binary_size, byteorder, exifData);
         if (wm == Exiv2::wmIntrusive) {
             binary_size = blob.size();
-            auto buf = std::make_unique<unsigned char[]>(binary_size);
-            memcpy (buf.get(), blob.data(), binary_size);
-            binaryExif =  std::move(buf);
+            std::shared_ptr<unsigned char[]> tmpbuf(new unsigned char[binary_size]);
+            memcpy (tmpbuf.get(), blob.data(), binary_size);
+           binaryExif = tmpbuf;
         }
         len = binary_size;
         return binaryExif;

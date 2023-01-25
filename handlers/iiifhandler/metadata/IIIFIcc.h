@@ -120,7 +120,7 @@ namespace cserve {
          * @param[out] len Length of the buffer returned
          * @returns Buffer containing the binary ICC profile
          */
-        unsigned char *iccBytes(unsigned int &len);
+        std::unique_ptr<unsigned char[]> iccBytes(unsigned int &len);
 
         /*!
          * Get the blob containing the ICC profile as std::vector

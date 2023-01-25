@@ -29,14 +29,15 @@ std::shared_ptr<unsigned char[]> iptc_from_tiff(const std::string &filename, uns
     if (TIFFGetField(tif, TIFFTAG_RICHTIFFIPTC, &len, &iptc_content) != 0) {
         auto iptc = std::make_unique<unsigned char[]>(len);
         memcpy(iptc.get(), iptc_content, len);
-        return iptc;
+        TIFFClose(tif);
+        return std::move(iptc);
     }
     TIFFClose(tif);
     len = 0;
     return nullptr;
 }
 
-std::shared_ptr<unsigned char> icc_from_tiff(const std::string &filename, unsigned int &len) {
+std::shared_ptr<unsigned char[]> icc_from_tiff(const std::string &filename, unsigned int &len) {
     unsigned char *icc_content = nullptr;
 
     TIFF *tif = TIFFOpen(filename.c_str(), "r");
@@ -45,16 +46,18 @@ std::shared_ptr<unsigned char> icc_from_tiff(const std::string &filename, unsign
         return nullptr;
     }
     if (TIFFGetField(tif, TIFFTAG_ICCPROFILE, &len, &icc_content) == 1) {
-        auto icc = std::make_shared<unsigned char>(len);
+        std::shared_ptr<unsigned char[]> icc(new unsigned char[len]);
+        //auto icc = std::make_shared<unsigned char>(len);
         memcpy(icc.get(), icc_content, len);
-        return icc;
+        TIFFClose(tif);
+        return std::move(icc);
     }
     TIFFClose(tif);
     len = 0;
     return nullptr;
 }
 
-std::shared_ptr<char> xmp_from_tiff(const std::string &filename, unsigned int &len) {
+std::shared_ptr<char[]> xmp_from_tiff(const std::string &filename, unsigned int &len) {
     char *xmp_content = nullptr;
 
     TIFF *tif = TIFFOpen(filename.c_str(), "r");
@@ -63,9 +66,10 @@ std::shared_ptr<char> xmp_from_tiff(const std::string &filename, unsigned int &l
         return nullptr;
     }
     if (TIFFGetField(tif, TIFFTAG_XMLPACKET, &len, &xmp_content) == 1) {
-        auto xmp = std::make_shared<char>(len);
+        std::shared_ptr<char[]> xmp(new char[len]);
         memcpy(xmp.get(), xmp_content, len);
-        return xmp;
+        TIFFClose(tif);
+        return std::move(xmp);
     }
     TIFFClose(tif);
     len = 0;
@@ -176,57 +180,46 @@ TEST_CASE("Testing IIIFExif class", "[IIIFExif]") {
     }
 }
 
+
 TEST_CASE("Testing IIIFIptc class", "[IIIFIptc]") {
     SECTION("IIIFIptc basic") {
         unsigned int len{};
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
-        auto buf = iptc_from_tiff("data/IPTC-PhotometadataRef-Std2014_large.tiff",len);
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
+        auto buf = iptc_from_tiff("/Users/rosenth/ProgDev/OMAS/cserve/handlers/iiifhandler/tests/data/IPTC-PhotometadataRef-Std2014_large.tiff",len);
+
         REQUIRE_NOTHROW(cserve::IIIFIptc(buf.get(), len));
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         std::vector<unsigned char> vbuf(buf.get(), buf.get() + len);
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         REQUIRE_NOTHROW(cserve::IIIFIptc(vbuf));
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         cserve::IIIFIptc iptc(vbuf);
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         unsigned int len2 = 0;
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         std::unique_ptr<unsigned char[]> nbuf = iptc.iptcBytes(len2);
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         REQUIRE(len == len2);
     }
 }
 
-/*
 
 TEST_CASE("Testing IIIFIcc class", "[IIIFIcc]") {
     SECTION("IIIFIcc basic") {
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         unsigned int len{};
-        auto iccbuf = icc_from_tiff("data/image_with_icc_profile.tif",len);
+        auto iccbuf = icc_from_tiff("/Users/rosenth/ProgDev/OMAS/cserve/handlers/iiifhandler/tests/data/image_with_icc_profile.tif",len);
         REQUIRE_NOTHROW(cserve::IIIFIcc(iccbuf.get(), len));
         REQUIRE_NOTHROW(cserve::IIIFIcc(cserve::icc_AdobeRGB));
         cserve::IIIFIcc icc(cserve::icc_AdobeRGB);
-        unsigned char *nicc_buf = icc.iccBytes(len);
+         auto nicc_buf = icc.iccBytes(len);
         REQUIRE(len == 560);
         std::vector<unsigned char> vicc_buf = icc.iccBytes();
         REQUIRE(vicc_buf.size() == 560);
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         cmsHPROFILE profile = icc.getIccProfile();
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         REQUIRE(profile != nullptr);
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         unsigned int formatter = icc.iccFormatter(16);
-        std::cerr << "***** LINE: " << __LINE__ << std::endl;
         REQUIRE(formatter == 262170);
     }
 }
 
+
 TEST_CASE("Testing IIIFXmp class", "[IIIFXmp]") {
     SECTION("IIIFXmp basic") {
         unsigned int len;
-        auto xmpbuf = xmp_from_tiff("data/IMG_8067.tiff",len);
+        auto xmpbuf = xmp_from_tiff("/Users/rosenth/ProgDev/OMAS/cserve/handlers/iiifhandler/tests/data/IMG_8067.tiff",len);
         REQUIRE(len == 18845);
         REQUIRE_NOTHROW(cserve::IIIFXmp(xmpbuf.get(), len));
         cserve::IIIFXmp xmp(xmpbuf.get(), len);
@@ -237,4 +230,3 @@ TEST_CASE("Testing IIIFXmp class", "[IIIFXmp]") {
         REQUIRE(xmp_str.size() == 18845);
     }
 }
-*/
