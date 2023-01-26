@@ -9,13 +9,15 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __defined_exif_h
-#define __defined_exif_h
+#ifndef defined_exif_h
+#define defined_exif_h
 
+/*
 namespace std {
     template<typename T>
     using auto_ptr = unique_ptr<T>;
 }
+*/
 
 #include <memory>
 #include <string>
@@ -39,7 +41,7 @@ namespace cserve {
     class IIIFExif {
     private:
         std::shared_ptr<unsigned char[]> binaryExif;
-        unsigned int binary_size;
+        uint32_t binary_size;
         Exiv2::ExifData exifData;   //!< Private member variable holding the exiv2 EXIF data
         Exiv2::ByteOrder byteorder; //!< Private member holding the byteorder of the EXIF data
 
@@ -61,7 +63,7 @@ namespace cserve {
          *
          * @param other
          */
-        IIIFExif(IIIFExif &&other);
+        IIIFExif(IIIFExif &&other) noexcept;
 
 
         /*!
@@ -89,7 +91,7 @@ namespace cserve {
          * @param other
          * @return
          */
-        IIIFExif &operator=(IIIFExif &&other);
+        IIIFExif &operator=(IIIFExif &&other) noexcept;
 
         /*!
          * Returns the bytes of the EXIF data
@@ -112,7 +114,7 @@ namespace cserve {
          * \param[in] f Input signed float
          * \returns Exiv2::Rational
          */
-        static Exiv2::Rational toRational(float f);
+        static Exiv2::Rational toRational(double f);
 
         /*!
          * Helper function to convert a unsigned float to a unsigned rational as used by EXIF
@@ -120,7 +122,7 @@ namespace cserve {
          * \param[in] f Input unsigned float
          * \returns Exiv2::URational
          */
-        static Exiv2::URational toURational(float f);
+        static Exiv2::URational toURational(double f);
 
         /*!
          * Add key/value pair to EXIF data

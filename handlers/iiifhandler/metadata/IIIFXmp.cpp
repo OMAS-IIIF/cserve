@@ -46,7 +46,7 @@ namespace cserve {
         __xmpstr = rhs.__xmpstr;
     }
 
-    IIIFXmp::IIIFXmp(IIIFXmp &&rhs) {
+    IIIFXmp::IIIFXmp(IIIFXmp &&rhs) noexcept {
         __xmpstr = std::move(rhs.__xmpstr);
         rhs.__xmpstr.clear();
     }
@@ -120,7 +120,7 @@ namespace cserve {
         return *this;
     }
 
-    IIIFXmp &IIIFXmp::operator=(IIIFXmp &&rhs) {
+    IIIFXmp &IIIFXmp::operator=(IIIFXmp &&rhs) noexcept {
         if (this != &rhs) {
             __xmpstr = std::move(rhs.__xmpstr);
             rhs.__xmpstr.clear();
@@ -157,7 +157,7 @@ namespace cserve {
     }
     //============================================================================
 
-    std::string IIIFXmp::xmpBytes(void) {
+    std::string IIIFXmp::xmpBytes() {
         unsigned int len = 0;
         auto buf = xmpBytes(len);
         std::string data(buf.get(), buf.get() + len);

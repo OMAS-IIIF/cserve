@@ -20,18 +20,16 @@ static const char file_[] = __FILE__;
 namespace cserve {
 
 
-
     IIIFIptc::IIIFIptc(const IIIFIptc &rhs) {
         iptcData = rhs.iptcData;
     }
 
-    IIIFIptc::IIIFIptc(IIIFIptc &&rhs) {
+    IIIFIptc::IIIFIptc(IIIFIptc &&rhs) noexcept{
         iptcData = std::move(rhs.iptcData);
     }
 
     IIIFIptc::IIIFIptc(const unsigned char *iptc, unsigned int len) {
         if (Exiv2::IptcParser::decode(iptcData, iptc, (uint32_t) len) != 0) {
-            std::cerr << "GAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAGAG" << std::endl;
             throw IIIFError(file_, __LINE__, "No valid IPTC data!");
         }
     }
@@ -52,7 +50,7 @@ namespace cserve {
             hexnum[0] = hexbuf[i];
             hexnum[1] = hexbuf[i + 1];
             char *e;
-            int c = strtol(hexnum, &e, 16);
+            long c = strtol(hexnum, &e, 16);
             buf.push_back(c);
         }
         if (Exiv2::IptcParser::decode(iptcData, buf.data(), buf.size()) != 0) {
@@ -60,7 +58,7 @@ namespace cserve {
         }
     }
 
-    IIIFIptc::~IIIFIptc() {}
+    IIIFIptc::~IIIFIptc() = default;
 
     IIIFIptc &IIIFIptc::operator=(const IIIFIptc &rhs) {
         if (this != &rhs) {
@@ -69,7 +67,7 @@ namespace cserve {
         return *this;
     }
 
-    IIIFIptc &IIIFIptc::operator=(IIIFIptc &&rhs) {
+    IIIFIptc &IIIFIptc::operator=(IIIFIptc &&rhs) noexcept {
         if (this != &rhs) {
             iptcData = std::move(rhs.iptcData);
         }
@@ -86,7 +84,7 @@ namespace cserve {
     }
     //============================================================================
 
-    std::vector<unsigned char> IIIFIptc::iptcBytes(void) {
+    std::vector<unsigned char> IIIFIptc::iptcBytes() {
         unsigned int len = 0;
         auto buf = iptcBytes(len);
         std::vector<unsigned char> data(buf.get(), buf.get() + len);
@@ -114,8 +112,8 @@ namespace cserve {
 
 
     std::ostream &operator<< (std::ostream &outstr, IIIFIptc &rhs) {
-        Exiv2::IptcData::iterator end = rhs.iptcData.end();
-        for (Exiv2::IptcData::iterator md = rhs.iptcData.begin(); md != end; ++md) {
+        auto end = rhs.iptcData.end();
+        for (auto md = rhs.iptcData.begin(); md != end; ++md) {
             outstr << std::setw(44) << std::setfill(' ') << std::left
                 << md->key() << " "
                 << "0x" << std::setw(4) << std::setfill('0') << std::right

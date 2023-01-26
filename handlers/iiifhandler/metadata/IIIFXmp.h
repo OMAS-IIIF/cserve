@@ -9,9 +9,15 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __defined_xmp_h
-#define __defined_xmp_h
+#ifndef defined_xmp_h
+#define defined_xmp_h
 
+/*
+namespace std {
+    template<typename T>
+    using auto_ptr = unique_ptr<T>;
+}
+*/
 
 #include <string>
 #include <mutex>
@@ -40,14 +46,14 @@ namespace cserve {
 
         IIIFXmp(const IIIFXmp &rhs);
 
-        IIIFXmp(IIIFXmp &&rhs);
+        IIIFXmp(IIIFXmp &&rhs) noexcept ;
 
         /*!
          * Constructor
          *
          * \param[in] xmp A std::string containing RDF/XML with XMP data
          */
-        IIIFXmp(const std::string &xmp);
+        explicit IIIFXmp(const std::string &xmp);
 
 
         /*!
@@ -55,7 +61,7 @@ namespace cserve {
          *
          * \param[in] xmp A C-string (char *)containing RDF/XML with XMP data
          */
-        IIIFXmp(const char *xmp);
+        explicit IIIFXmp(const char *xmp);
 
         /*!
          * Constructor
@@ -73,7 +79,7 @@ namespace cserve {
 
         IIIFXmp &operator=(const IIIFXmp &rhs);
 
-        IIIFXmp &operator=(IIIFXmp &&rhs);
+        IIIFXmp &operator=(IIIFXmp &&rhs) noexcept ;
 
         /*!
         * Returns the bytes of the RDF/XML data
@@ -87,7 +93,7 @@ namespace cserve {
          *
          * @return String holding the xmp data
          */
-        std::string xmpBytes(void);
+        std::string xmpBytes();
 
         /*!
          * The overloaded << operator which is used to write the xmp formatted to the outstream

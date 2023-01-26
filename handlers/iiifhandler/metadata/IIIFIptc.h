@@ -9,9 +9,15 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __defined_iptc_h
-#define __defined_iptc_h
+#ifndef defined_iptc_h
+#define defined_iptc_h
 
+/*
+namespace std {
+    template<typename T>
+    using auto_ptr = unique_ptr<T>;
+}
+*/
 #include <string>
 #include <vector>
 #include <exiv2/iptc.hpp>
@@ -28,7 +34,7 @@ namespace cserve {
     public:
         IIIFIptc(const IIIFIptc &rhs);
 
-        IIIFIptc(IIIFIptc &&rhs);
+        IIIFIptc(IIIFIptc &&rhs) noexcept;
 
         /*!
          * Constructor
@@ -38,9 +44,9 @@ namespace cserve {
          */
         IIIFIptc(const unsigned char *iptc, unsigned int len);
 
-        IIIFIptc(const std::vector<unsigned char> &iptc);
+        explicit IIIFIptc(const std::vector<unsigned char> &iptc);
 
-        IIIFIptc(const char *hexbuf);
+        explicit IIIFIptc(const char *hexbuf);
         /*!
          * Destructor
          */
@@ -48,7 +54,7 @@ namespace cserve {
 
         IIIFIptc &operator=(const IIIFIptc &rhs);
 
-        IIIFIptc &operator=(IIIFIptc &&rhs);
+        IIIFIptc &operator=(IIIFIptc &&rhs) noexcept;
 
         /*!
         * Returns the bytes of the IPTC data. The buffer must be
@@ -62,11 +68,11 @@ namespace cserve {
          * Returns the bytes of the IPTC data as std::vector
          * @return IPTC bytes as std::vector
          */
-        std::vector<unsigned char> iptcBytes(void);
+        std::vector<unsigned char> iptcBytes();
 
         std::unique_ptr<char[]> iptcHexBytes(unsigned int &len);
 
-        inline Exiv2::Iptcdatum getValByKey(const std::string key_p) {
+        inline Exiv2::Iptcdatum getValByKey(const std::string &key_p) {
             return iptcData[key_p];
         }
 

@@ -10,7 +10,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <climits>
-
 #include <cmath>
 #include "../IIIFError.h"
 #include "IIIFExif.h"
@@ -34,7 +33,7 @@ namespace cserve {
         exifData = other.exifData;
     }
 
-    IIIFExif::IIIFExif(IIIFExif &&other) {
+    IIIFExif::IIIFExif(IIIFExif &&other) noexcept {
         binary_size = other.binary_size;
         byteorder = other.byteorder;
         binaryExif = other.binaryExif;
@@ -79,7 +78,7 @@ namespace cserve {
         return *this;
     }
 
-    IIIFExif &IIIFExif::operator=(IIIFExif &&other) {
+    IIIFExif &IIIFExif::operator=(IIIFExif &&other) noexcept{
         if (this != &other) {
             binary_size = other.binary_size;
             byteorder = other.byteorder;
@@ -102,7 +101,7 @@ namespace cserve {
             binary_size = blob.size();
             std::shared_ptr<unsigned char[]> tmpbuf(new unsigned char[binary_size]);
             memcpy (tmpbuf.get(), blob.data(), binary_size);
-           binaryExif = tmpbuf;
+            binaryExif = tmpbuf;
         }
         len = binary_size;
         return binaryExif;
@@ -117,75 +116,75 @@ namespace cserve {
     }
     //============================================================================
 
-    Exiv2::Rational IIIFExif::toRational(float f) {
-        int numerator;
-        int denominator;
-        if (f == 0.0F) {
+    Exiv2::Rational IIIFExif::toRational(double f) {
+        int32_t numerator;
+        int32_t denominator;
+        if (f == 0.0) {
             numerator = 0;
             denominator = 1;
         }
-        else if (f == floorf(f)) {
+        else if (f == floor(f)) {
             numerator = (int) f;
             denominator = 1;
         }
-        else if (f > 0.0F) {
-            if (f < 1.0F) {
-                numerator = (int) (f*LONG_MAX);
+        else if (f > 0.0) {
+            if (f < 1.0) {
+                numerator = static_cast<int32_t>(lround(f*static_cast<double>(LONG_MAX)));
                 denominator = INT_MAX;
             }
             else {
                 numerator = INT_MAX;
-                denominator = (int) (INT_MAX / f);
+                denominator = static_cast<int32_t>(lround(static_cast<double>(INT_MAX ) / f));
             }
         }
         else {
             if (f > -1.0F) {
-                numerator = (int) (f*INT_MAX);
+                numerator = static_cast<int32_t>(lround(f*static_cast<double>(INT_MAX)));
                 denominator = INT_MAX;
             }
             else {
                 numerator = INT_MAX;
-                denominator = (int) (INT_MAX / f);
+                denominator = static_cast<int32_t>(lround(static_cast<double>(INT_MAX )/ f));
             }
         }
         return std::make_pair(numerator, denominator);
     }
     //============================================================================
 
-    Exiv2::URational IIIFExif::toURational(float f) {
-        unsigned int numerator;
-        unsigned int denominator;
+    Exiv2::URational IIIFExif::toURational(double f) {
+        uint32_t numerator;
+        uint32_t denominator;
 
-        if (f < 0.0F) throw IIIFError(file_, __LINE__, "Cannot convert negative float to URational!");
+        if (f < 0.0) throw IIIFError(file_, __LINE__, "Cannot convert negative float to URational!");
 
-        if (f == 0.0F) {
+        if (f == 0.0) {
             numerator = 0;
             denominator = 1;
         }
-        else if (f == (float)((int) f)) {
+        else if (f == floor(f)) {
             numerator = (int) f;
             denominator = 1;
         }
         if (f < 1.0F) {
-            numerator = (int) (f*UINT_MAX);
+            numerator = static_cast<uint32_t>(lround(f*static_cast<double>(UINT_MAX)));
             denominator = UINT_MAX;
         }
         else {
             numerator = UINT_MAX;
-            denominator = (int) (UINT_MAX / f);
+            denominator = static_cast<uint32_t>(lround(static_cast<double>(UINT_MAX) / f));
         }
         return std::make_pair(numerator, denominator);
     }
     //============================================================================
 
     void IIIFExif::addKeyVal(const std::string &key_p, const std::string &val_p) {
-        exifData[key_p.c_str()] = val_p.c_str();
+        exifData[key_p] = val_p;
     }
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const std::string &val_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::asciiString);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::asciiString);
         v->read((unsigned char *) val_p.c_str(), val_p.size(), Exiv2::littleEndian);
         exifData.add(key, v.get());
     }
@@ -200,7 +199,7 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(const std::string &key_p, const float *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::tiffFloat);
+        auto v = Exiv2::Value::create(Exiv2::tiffFloat);
         v->read((unsigned char *) vals_p, len*sizeof(float), Exiv2::littleEndian);
         Exiv2::ExifKey key(key_p);
         exifData.add(key, v.get());
@@ -208,15 +207,15 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const float &val_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::tiffFloat);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::tiffFloat);
         v->read((unsigned char *) &val_p, sizeof(float), Exiv2::littleEndian);
         exifData.add(key, v.get());
     }
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const float *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::tiffFloat);
+        auto v = Exiv2::Value::create(Exiv2::tiffFloat);
         v->read((unsigned char *) vals_p, len*sizeof(float), Exiv2::littleEndian);
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
         exifData.add(key, v.get());
@@ -232,7 +231,7 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(const std::string &key_p, const short *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedShort);
+        auto v = Exiv2::Value::create(Exiv2::signedShort);
         v->read((unsigned char *) vals_p, len*sizeof(short), Exiv2::littleEndian);
         Exiv2::ExifKey key(key_p);
         exifData.add(key, v.get());
@@ -240,15 +239,15 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const short &val_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedShort );
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::signedShort );
         v->read((unsigned char *) &val_p, sizeof(short), Exiv2::littleEndian);
         exifData.add(key, v.get());
     }
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const short *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedShort);
+        auto v = Exiv2::Value::create(Exiv2::signedShort);
         v->read((unsigned char *) vals_p, len*sizeof(short), Exiv2::littleEndian);
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
         exifData.add(key, v.get());
@@ -264,7 +263,7 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(const std::string &key_p, const unsigned short *vals_p, int unsigned len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedShort);
+        auto v = Exiv2::Value::create(Exiv2::unsignedShort);
         v->read((unsigned char *) vals_p, len*sizeof(unsigned short), Exiv2::littleEndian);
         Exiv2::ExifKey key(key_p);
         exifData.add(key, v.get());
@@ -272,8 +271,8 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const unsigned short &val_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedShort);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::unsignedShort);
         v->read((unsigned char *) &val_p, sizeof(unsigned short), Exiv2::littleEndian);
         exifData.add(key, v.get());
     }
@@ -281,7 +280,7 @@ namespace cserve {
 
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const unsigned short *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedShort);
+        auto v = Exiv2::Value::create(Exiv2::unsignedShort);
         v->read((unsigned char *) vals_p, len*sizeof(unsigned short), Exiv2::littleEndian);
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
         exifData.add(key, v.get());
@@ -298,7 +297,7 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(const std::string &key_p, const int *vals_p, int unsigned len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedLong);
+        auto v = Exiv2::Value::create(Exiv2::signedLong);
         v->read((unsigned char *) vals_p, len*sizeof(int), Exiv2::littleEndian);
         Exiv2::ExifKey key(key_p);
         exifData.add(key, v.get());
@@ -306,15 +305,15 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const int &val_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedLong);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::signedLong);
         v->read((unsigned char *) &val_p, sizeof(int), Exiv2::littleEndian);
         exifData.add(key, v.get());
     }
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const int *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedLong);
+        auto v = Exiv2::Value::create(Exiv2::signedLong);
         v->read((unsigned char *) vals_p, len*sizeof(int), Exiv2::littleEndian);
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
         exifData.add(key, v.get());
@@ -330,7 +329,7 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(const std::string &key_p, const unsigned int *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedLong);
+        auto v = Exiv2::Value::create(Exiv2::unsignedLong);
         v->read((unsigned char *) vals_p, len*sizeof(unsigned int), Exiv2::littleEndian);
         Exiv2::ExifKey key(key_p);
         exifData.add(key, v.get());
@@ -338,15 +337,15 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const unsigned int &val_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedLong);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::unsignedLong);
         v->read((unsigned char *) &val_p, sizeof(unsigned int), Exiv2::littleEndian);
         exifData.add(key, v.get());
     }
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const unsigned int *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedLong);
+        auto v = Exiv2::Value::create(Exiv2::unsignedLong);
         v->read((unsigned char *) vals_p, len*sizeof(unsigned int), Exiv2::littleEndian);
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
         exifData.add(key, v.get());
@@ -362,7 +361,7 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(const std::string &key_p, const Exiv2::Rational *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedRational);
+        auto v = Exiv2::Value::create(Exiv2::signedRational);
         v->read((unsigned char *) vals_p, len*sizeof(Exiv2::Rational), Exiv2::littleEndian);
         Exiv2::ExifKey key(key_p);
         exifData.add(key, v.get());
@@ -375,15 +374,15 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const Exiv2::Rational &r) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedRational);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::signedRational);
         v->read((unsigned char *) &r, sizeof(Exiv2::Rational), Exiv2::littleEndian);
         exifData.add(key, v.get());
     }
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const Exiv2::Rational *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedRational);
+        auto v = Exiv2::Value::create(Exiv2::signedRational);
         v->read((unsigned char *) vals_p, len*sizeof(Exiv2::Rational), Exiv2::littleEndian);
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
         exifData.add(key, v.get());
@@ -391,8 +390,8 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const int &val1_p, const int &val2_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::signedRational);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::signedRational);
         Exiv2::Rational val = Exiv2::Rational(val1_p, val2_p);
         v->read((unsigned char *) &val, sizeof(Exiv2::Rational), Exiv2::littleEndian);
         exifData.add(key, v.get());
@@ -408,7 +407,7 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(const std::string &key_p, const Exiv2::URational *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedRational);
+        auto v = Exiv2::Value::create(Exiv2::unsignedRational);
         v->read((unsigned char *) vals_p, len*sizeof(Exiv2::URational), Exiv2::littleEndian);
         Exiv2::ExifKey key(key_p);
         exifData.add(key, v.get());
@@ -421,15 +420,15 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const Exiv2::URational &ur) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedRational);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::unsignedRational);
         v->read((unsigned char *) &ur, sizeof(Exiv2::URational), Exiv2::littleEndian);
         exifData.add(key, v.get());
     }
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const Exiv2::URational *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedRational);
+        auto v = Exiv2::Value::create(Exiv2::unsignedRational);
         v->read((unsigned char *) vals_p, len*sizeof(Exiv2::URational), Exiv2::littleEndian);
         Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
         exifData.add(key, v.get());
@@ -437,8 +436,8 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const unsigned int &val1_p, const unsigned int &val2_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::unsignedRational);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::unsignedRational);
         Exiv2::URational val = Exiv2::URational(val1_p, val2_p);
         v->read((unsigned char *) &val, sizeof(Exiv2::URational), Exiv2::littleEndian);
         exifData.add(key, v.get());
@@ -450,7 +449,7 @@ namespace cserve {
     // Undefined data
     //
     void IIIFExif::addKeyVal(const std::string &key_p, const unsigned char *vals_p, unsigned int len) {
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::undefined);
+        auto v = Exiv2::Value::create(Exiv2::undefined);
         v->read(vals_p, len*sizeof(unsigned char), Exiv2::littleEndian);
         Exiv2::ExifKey key(key_p);
         exifData.add(key, v.get());
@@ -458,8 +457,8 @@ namespace cserve {
     //============================================================================
 
     void IIIFExif::addKeyVal(uint16_t tag, const std::string &groupName, const unsigned char *vals_p, unsigned int len) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
-        Exiv2::Value::UniquePtr v = Exiv2::Value::create(Exiv2::undefined);
+        auto key = Exiv2::ExifKey(tag, groupName);
+        auto v = Exiv2::Value::create(Exiv2::undefined);
         v->read(vals_p, len*sizeof(unsigned char), Exiv2::littleEndian);
         exifData.add(key, v.get());
     }
@@ -474,12 +473,12 @@ namespace cserve {
     //
     bool IIIFExif::getValByKey(const std::string& key_p, std::string &str_p) {
         try {
-            Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
+            auto key = Exiv2::ExifKey(key_p);
             auto pos = exifData.findKey(key);
             if (pos == exifData.end()) {
                 return false;
             }
-            Exiv2::Value::UniquePtr v = pos->getValue();
+            auto v = pos->getValue();
             str_p = v->toString();
             return v->ok();
         } catch (const Exiv2::Error &err) {
@@ -490,24 +489,24 @@ namespace cserve {
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::string &str_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         str_p = v->toString();
         return v->ok();
     }
     //============================================================================
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<std::string> &str_p) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         for (int i = 0; i < v->count(); i++) {
             str_p.push_back(v->toString(i));
         }
@@ -520,25 +519,29 @@ namespace cserve {
     // unsigned char values
     //
     bool IIIFExif::getValByKey(const std::string& key_p, unsigned char &uc) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        auto pos = exifData.findKey(key);
-        if (pos == exifData.end()) {
+        try {
+            auto key = Exiv2::ExifKey(key_p);
+            auto pos = exifData.findKey(key);
+            if (pos == exifData.end()) {
+                return false;
+            }
+            auto v = pos->getValue();
+            uc = (unsigned char) v->toUint32();
+            return v->ok();
+        } catch (const Exiv2::Error &err) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
-        uc = (unsigned char) v->toUint32();
-        return v->ok();
     }
     //============================================================================
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, unsigned char &uc) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         uc = (unsigned char) v->toUint32();
         return v->ok();
     }
@@ -546,12 +549,12 @@ namespace cserve {
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<unsigned char> &vuc) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         for (int i = 0; i < v->count(); i++) {
             vuc.push_back((unsigned char) v->toUint32(i));
         }
@@ -562,26 +565,30 @@ namespace cserve {
     //____________________________________________________________________________
     // float values
     //
-    bool IIIFExif::getValByKey(const std::string& key_p, float &f) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        auto pos = exifData.findKey(key);
-        if (pos == exifData.end()) {
+    bool IIIFExif::getValByKey(const std::string &key_p, float &f) {
+        try {
+            auto key = Exiv2::ExifKey(key_p);
+            auto pos = exifData.findKey(key);
+            if (pos == exifData.end()) {
+                return false;
+            }
+            auto v = pos->getValue();
+            f = v->toFloat();
+            return v->ok();
+        } catch (const Exiv2::Error &err) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
-        f = v->toFloat();
-        return v->ok();
     }
     //============================================================================
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, float &f) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         f = v->toFloat();
         return v->ok();
     }
@@ -589,12 +596,12 @@ namespace cserve {
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<float> &f) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         for (int i = 0; i < v->count(); i++) {
             f.push_back(v->toFloat(i));
         }
@@ -606,26 +613,30 @@ namespace cserve {
     //____________________________________________________________________________
     // Rational values
     //
-    bool IIIFExif::getValByKey(const std::string& key_p, Exiv2::Rational &r) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        auto pos = exifData.findKey(key);
-        if (pos == exifData.end()) {
+    bool IIIFExif::getValByKey(const std::string &key_p, Exiv2::Rational &r) {
+        try {
+            auto key = Exiv2::ExifKey(key_p);
+            auto pos = exifData.findKey(key);
+            if (pos == exifData.end()) {
+                return false;
+            }
+            auto v = pos->getValue();
+            r = v->toRational();
+            return v->ok();
+        } catch (const Exiv2::Error &err) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
-        r =  v->toRational();
-        return v->ok();
     }
     //============================================================================
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, Exiv2::Rational &r) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         r =  v->toRational();
         return v->ok();
     }
@@ -633,12 +644,12 @@ namespace cserve {
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<Exiv2::Rational> &r) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         for (int i = 0; i < v->count(); i++) {
             r.push_back(v->toRational(i));
         }
@@ -651,25 +662,29 @@ namespace cserve {
     // short values
     //
     bool IIIFExif::getValByKey(const std::string& key_p, short &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        auto pos = exifData.findKey(key);
-        if (pos == exifData.end()) {
+        try {
+            auto key = Exiv2::ExifKey(key_p);
+            auto pos = exifData.findKey(key);
+            if (pos == exifData.end()) {
+                return false;
+            }
+            auto v = pos->getValue();
+            s = (short) v->toUint32();
+            return v->ok();
+        } catch (const Exiv2::Error &err) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
-        s = (short) v->toUint32();
-        return v->ok();
     }
     //============================================================================
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, short &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         s = (short) v->toUint32();
         return v->ok();
     }
@@ -677,12 +692,12 @@ namespace cserve {
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<short> &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         for (int i = 0; i < v->count(); i++) {
             s.push_back((short) v->toUint32(i));
         }
@@ -694,26 +709,30 @@ namespace cserve {
     //____________________________________________________________________________
     // unsigned short values
     //
-    bool IIIFExif::getValByKey(const std::string& key_p, unsigned short &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        auto pos = exifData.findKey(key);
-        if (pos == exifData.end()) {
+    bool IIIFExif::getValByKey(const std::string &key_p, unsigned short &s) {
+        try {
+            auto key = Exiv2::ExifKey(key_p);
+            auto pos = exifData.findKey(key);
+            if (pos == exifData.end()) {
+                return false;
+            }
+            auto v = pos->getValue();
+            s = (unsigned short) v->toUint32();
+            return v->ok();
+        } catch (const Exiv2::Error &err) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
-        s = (unsigned short) v->toUint32();
-        return v->ok();
     }
     //============================================================================
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, unsigned short &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         s = (unsigned short) v->toUint32();
         return v->ok();
     }
@@ -721,12 +740,12 @@ namespace cserve {
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<unsigned short> &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         for (int i = 0; i < v->count(); i++) {
             s.push_back((unsigned short) v->toUint32());
         }
@@ -738,26 +757,30 @@ namespace cserve {
     //____________________________________________________________________________
     // int values
     //
-    bool IIIFExif::getValByKey(const std::string& key_p, int &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        auto pos = exifData.findKey(key);
-        if (pos == exifData.end()) {
+    bool IIIFExif::getValByKey(const std::string &key_p, int &s) {
+        try {
+            auto key = Exiv2::ExifKey(key_p);
+            auto pos = exifData.findKey(key);
+            if (pos == exifData.end()) {
+                return false;
+            }
+            auto v = pos->getValue();
+            s = (int) v->toUint32();
+            return v->ok();
+        } catch (const Exiv2::Error &err) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
-        s = (int) v->toUint32();
-        return v->ok();
     }
     //============================================================================
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, int &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         s = (int) v->toUint32();
         return v->ok();
     }
@@ -765,12 +788,12 @@ namespace cserve {
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<int> &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         for (int i = 0; i < v->count(); i++) {
             s.push_back((int) v->toUint32(i));
         }
@@ -783,25 +806,29 @@ namespace cserve {
     // unsigned int values
     //
     bool IIIFExif::getValByKey(const std::string& key_p, unsigned int &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
-        auto pos = exifData.findKey(key);
-        if (pos == exifData.end()) {
+        try {
+            auto key = Exiv2::ExifKey(key_p);
+            auto pos = exifData.findKey(key);
+            if (pos == exifData.end()) {
+                return false;
+            }
+            auto v = pos->getValue();
+            s = (unsigned int) v->toUint32();
+            return v->ok();
+        } catch (const Exiv2::Error &err) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
-        s = (unsigned int) v->toUint32();
-        return v->ok();
     }
     //============================================================================
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, unsigned int &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         s = (unsigned int) v->toUint32();
         return v->ok();
     }
@@ -809,12 +836,12 @@ namespace cserve {
 
 
     bool IIIFExif::getValByKey(uint16_t tag, const std::string &groupName, std::vector<unsigned int> &s) {
-        Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+        auto key = Exiv2::ExifKey(tag, groupName);
         auto pos = exifData.findKey(key);
         if (pos == exifData.end()) {
             return false;
         }
-        Exiv2::Value::UniquePtr v = pos->getValue();
+        auto v = pos->getValue();
         for (int i = 0; i < v->count(); i++) {
             s.push_back((unsigned int) v->toUint32());
         }
