@@ -33,6 +33,8 @@
 #  define PNG_iTXt_SUPPORTED 1
 #endif
 
+#define PNG_BYTES_TO_CHECK 4
+
 static const char file_[] = __FILE__;
 
 namespace cserve {
@@ -141,7 +143,6 @@ namespace cserve {
         unsigned char header[8];
         png_structp png_ptr;
         png_infop info_ptr;
-        png_infop end_info;
         //
         // open the input file
         //
@@ -149,9 +150,9 @@ namespace cserve {
             throw IIIFImageError(file_, __LINE__, fmt::format("Cannot open PNG file '{}'", filepath));
         }
 
-        fread(header, 1, 8, infile);
+        fread(header, 1, PNG_BYTES_TO_CHECK, infile);
 
-        if (png_sig_cmp(header, 0, 8) != 0) {
+        if (png_sig_cmp(header, 0, PNG_BYTES_TO_CHECK) != 0) {
             fclose(infile);
             throw IIIFImageError(file_, __LINE__, fmt::format("'{}' is not a PNG file", filepath));
         }
@@ -164,47 +165,53 @@ namespace cserve {
             fclose(infile);
             throw IIIFImageError(file_, __LINE__, fmt::format("Error reading PNG file '{}': Could not allocate memory fpr png_infop !", filepath));
         }
-        if ((end_info = png_create_info_struct(png_ptr)) == nullptr) {
-            fclose(infile);
-            throw IIIFImageError(file_, __LINE__, fmt::format("Error reading PNG file '{}': Could not allocate mempry fpr png_infop !", filepath));
-        }
+
         png_init_io(png_ptr, infile);
-        png_set_sig_bytes(png_ptr, 8);
+        png_set_sig_bytes(png_ptr, PNG_BYTES_TO_CHECK);
         png_read_info(png_ptr, info_ptr);
 
         IIIFImage img{};
-        img.nx = png_get_image_width(png_ptr, info_ptr);
-        img.ny = png_get_image_height(png_ptr, info_ptr);
-        img.bps = png_get_bit_depth(png_ptr, info_ptr);
-        img.nc = png_get_channels(png_ptr, info_ptr);
+        png_uint_32 width, height;
+        int color_type, bit_depth, interlace_type;
+        png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type,
+                     &interlace_type, NULL, NULL);
+
+        img.nx = width;
+        img.ny = height;
+        img.orientation = TOPLEFT;
+
+        png_set_packing(png_ptr);
 
         png_uint_32 res_x, res_y;
         float fres_x{0.0F}, fres_y{0.0F};
         int unit_type;
         if (png_get_pHYs(png_ptr, info_ptr, &res_x, &res_y, &unit_type)) {
             if (unit_type == PNG_RESOLUTION_METER) {
-                fres_x = res_x / 39.37007874015748;
-                fres_y = res_y / 39.37007874015748;
+                fres_x = static_cast<float>(res_x) / 39.37007874015748F;
+                fres_y = static_cast<float>(res_y) / 39.37007874015748F;
             }
             else {
-                fres_x = res_x;
-                fres_y = res_y;
+                fres_x = static_cast<float>(res_x);
+                fres_y = static_cast<float>(res_y);
             }
         }
 
         int colortype = png_get_color_type(png_ptr, info_ptr);
         switch (colortype) {
             case PNG_COLOR_TYPE_GRAY: { // implies nc = 1, (bit depths 1, 2, 4, 8, 16)
+                png_set_expand_gray_1_2_4_to_8(png_ptr);
                 img.photo = MINISBLACK;
                 break;
             }
             case PNG_COLOR_TYPE_GRAY_ALPHA: { // implies nc = 2, (bit depths 8, 16)
+                png_set_expand_gray_1_2_4_to_8(png_ptr);
                 img.photo = MINISBLACK;
                 img.es.push_back(ASSOCALPHA);
                 break;
             }
             case PNG_COLOR_TYPE_PALETTE: { // we will not support it for now, (bit depths 1, 2, 4, 8)
-                img.photo = PALETTE;
+                png_set_palette_to_rgb(png_ptr);
+                img.photo = RGB;
                 break;
             }
             case PNG_COLOR_TYPE_RGB: { // implies nc = 3 (standard case :-), (bit_depths 8, 16)
@@ -219,6 +226,20 @@ namespace cserve {
             default: {}
         }
 
+        if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) != 0)
+            png_set_tRNS_to_alpha(png_ptr);
+
+        png_color_16 *image_background;
+        if (png_get_bKGD(png_ptr, info_ptr, &image_background) != 0) {
+            png_set_background(png_ptr, image_background,
+                               PNG_BACKGROUND_GAMMA_FILE, 1, 1.0);
+        }
+
+        png_read_update_info(png_ptr, info_ptr);
+
+        //
+        // check for ICC profiles...
+        //
         int srgb_intent;
         if (png_get_sRGB(png_ptr, info_ptr, &srgb_intent) != 0) {
             img.icc = std::make_shared<IIIFIcc>(icc_sRGB);
@@ -232,6 +253,9 @@ namespace cserve {
             }
         }
 
+        //
+        // get exif data if available
+        //
         png_byte *exifbuf;
         unsigned int exifbuf_len;
         if (png_get_eXIf_1(png_ptr, info_ptr, &exifbuf_len, &exifbuf) > 0) {
@@ -242,7 +266,7 @@ namespace cserve {
         int num_comments = png_get_text(png_ptr, info_ptr, &png_texts, nullptr);
 
         for (int i = 0; i < num_comments; i++) {
-            int png_text_len;
+            size_t png_text_len;
             if ((png_texts[i].compression == PNG_TEXT_COMPRESSION_NONE) || (png_texts[i].compression == PNG_TEXT_COMPRESSION_zTXt)) {
                 png_text_len = png_texts[i].text_length;
             }
@@ -286,36 +310,30 @@ namespace cserve {
             img.exif->addKeyVal("Exif.Image.ResolutionUnit", 2); // DPI
         }
 
-        png_size_t sll = png_get_rowbytes(png_ptr, info_ptr);
-
-        if (colortype == PNG_COLOR_TYPE_PALETTE) {
-            png_set_palette_to_rgb(png_ptr);
-            img.nc = 3;
-            img.photo = RGB;
-            sll = 3 * sll;
-        }
-
-        if (colortype == PNG_COLOR_TYPE_GRAY && img.bps < 8) {
-            png_set_expand_gray_1_2_4_to_8(png_ptr);
-            img.bps = 8;
-        }
-
-        auto buffer = std::make_unique<uint8_t[]>(img.ny * sll);
-        auto raw_buffer = buffer.get();
-        auto row_pointers = std::make_unique<png_bytep[]>(img.ny);
-
+        //
+        // prepare storage for reading image
+        //
+        size_t sll = png_get_rowbytes(png_ptr, info_ptr);
+        auto buffer = std::make_unique<unsigned char[]>(height * sll);
+        auto row_pointers = std::make_unique<png_bytep[]>(height);
         for (size_t i = 0; i < img.ny; i++) {
-            row_pointers[i] = (raw_buffer + i * sll);
+            row_pointers[i] = (buffer.get() + i * sll);
         }
 
+        //
+        // read image data
+        //
         png_read_image(png_ptr, row_pointers.get());
-        png_read_end(png_ptr, end_info);
-        png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+        png_read_end(png_ptr, info_ptr);
 
-        if (colortype == PNG_COLOR_TYPE_PALETTE) {
-            img.nc = 3;
-            img.photo = RGB;
+        img.bps = png_get_bit_depth(png_ptr, info_ptr);
+        img.nc = png_get_channels(png_ptr, info_ptr);
+
+        if (color_type == PNG_COLOR_TYPE_PALETTE && img.nc == 4) {
+            img.es.push_back(ASSOCALPHA);
         }
+
+        png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
 
         if (img.bps == 16) {
             std::unique_ptr<uint16_t[]> tmp((uint16_t *) buffer.release());
@@ -372,7 +390,6 @@ namespace cserve {
         unsigned char header[8];
         png_structp png_ptr;
         png_infop info_ptr;
-        png_infop end_info;
         //
         // open the input file
         //
@@ -380,9 +397,9 @@ namespace cserve {
             throw IIIFImageError(file_, __LINE__, fmt::format("Cannot open PNG file '{}'", filepath));
         }
 
-        fread(header, 1, 8, infile);
+        fread(header, 1, PNG_BYTES_TO_CHECK, infile);
 
-        if (png_sig_cmp(header, 0, 8) != 0) {
+        if (png_sig_cmp(header, 0, PNG_BYTES_TO_CHECK) != 0) {
             fclose(infile);
             throw IIIFImageError(file_, __LINE__, fmt::format("'{}' is not a PNG file", filepath));
         }
@@ -395,17 +412,15 @@ namespace cserve {
             fclose(infile);
             throw IIIFImageError(file_, __LINE__, fmt::format("Error reading PNG file '{}': Could not allocate memory fpr png_infop !", filepath));
         }
-        if ((end_info = png_create_info_struct(png_ptr)) == nullptr) {
-            fclose(infile);
-            throw IIIFImageError(file_, __LINE__, fmt::format("Error reading PNG file '{}': Could not allocate mempry fpr png_infop !", filepath));
-        }
+
         png_init_io(png_ptr, infile);
-        png_set_sig_bytes(png_ptr, 8);
+        png_set_sig_bytes(png_ptr, PNG_BYTES_TO_CHECK);
         png_read_info(png_ptr, info_ptr);
 
         IIIFImgInfo info{};
         info.width = png_get_image_width(png_ptr, info_ptr);
         info.height = png_get_image_height(png_ptr, info_ptr);
+        info.orientation = TOPLEFT;
         info.success = IIIFImgInfo::DIMS;
 
         IIIFImage img{};
@@ -413,7 +428,7 @@ namespace cserve {
         img.ny = png_get_image_height(png_ptr, info_ptr);
         fclose(infile);
 
-        png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+        png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
 
         return info;
     }
