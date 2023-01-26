@@ -192,7 +192,7 @@ namespace cserve {
             } catch (InputFailure &iofail) {
                 return;
             }
-
+            std::cerr << "=====>ScriptHandler::handler: " << __LINE__ << std::endl;
             Server::logger()->error("ScriptHandler: internal error: '{}'", err.to_string());
             return;
         }

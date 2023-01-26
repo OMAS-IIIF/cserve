@@ -1,3 +1,5 @@
+from inspect import getmembers
+
 import psutil
 import pytest
 import subprocess
@@ -9,6 +11,8 @@ import time
 import requests
 
 from pprint import pprint
+
+import var_dump as var_dump
 
 
 def pytest_addoption(parser):
@@ -169,6 +173,9 @@ class CserverProcessManager:
             response.raise_for_status()
         except:
             raise CserverTestError("GET request to {} failed: {}".format(nargs[0], response.json()["message"]))
+        print('????')
+        print(response.content)
+        print('====')
         return response.json()
 
     def sget_json(self, *args, **kwargs):

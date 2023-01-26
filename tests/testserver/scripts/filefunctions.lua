@@ -35,7 +35,6 @@ local success, ftype2 = server.fs.ftype('./testserver')
 if not success then
     return send_error(ftype2)
 end
-
 local success, modtime = server.fs.modtime('./test_00.cpp')
 if not success then
     return send_error(modtime)
@@ -55,6 +54,7 @@ local success, readable2 = server.fs.is_readable('./testserver/docroot/gaga.gaga
 if not success then
     return send_error(readable2)
 end
+
 
 local success, writeable1 = server.fs.is_writeable('./testserver/docroot/test.csv')
 if not success then
