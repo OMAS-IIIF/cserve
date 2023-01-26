@@ -12,8 +12,6 @@ import requests
 
 from pprint import pprint
 
-import var_dump as var_dump
-
 
 def pytest_addoption(parser):
     parser.addoption(

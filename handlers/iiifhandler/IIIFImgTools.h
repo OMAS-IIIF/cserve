@@ -16,9 +16,9 @@ namespace cserve {
  */
     IIIFImage separateToContig(IIIFImage img, unsigned int sll);
 
-    std::unique_ptr<uint8_t[]> separateToContig(std::unique_ptr<uint8_t[]> inbuf, int nx, int ny, int nc, int sll);
+    std::unique_ptr<uint8_t[]> separateToContig(std::unique_ptr<uint8_t[]> inbuf, size_t nx, size_t ny, size_t nc, size_t sll);
 
-    std::unique_ptr<uint16_t[]> separateToContig(std::unique_ptr<uint16_t[]> inbuf, int nx, int ny, int nc, int sll);
+    std::unique_ptr<uint16_t[]> separateToContig(std::unique_ptr<uint16_t[]> inbuf, size_t nx, size_t ny, size_t nc, size_t sll);
 
     std::unique_ptr<byte[]> crop(std::unique_ptr<byte[]> inbuf, int nx, int ny, int nc, const std::shared_ptr<IIIFRegion> &region);
 

@@ -1236,6 +1236,42 @@ namespace cserve {
     }
     //============================================================================
 
+    bool IIIFImage::set_topleft() {
+        switch (orientation) {
+            case TOPLEFT: // 1
+                return true;
+            case TOPRIGHT: // 2
+                rotate(0., true);
+                break;
+            case BOTRIGHT: // 3
+                rotate(180., false);
+                break;
+            case BOTLEFT: // 4
+                rotate(180., true);
+                break;
+            case LEFTTOP: // 5
+                rotate(270., true);
+                break;
+            case RIGHTTOP: // 6
+                rotate(90., false);
+                break;
+            case RIGHTBOT: // 7
+                rotate(90., true);
+                break;
+            case LEFTBOT: // 8
+                rotate(270., false);
+                break;
+            default:
+                ; // nothing to do...
+        }
+        orientation = TOPLEFT;
+        if (exif != nullptr) {
+            exif->addKeyVal("Exif.Image.Orientation", static_cast<unsigned short>(TOPLEFT));
+        }
+        return true;
+    }
+    //============================================================================
+
     bool IIIFImage::to8bps() {
         // little-endian architecture assumed
         //

@@ -10,11 +10,11 @@ static const char file_[] = __FILE__;
 
 namespace cserve {
 
-    std::unique_ptr<uint8_t[]> separateToContig(std::unique_ptr<uint8_t[]> inbuf, int nx, int ny, int nc, int sll) {
+    std::unique_ptr<uint8_t[]> separateToContig(std::unique_ptr<uint8_t[]> inbuf, size_t nx, size_t ny, size_t nc, size_t sll) {
         auto tmpptr = std::make_unique<uint8_t[]>(nc * ny * nx);
-        for (unsigned int k = 0; k < nc; k++) {
-            for (unsigned int j = 0; j < ny; j++) {
-                for (unsigned int i = 0; i < nx; i++) {
+        for (size_t k = 0; k < nc; k++) {
+            for (size_t j = 0; j < ny; j++) {
+                for (size_t i = 0; i < nx; i++) {
                     tmpptr[nc * (j * nx + i) + k] = inbuf[k * ny * sll + j * nx + i];
                 }
             }
@@ -22,7 +22,7 @@ namespace cserve {
         return std::move(tmpptr);
     }
 
-    std::unique_ptr<uint16_t[]> separateToContig(std::unique_ptr<uint16_t[]> inbuf, int nx, int ny, int nc, int sll) {
+    std::unique_ptr<uint16_t[]> separateToContig(std::unique_ptr<uint16_t[]> inbuf, size_t nx, size_t ny, size_t nc, size_t sll) {
         auto tmpptr = std::make_unique<uint16_t[]>(nc * ny * nx);
         for (unsigned int k = 0; k < nc; k++) {
             for (unsigned int j = 0; j < ny; j++) {

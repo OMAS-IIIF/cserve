@@ -10,7 +10,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <cstdlib>
-#include <syslog.h>
 
 #include <string>
 #include <cstring>
@@ -290,8 +289,8 @@ namespace cserve {
 
     std::unique_ptr<unsigned char[]> read_watermark(const std::string &wmfile, int &nx, int &ny, int &nc) {
         TIFF *tif;
-        int sll;
-        unsigned short spp, bps, pmi, pc;
+        int32_t sll;
+        uint16_t spp, bps, pmi, pc;
         std::unique_ptr<unsigned char[]> wmbuf;
         nx = 0;
         ny = 0;
@@ -364,14 +363,20 @@ namespace cserve {
 
 
     static void tiffError(const char *module, const char *fmt, va_list argptr) {
-        syslog(LOG_ERR, "ERROR IN TIFF! Module: %s", module);
-        vsyslog(LOG_ERR, fmt, argptr);
+        Server::logger()->error("ERROR IN TIFF! Module: {}", module);
+        char buf[512];
+        vsnprintf(buf, 511, fmt, argptr);
+        buf[511] = '\0';
+        Server::logger()->error(buf);
     }
 
 
     static void tiffWarning(const char *module, const char *fmt, va_list argptr) {
-        syslog(LOG_ERR, "ERROR IN TIFF! Module: %s", module);
-        vsyslog(LOG_ERR, fmt, argptr);
+        Server::logger()->warn("ERROR IN TIFF! Module: {}", module);
+        char buf[512];
+        vsnprintf(buf, 511, fmt, argptr);
+        buf[511] = '\0';
+        Server::logger()->warn(buf);
     }
 
 #define N(a) (sizeof(a) / sizeof ((a)[0]))
@@ -437,6 +442,7 @@ namespace cserve {
         TIFF_GET_FIELD (tif, TIFFTAG_BITSPERSAMPLE, &stmp, 1);
         img.bps = stmp;
         TIFF_GET_FIELD (tif, TIFFTAG_ORIENTATION, &ori, ORIENTATION_TOPLEFT);
+        img.orientation = static_cast<Orientation>(ori);
 
         if (1 != TIFFGetField(tif, TIFFTAG_PHOTOMETRIC, &stmp)) {
             img.photo = MINISBLACK;
@@ -582,7 +588,7 @@ namespace cserve {
             try {
                 img.iptc = std::make_shared<IIIFIptc>(iptc_content, iptc_length);
             } catch (IIIFError &err) {
-                syslog(LOG_ERR, "%s", err.to_string().c_str());
+                Server::logger()->error(err.to_string());
             }
         }
 
@@ -593,6 +599,12 @@ namespace cserve {
         if (1 == TIFFGetField(tif, TIFFTAG_EXIFIFD, &exif_ifd_offs)) {
             img.ensure_exif();
             readExif(img, tif, exif_ifd_offs); // TODO:::::::::: change signature
+            unsigned short ori;
+            if (img.exif->getValByKey("Exif.Image.Orientation", ori)) {
+                if (static_cast<Orientation>(ori) != img.orientation) {
+                    Server::logger()->warn("Inconsistent orientation: TIFF-orientation={} EXIF-orientation={}", img.orientation, ori);
+                }
+             }
         }
 
         //
@@ -605,7 +617,7 @@ namespace cserve {
             try {
                 img.xmp = std::make_shared<IIIFXmp>(xmp_content, xmp_length);
             } catch (IIIFError &err) {
-                syslog(LOG_ERR, "%s", err.to_string().c_str());
+                Server::logger()->error(err.to_string());
             }
         }
 
@@ -678,7 +690,6 @@ namespace cserve {
         // Read SipiEssential metadata
         //
         char *emdatastr;
-
         if (1 == TIFFGetField(tif, TIFFTAG_SIPIMETA, &emdatastr)) {
             IIIFEssentials se(emdatastr);
             img.essential_metadata(se);
@@ -781,7 +792,16 @@ namespace cserve {
                 //
                 // rearrange the data to RGBRGBRGB…RGB
                 //
-                inbuf = separateToContig(std::move(inbuf), img.nx, img.ny, img.nc, roi_w * ps); // convert to RGBRGBRGB...
+                if (img.bps <= 8) {
+                    inbuf = separateToContig(std::move(inbuf), img.nx, img.ny, img.nc, roi_w * ps); // convert to RGBRGBRGB...
+                } else {
+                    auto *raw_inbuf16 = (uint16_t *) inbuf.release();
+                    std::unique_ptr<uint16_t[]> inbuf16(raw_inbuf16);
+                    inbuf16 = separateToContig(std::move(inbuf16), img.nx, img.ny, img.nc, roi_w * ps); // convert to RGBRGBRGB...
+                    auto *raw_tmpptr8 = (uint8_t *) inbuf16.release();
+                    std::unique_ptr<uint8_t[]> tmpptr8(raw_tmpptr8);
+                    inbuf = std::move(tmpptr8);
+                }
             }
         }
         TIFFClose(tif);
@@ -1016,6 +1036,10 @@ namespace cserve {
             }
             info.height = tmp_height;
             info.success = IIIFImgInfo::DIMS;
+
+            unsigned short ori;
+            TIFF_GET_FIELD (tif, TIFFTAG_ORIENTATION, &ori, ORIENTATION_TOPLEFT);
+            info.orientation = static_cast<Orientation>(ori);
 
             char *emdatastr;
             if (1 == TIFFGetField(tif, TIFFTAG_SIPIMETA, &emdatastr)) {

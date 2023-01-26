@@ -542,6 +542,8 @@ class IIIFImageError : public IIIFError {
          */
         bool rotate(float angle, bool mirror = false);
 
+        bool set_topleft();
+
         /*!
          * Convert an image from 16 to 8 bit. The algorithm just divides all pixel values
          * by 256 using the ">> 8" operator (fast & efficient)
