@@ -18,9 +18,9 @@ def test_fs_funcs(manager):
     assert response['fs'].get('readable1') is True
     assert response['fs'].get('readable2') is False
     assert response['fs'].get('writeable1') is True
-    #assert response['fs'].get('writeable2') is False
+    assert response['fs'].get('writeable2') is False
     assert response['fs'].get('executable1') is True
-    #assert response['fs'].get('executable2') is False
+    assert response['fs'].get('executable2') is False
     assert response['fs'].get('mkdir_success') == 'DIRECTORY'
     assert response['fs'].get('dir_exists') is False
     assert response['fs'].get('copyfile_exists') is True
