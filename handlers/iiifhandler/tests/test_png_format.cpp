@@ -272,4 +272,20 @@ TEST_CASE("Image tests", "PNG") {
         std::filesystem::remove("scratch/out.png");
     }
 
+    SECTION("PngPalette") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = pngio.read("data/mario.png",
+                                           0,
+                                           region,
+                                           size,
+                                           false,
+                                           {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        REQUIRE(img.getNx() == 1200);
+        REQUIRE(img.getNy() == 1200);
+        REQUIRE(img.getNc() == 4);
+        REQUIRE(img.getBps() == 8);
+        REQUIRE(img.getPhoto() == cserve::RGB);
+    }
+
 }

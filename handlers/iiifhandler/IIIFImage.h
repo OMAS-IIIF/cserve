@@ -61,11 +61,23 @@ namespace cserve {
         ScalingMethod png;
     } ScalingQuality;
 
+    typedef enum : unsigned short { // from the TIFF specification...
+        TOPLEFT = 1,  //!< The 0th row represents the visual top of the image, and the 0th column represents the visual left-hand side.
+        TOPRIGHT = 2, //!< The 0th row represents the visual top of the image, and the 0th column represents the visual right-hand side.
+        BOTRIGHT = 3, //!< The 0th row represents the visual bottom of the image, and the 0th column represents the visual right-hand side.
+        BOTLEFT = 4,  //!< The 0th row represents the visual bottom of the image, and the 0th column represents the visual left-hand side.
+        LEFTTOP = 5,  //!< The 0th row represents the visual left-hand side of the image, and the 0th column represents the visual top.
+        RIGHTTOP = 6, //!< The 0th row represents the visual right-hand side of the image, and the 0th column represents the visual top.
+        RIGHTBOT = 7, //!< The 0th row represents the visual right-hand side of the image, and the 0th column represents the visual bottom.
+        LEFTBOT = 8   //!< The 0th row represents the visual left-hand side of the image, and the 0th column represents the visual bottom.
+    } Orientation;
+
     class IIIFImgInfo {
     public:
         enum { FAILURE = 0, DIMS = 1, ALL = 2 } success;
         uint32_t width;
         uint32_t height;
+        Orientation orientation;
         int tile_width;
         int tile_height;
         int clevels;
@@ -74,8 +86,8 @@ namespace cserve {
         std::string origname;
         std::string origmimetype;
 
-        inline IIIFImgInfo() : success(FAILURE), width(0), height(0), tile_width(0), tile_height(0), clevels(0),
-                               numpages(0) {};
+        inline IIIFImgInfo() : success(FAILURE), width(0), height(0), orientation(TOPLEFT), tile_width(0),
+                               tile_height(0), clevels(0), numpages(0) {};
 
     };
 
@@ -96,8 +108,22 @@ namespace cserve {
 
     typedef std::unordered_map<int, std::string> IIIFCompressionParams;
 
-
     enum InfoError { INFO_ERROR };
+
+    inline std::string orientation_str(Orientation orientation) {
+        const std::map<Orientation,std::string> enum_strings = {
+                { TOPLEFT, std::string("TOPLEFT") },
+                { TOPRIGHT, std::string("TOPRIGHT") },
+                { BOTRIGHT, std::string("BOTRIGHT") },
+                { BOTLEFT, std::string("BOTLEFT") },
+                { LEFTTOP, std::string("LEFTTOP") },
+                { RIGHTTOP, std::string("RIGHTTOP") },
+                { RIGHTBOT, std::string("RIGHTBOT") },
+                { LEFTBOT, std::string("LEFTBOT") }
+        };
+        auto   it  = enum_strings.find(orientation);
+        return it == enum_strings.end() ? "Out of range" : it->second;
+    }
 
 class IIIFImageError : public IIIFError {
     public:
@@ -146,9 +172,9 @@ class IIIFImageError : public IIIFError {
         friend class IIIFIOPng;     //!< I/O class for the PNG file format
     private:
         static std::unordered_map<std::string, std::shared_ptr<IIIFIO>> io; //!< member variable holding a map of I/O class instances for the different file formats
-        static byte bilinn(const byte *buf, int nx, double x, double y, int c, int n);
+        static byte bilinn(const byte buf[], int nx, double x, double y, int c, int n);
 
-        static word bilinn(const word *buf, int nx, double x, double y, int c, int n);
+        static word bilinn(const word buf[], int nx, double x, double y, int c, int n);
 
         void ensure_exif();
 
@@ -158,6 +184,7 @@ class IIIFImageError : public IIIFError {
         size_t nc;         //!< Total number of samples per pixel
         size_t bps;        //!< bits per sample. Currently only 8 and 16 are supported
         std::vector<ExtraSamples> es; //!< meaning of extra samples
+        Orientation orientation;            //!< Orientation/location of (0,0)
         PhotometricInterpretation photo;    //!< Image type, that is the meaning of the channels
         std::unique_ptr<byte[]> bpixels;   //!< Pointer to block of memory holding the pixels
         std::unique_ptr<word[]> wpixels;   //!< Pointer to block of memory holding the pixels
@@ -190,7 +217,8 @@ class IIIFImageError : public IIIFError {
         IIIFImage(IIIFImage &&img_p) noexcept;
 
         /*!
-         * Create an empty image with the pixel buffer available, but all pixels set to 0
+         * Create an empty image with the pixel buffer available, but all pixels set to 0. Orientation is
+         * assumed to be TOPLEFT!
          *
          * \param[in] nx_p Dimension in x direction
          * \param[in] ny_p Dimension in y direction
@@ -228,15 +256,47 @@ class IIIFImageError : public IIIFError {
         [[nodiscard]]
         inline size_t getBps() const { return bps; }
 
+        /*!
+         * Get orientation
+         * @return Returns orientation tag
+         */
+        inline Orientation getOrientation() const { return orientation; };
+
+        /*!
+         * Set orientation parameter
+         * @param ori orientation to be set
+         */
+        inline void setOrientation(Orientation ori) { orientation = ori; };
+
+        /*!
+         * Getter for photometric interpretation
+         * @return
+         */
         [[nodiscard]]
         inline PhotometricInterpretation getPhoto() const { return photo; }
 
+        /*!
+         * Getter for Exif data
+         * @return Shared pointer to IIIFExif instance or nullptr
+         */
         inline std::shared_ptr<IIIFExif> getExif() const { return exif; }
 
+        /*!
+         * Getter for IPTC data
+         * @return Shared poinmter to IPTC instance or nullptr
+         */
         inline std::shared_ptr<IIIFIptc> getIptc() const { return iptc; }
 
+        /*!
+         * Getter for XMP data
+         * @return shared pointer to XMP instance or nullptr
+         */
         inline std::shared_ptr<IIIFXmp> getXmp() const { return xmp; }
 
+        /*!
+         * Getter for ICC data
+         * @return shared pointer to ICC instance or nullptr
+         */
         inline std::shared_ptr<IIIFIcc> getIcc() const { return icc; }
 
         /*! Destructor

@@ -41,14 +41,14 @@ namespace cserve {
                                                                               {"png", std::make_shared<IIIFIOPng>()}};
 
 
-    IIIFImage::IIIFImage() : nx(0), ny(0), nc(0), bps(0), bpixels(nullptr), wpixels(nullptr), xmp(nullptr),
-                             icc(nullptr), iptc(nullptr), exif(nullptr), photo(INVALID), skip_metadata(SKIP_NONE),
-                             conobj(nullptr) { };
+    IIIFImage::IIIFImage() : nx(0), ny(0), nc(0), bps(0), orientation(TOPLEFT), bpixels(nullptr), wpixels(nullptr),
+                             xmp(nullptr), icc(nullptr), iptc(nullptr), exif(nullptr), photo(INVALID),
+                             skip_metadata(SKIP_NONE), conobj(nullptr) { };
 
     IIIFImage::IIIFImage(const IIIFImage &img_p)
-            : nx(img_p.nx), ny(img_p.ny), nc(img_p.nc), bps(img_p.bps), es(img_p.es), photo(img_p.photo),
-              emdata(img_p.emdata), skip_metadata(img_p.skip_metadata), conobj(img_p.conobj), xmp(img_p.xmp),
-              icc(img_p.icc), iptc(img_p.iptc), exif(img_p.exif) {
+            : nx(img_p.nx), ny(img_p.ny), nc(img_p.nc), bps(img_p.bps), orientation(img_p.orientation), es(img_p.es),
+              photo(img_p.photo), emdata(img_p.emdata), skip_metadata(img_p.skip_metadata), conobj(img_p.conobj),
+              xmp(img_p.xmp), icc(img_p.icc), iptc(img_p.iptc), exif(img_p.exif) {
         switch (bps) {
             case 0: {
                 break;
@@ -71,14 +71,15 @@ namespace cserve {
     }
     //============================================================================
 
-    IIIFImage::IIIFImage(IIIFImage &&other) noexcept: nx(0), ny(0), nc(0), bps(0), es({}), photo(INVALID),
-                                                      bpixels(nullptr), wpixels(nullptr),
+    IIIFImage::IIIFImage(IIIFImage &&other) noexcept: nx(0), ny(0), nc(0), bps(0), orientation(TOPLEFT), es({}),
+                                                      photo(INVALID), bpixels(nullptr), wpixels(nullptr),
                                                       xmp(nullptr), icc(nullptr), iptc(nullptr), exif(nullptr),
                                                       emdata(), conobj(nullptr), skip_metadata(SKIP_NONE) {
         nx = other.nx;
         ny = other.ny;
         nc = other.nc;
         bps = other.bps;
+        orientation = other.orientation;
         es = other.es;
         photo = other.photo;
         bpixels = std::move(other.bpixels);
@@ -95,6 +96,7 @@ namespace cserve {
         other.ny = 0;
         other.nc = 0;
         other.bps = 0;
+        other.orientation = TOPLEFT;
         other.es = {};
         other.photo = INVALID;
         other.xmp = nullptr;
@@ -110,6 +112,7 @@ namespace cserve {
                          PhotometricInterpretation photo_p)
             : nx(nx_p), ny(ny_p), nc(nc_p), bps(bps_p), photo(photo_p), xmp(nullptr), icc(nullptr), iptc(nullptr),
               exif(nullptr), skip_metadata(SKIP_NONE), conobj(nullptr) {
+        orientation = TOPLEFT; // assuming default...
         if (((photo == MINISWHITE) || (photo == MINISBLACK)) && !((nc == 1) || (nc == 2))) {
             throw IIIFImageError(file_, __LINE__, "Mismatch in Photometric interpretation and number of channels");
         }
@@ -171,6 +174,7 @@ namespace cserve {
             ny = img_p.ny;
             nc = img_p.nc;
             bps = img_p.bps;
+            orientation = img_p.orientation;
             es = img_p.es;
 
             switch (bps) {
@@ -204,6 +208,7 @@ namespace cserve {
     IIIFImage &IIIFImage::operator=(IIIFImage &&other) noexcept {
         if (this != &other) {
             es = {};
+            orientation = TOPLEFT;
             bpixels.reset();
             wpixels.reset();
             xmp.reset();
@@ -217,6 +222,7 @@ namespace cserve {
             ny = other.ny;
             nc = other.nc;
             bps = other.bps;
+            orientation = other.orientation;
             es = other.es;
             photo = other.photo;
             bpixels = std::move(other.bpixels);
@@ -233,6 +239,7 @@ namespace cserve {
             other.ny = 0;
             other.nc = 0;
             other.bps = 0;
+            other.orientation = TOPLEFT;
             other.es = {};
             other.photo = INVALID;
             other.xmp.reset();
@@ -739,7 +746,7 @@ namespace cserve {
     /****************************************************************************/
 #define POSITION(x, y, c, n) ((n)*((y)*nx + (x)) + c)
 
-    byte IIIFImage::bilinn(const byte *buf, int nx, double x, double y, int c, int n) {
+    byte IIIFImage::bilinn(const byte buf[], int nx, double x, double y, int c, int n) {
         int ix, iy;
         double rx, ry;
         ix = (int) x;
@@ -751,21 +758,21 @@ namespace cserve {
             return (buf[POSITION(ix, iy, c, n)]);
         } else if (rx < 1.0e-2) {
             return ((byte) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry))));
+                                   (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry))));
         } else if (ry < 1.0e-2) {
             return ((byte) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry))));
+                                    (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry))));
         } else {
             return ((byte) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
-                             (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
-                             (double) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry)));
+                                    (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
+                                    (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
+                                    (double) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry)));
         }
     }
 
     /*==========================================================================*/
 
-    word IIIFImage::bilinn(const word *buf, int nx, double x, double y, int c, int n) {
+    word IIIFImage::bilinn(const word buf[], int nx, double x, double y, int c, int n) {
         int ix, iy;
         double rx, ry;
         ix = (int) x;
@@ -777,15 +784,15 @@ namespace cserve {
             return (buf[POSITION(ix, iy, c, n)]);
         } else if (rx < 1.0e-2) {
             return ((word) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry))));
+                                   (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry))));
         } else if (ry < 1.0e-2) {
             return ((word) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry))));
+                                   (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry))));
         } else {
             return ((word) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                             (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
-                             (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
-                             (double) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry)));
+                                   (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
+                                   (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
+                                   (double) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry)));
         }
     }
     /*==========================================================================*/
@@ -1150,8 +1157,8 @@ namespace cserve {
             ny = nny;
         } else { // all other angles
             double phi = M_PI * angle / 180.0;
-            double ptx = nx / 2. - .5;
-            double pty = ny / 2. - .5;
+            double ptx = static_cast<double>(nx) / 2. - .5;
+            double pty = static_cast<double>(ny) / 2. - .5;
 
             double si = sin(-phi);
             double co = cos(-phi);
@@ -1160,17 +1167,17 @@ namespace cserve {
             size_t nny;
 
             if ((angle > 0.) && (angle < 90.)) {
-                nnx = floor((double) nx * cosf(phi) + (double) ny * sinf(phi) + .5);
-                nny = floor((double) nx * sinf(phi) + (double) ny * cosf(phi) + .5);
+                nnx = floor((double) nx * cos(phi) + (double) ny * sin(phi) + .5);
+                nny = floor((double) nx * sin(phi) + (double) ny * cos(phi) + .5);
             } else if ((angle > 90.) && (angle < 180.)) {
-                nnx = floor(-((double) nx) * cosf(phi) + (double) ny * sinf(phi) + .5);
+                nnx = floor(-((double) nx) * cos(phi) + (double) ny * sin(phi) + .5);
                 nny = floor((double) nx * sin(phi) - (double) ny * cosf(phi) + .5);
             } else if ((angle > 180.) && (angle < 270.)) {
-                nnx = floor(-((double) nx) * cosf(phi) - (double) ny * sinf(phi) + .5);
+                nnx = floor(-((double) nx) * cos(phi) - (double) ny * sin(phi) + .5);
                 nny = floor(-((double) nx) * sinf(phi) - (double) ny * cosf(phi) + .5);
             } else {
-                nnx = floor((double) nx * cosf(phi) - (double) ny * sinf(phi) + .5);
-                nny = floor(-((double) nx) * sinf(phi) + (double) ny * cosf(phi) + .5);
+                nnx = floor((double) nx * cos(phi) - (double) ny * sin(phi) + .5);
+                nny = floor(-((double) nx) * sin(phi) + (double) ny * cos(phi) + .5);
             }
 
             double pptx = ptx * (double) nnx / (double) nx;
@@ -1323,7 +1330,7 @@ namespace cserve {
 
                     for (size_t k = 0; k < nc; k++) {
                         double nval = (bpixels[nc * (j * nx + i) + k] / 255.) * (1.0 + val / 2550.0) + val / 2550.0;
-                        bpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? 255 : floor(nval * 255. + .5);
+                        bpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? 255 : (unsigned char) floorl(nval * 255. + .5);
                     }
                 }
             }
@@ -1334,7 +1341,7 @@ namespace cserve {
                         byte val = bilinn(raw_wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
                         double nval =
                                 (wpixels[nc * (j * nx + i) + k] / 65535.0) * (1.0 + val / 655350.0) + val / 352500.;
-                        wpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? (word) 65535 : (word) floor(nval * 65535. + .5);
+                        wpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? (word) 65535 : (word) floorl(nval * 65535. + .5);
                     }
                 }
             }
@@ -1608,6 +1615,7 @@ namespace cserve {
         outstr << "nc    = " << std::to_string(rhs.nc) << std::endl;
         outstr << "es    = " << std::to_string(rhs.es.size()) << std::endl;
         outstr << "bps   = " << std::to_string(rhs.bps) << std::endl;
+        outstr << "ori   = " << orientation_str(rhs.orientation) << std::endl;
         outstr << "photo = " << std::to_string(rhs.photo) << std::endl;
 
         if (rhs.xmp) {
