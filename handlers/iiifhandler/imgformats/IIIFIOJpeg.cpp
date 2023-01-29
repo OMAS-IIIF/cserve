@@ -406,8 +406,10 @@ namespace cserve {
                 }
                 case 0x0422: { // EXIF data
                     if (img.exif == nullptr) img.exif = std::make_shared<IIIFExif>((unsigned char *) ptr, datalen);
-                    //cerr << ">>> Photoshop: EXIF" << endl;
-                    // exif
+                    uint16_t ori;
+                    if (img.exif->getValByKey("Exif.Image.Orientation", ori)) {
+                        img.orientation = Orientation(ori);
+                    }
                     break;
                 }
                 case 0x0424: { // XMP data
@@ -473,11 +475,6 @@ namespace cserve {
         }
         // move infile position back to the beginning of the file
         ::lseek(infile, 0, SEEK_SET);
-
-        //
-        // Since libjpeg is not thread safe, we have unfortunately use a mutex...
-        //
-        //std::lock_guard<std::mutex> inlock_mutex_guard(inlock);
 
         struct jpeg_decompress_struct cinfo{};
         struct jpeg_error_mgr jerr{};
@@ -556,6 +553,11 @@ namespace cserve {
         cinfo.do_fancy_upsampling = false;
 
         IIIFImage img{};
+        img.bps = 8;
+        //img.nx = cinfo.output_width;
+        //img.ny = cinfo.output_height;
+        //img.nc = cinfo.output_components;
+        img.orientation = TOPLEFT; // may be changed in parse_photoshop or EXIF marker
 
         //
         // getting Metadata
@@ -577,6 +579,10 @@ namespace cserve {
                 auto *pos = (unsigned char *) memmem(marker->data, marker->data_length, "Exif\000\000", 6);
                 if (pos != nullptr) {
                     img.exif = std::make_shared<IIIFExif>(pos + 6, marker->data_length - (pos - marker->data) - 6);
+                    uint16_t ori;
+                    if (img.exif->getValByKey("Exif.Image.Orientation", ori)) {
+                        img.orientation = Orientation(ori);
+                    }
                 }
 
                 //
@@ -607,8 +613,8 @@ namespace cserve {
                             }
                         } while ((ll < marker->data_length) && (*s != '\0'));
                         if (ll == marker->data_length) {
-                            // we didn't find anything....
-                            throw IIIFImageError(file_, __LINE__, "XMP Problem");
+                            // we didn't find anything, go to next marker....
+                           break;
                         }
                         // now we start reading the data
                         while ((ll < marker->data_length) && (*pos != '>')) {
@@ -684,10 +690,12 @@ namespace cserve {
             throw IIIFImageError(file_, __LINE__, fmt::format("Error reading JPEG file '{}'. Error: {}", filepath, jpgerr.what()));
         }
 
+
         img.bps = 8;
         img.nx = cinfo.output_width;
         img.ny = cinfo.output_height;
         img.nc = cinfo.output_components;
+
         int colspace = cinfo.out_color_space; // JCS_UNKNOWN, JCS_GRAYSCALE, JCS_RGB, JCS_YCbCr, JCS_CMYK, JCS_YCCK
         switch (colspace) {
             case JCS_RGB: {
@@ -788,121 +796,194 @@ namespace cserve {
     IIIFImgInfo IIIFIOJpeg::getDim(const std::string &filepath, int pagenum) {
         // portions derived from IJG code */
 
-        FILE *infile;
+        int infile;
         IIIFImgInfo info;
 
         //
         // open the input file
         //
-        if ((infile = fopen(filepath.c_str(), "rb")) == nullptr) {
-            // inlock.unlock();
+        if ((infile = ::open(filepath.c_str(), O_RDONLY)) == -1) {
+            info.success = IIIFImgInfo::FAILURE;
+            return info;
+        }
+        // workaround for bug #0011: jpeglib crashes the app when the file is not a jpeg file
+        // we check the magic number before calling any jpeglib routines
+        unsigned char magic[2];
+        if (::read(infile, magic, 2) != 2) {
+            ::close(infile);
+            info.success = IIIFImgInfo::FAILURE;
+            return info;
+        }
+        if ((magic[0] != 0xff) || (magic[1] != 0xd8)) {
+            ::close(infile);
             info.success = IIIFImgInfo::FAILURE;
             return info;
         }
 
-        int marker = 0;
-        int dummy = 0;
-        if (getc(infile) != 0xFF || getc(infile) != 0xD8) {
-            fclose(infile);
+        // move infile position back to the beginning of the file
+        ::lseek(infile, 0, SEEK_SET);
+
+        struct jpeg_decompress_struct cinfo{};
+        struct jpeg_error_mgr jerr{};
+
+        jpeg_saved_marker_ptr marker;
+
+        jpeg_create_decompress (&cinfo);
+
+        cinfo.dct_method = JDCT_FLOAT;
+
+        cinfo.err = jpeg_std_error(&jerr);
+        jerr.error_exit = jpegErrorExit;
+
+        try {
+            jpeg_file_src(&cinfo, infile);
+            jpeg_save_markers(&cinfo, JPEG_COM, 0xffff);
+            for (int i = 0; i < 16; i++) {
+                jpeg_save_markers(&cinfo, JPEG_APP0 + i, 0xffff);
+            }
+        } catch (JpegError &jpgerr) {
+            jpeg_destroy_decompress(&cinfo);
+            close(infile);
             info.success = IIIFImgInfo::FAILURE;
             return info;
         }
-        for (;;) {
-            int discarded_bytes = 0;
-            if (!getbyte(marker, infile)) {
-                info.success = IIIFImgInfo::FAILURE;
-                return info;
-            }
-            while (marker != 0xFF) {
-                discarded_bytes++;
-                if (!getbyte(marker, infile)) {
-                    info.success = IIIFImgInfo::FAILURE;
-                    return info;
-                }
-            }
-            do {
-                if (!getbyte(marker, infile)) {
-                    info.success = IIIFImgInfo::FAILURE;
-                    return info;
-                }
-            } while (marker == 0xFF);
 
-            if (discarded_bytes != 0) {
-                fclose(infile);
-                info.success = IIIFImgInfo::FAILURE;
-                return info;
-            }
+        //
+        // now we read the header
+        //
+        int res;
+        try {
+            res = jpeg_read_header(&cinfo, TRUE);
+        } catch (JpegError &jpgerr) {
+            jpeg_destroy_decompress(&cinfo);
+            close(infile);
+            info.success = IIIFImgInfo::FAILURE;
+            return info;
+        }
+        if (res != JPEG_HEADER_OK) {
+            jpeg_destroy_decompress(&cinfo);
+            close(infile);
+            info.success = IIIFImgInfo::FAILURE;
+            return info;
+        }
 
-            switch (marker) {
-                case 0xC0:
-                case 0xC1:
-                case 0xC2:
-                case 0xC3:
-                case 0xC5:
-                case 0xC6:
-                case 0xC7:
-                case 0xC9:
-                case 0xCA:
-                case 0xCB:
-                case 0xCD:
-                case 0xCE:
-                case 0xCF: {
-                    if (!getword(dummy, infile)) { /* usual parameter length count */
-                        info.success = IIIFImgInfo::FAILURE;
-                        return info;
-                    }
-                    if (!getbyte(dummy, infile)) {
-                        info.success = IIIFImgInfo::FAILURE;
-                        return info;
-                    }
-                    int tmp_height;
-                    if (!getword(tmp_height, infile)) {
-                        info.success = IIIFImgInfo::FAILURE;
-                        return info;
-                    }
-                    info.height = tmp_height;
-                    int tmp_width;
-                    if (!getword(tmp_width, infile)) {
-                        info.success = IIIFImgInfo::FAILURE;
-                        return info;
-                    }
-                    info.width = tmp_width;
-                    info.success = IIIFImgInfo::DIMS;
-                    if (!getbyte(dummy, infile)) {
-                        info.success = IIIFImgInfo::FAILURE;
-                        return info;
-                    }
-                    fclose(infile);
-                    return info;
+        IIIFImage img{};
+        //
+        // getting Metadata
+        //
+        marker = cinfo.marker_list;
+        unsigned char *icc_buffer = nullptr;
+        int icc_buffer_len = 0;
+        while (marker) {
+            if (marker->marker == JPEG_COM) {
+                std::string emdatastr((char *) marker->data, marker->data_length);
+                if (emdatastr.compare(0, 5, "SIPI:", 5) == 0) {
+                    IIIFEssentials se(emdatastr);
+                    img.essential_metadata(se);
                 }
-                case 0xDA:
-                case 0xD9:
-                    fclose(infile);
-                    info.success = IIIFImgInfo::FAILURE;
-                    return info;
-                default: {
-                    int length;
-                    if (!getword(length, infile)) {
-                        info.success = IIIFImgInfo::FAILURE;
-                        return info;
-                    }
-                    if (length < 2) {
-                        fclose(infile);
-                        info.success = IIIFImgInfo::FAILURE;
-                        return info;
-                    }
-                    length -= 2;
-                    while (length > 0) {
-                        if (!getbyte(dummy, infile)) {
-                            info.success = IIIFImgInfo::FAILURE;
-                            return info;
+            } else if (marker->marker == JPEG_APP0 + 1) { // EXIF, XMP MARKER....
+                //
+                // first we try to find the exif part
+                //
+                auto *pos = (unsigned char *) memmem(marker->data, marker->data_length, "Exif\000\000", 6);
+                if (pos != nullptr) {
+                    img.exif = std::make_shared<IIIFExif>(pos + 6, marker->data_length - (pos - marker->data) - 6);
+                }
+
+                //
+                // first we try to find the xmp part: TODO: reading XMP which spans multiple segments. See ExtendedXMP !!!
+                //
+                pos = (unsigned char *) memmem(marker->data, marker->data_length, "http://ns.adobe.com/xap/1.0/\000",
+                                               29);
+                if (pos != nullptr) {
+                    try {
+                        char start[] = {'<', '?', 'x', 'p', 'a', 'c', 'k', 'e', 't', ' ', 'b', 'e', 'g', 'i', 'n',
+                                        '\0'};
+                        char end[] = {'<', '?', 'x', 'p', 'a', 'c', 'k', 'e', 't', ' ', 'e', 'n', 'd', '\0'};
+
+                        char *s;
+                        unsigned int ll = 0;
+                        do {
+                            s = start;
+                            // skip to the start marker
+                            while ((ll < marker->data_length) && (*pos != *s)) {
+                                pos++; //// ISSUE: code fails here if there are many concurrent access; data overrrun??
+                                ll++;
+                            }
+                            // read the start marker
+                            while ((ll < marker->data_length) && (*s != '\0') && (*pos == *s)) {
+                                pos++;
+                                s++;
+                                ll++;
+                            }
+                        } while ((ll < marker->data_length) && (*s != '\0'));
+                        if (ll == marker->data_length) {
+                            // we didn't find anything....
+                            throw IIIFImageError(file_, __LINE__, "XMP Problem");
                         }
-                        length--;
+                        // now we start reading the data
+                        while ((ll < marker->data_length) && (*pos != '>')) {
+                            ll++;
+                            pos++;
+                        }
+                        pos++; // finally we have the start of XMP string
+                        unsigned char *start_xmp = pos;
+
+                        unsigned char *end_xmp;
+                        do {
+                            s = end;
+                            while (*pos != *s) pos++;
+                            end_xmp = pos; // a candidate
+                            while ((*s != '\0') && (*pos == *s)) {
+                                pos++;
+                                s++;
+                            }
+                        } while (*s != '\0');
+                        while (*pos != '>') {
+                            pos++;
+                        }
+                        pos++;
+
+                        size_t xmp_len = end_xmp - start_xmp;
+
+                        std::string xmpstr((char *) start_xmp, xmp_len);
+                        size_t npos = xmpstr.find("</x:xmpmeta>");
+                        xmpstr = xmpstr.substr(0, npos + 12);
+
+                        img.xmp = std::make_shared<IIIFXmp>(xmpstr);
+                    } catch (IIIFImageError &err) {
+                        Server::logger()->warn(fmt::format("Failed to parse XMP in JPPEG file '{}'", filepath));
                     }
                 }
-                break;
+            } else if (marker->marker == JPEG_APP0 + 13) { // PHOTOSHOP MARKER....
+                if (strncmp("Photoshop 3.0", (char *) marker->data, 14) == 0) {
+                    parse_photoshop(img, (char *) marker->data + 14, (int) marker->data_length - 14);
+                }
+            }
+            marker = marker->next;
+        }
+
+        try {
+            jpeg_start_decompress(&cinfo);
+        } catch (JpegError &jpgerr) {
+            jpeg_destroy_decompress(&cinfo);
+            close(infile);
+            throw IIIFImageError(file_, __LINE__, fmt::format("Error reading JPEG file '{}'. Error: {}", filepath, jpgerr.what()));
+        }
+
+        info.width = cinfo.output_width;
+        info.height = cinfo.output_height;
+        info.orientation = TOPLEFT;
+        if (img.exif != nullptr) {
+            uint16_t ori;
+            if (img.exif->getValByKey("Exif.Image.Orientation", ori)) {
+                info.orientation = Orientation(ori);
             }
         }
+        info.success = IIIFImgInfo::DIMS;
+        jpeg_destroy_decompress(&cinfo);
+        close(infile);
+        return info;
     }
     //============================================================================
 

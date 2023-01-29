@@ -73,6 +73,7 @@ TEST_CASE("Image tests", "JPEG") {
         REQUIRE(img.getNy() == 200);
         REQUIRE(img.getNc() == 3);
         REQUIRE(img.getBps() == 8);
+        REQUIRE(img.getOrientation() == cserve::TOPLEFT);
         REQUIRE(img.getPhoto() == cserve::RGB);
 
         REQUIRE(img.essential_metadata().is_set());
@@ -93,5 +94,34 @@ TEST_CASE("Image tests", "JPEG") {
         REQUIRE(res == CommandResult{"145.995 (0.00222773)", 256});
         std::filesystem::remove("scratch/jpeg_with_icc_es.jpg");
         std::filesystem::remove("scratch/out.png");
+    }
+
+    SECTION("rotation") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = jpegio.read("data/image_orientation.jpg",
+                                            0,
+                                            region,
+                                            size,
+                                            false,
+                                            {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        REQUIRE(img.getNx() == 3264);
+        REQUIRE(img.getNy() == 2448);
+        REQUIRE(img.getNc() == 3);
+        REQUIRE(img.getBps() == 8);
+        REQUIRE(img.getPhoto() == cserve::RGB);
+        REQUIRE(img.getOrientation() == cserve::RIGHTTOP);
+        REQUIRE_NOTHROW(img.set_topleft());
+        REQUIRE(img.getNx() == 2448);
+        REQUIRE(img.getNy() == 3264);
+        REQUIRE(img.getOrientation() == cserve::TOPLEFT);
+
+
+        auto info = jpegio.getDim("data/image_orientation.jpg", 0);
+        REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
+        REQUIRE(info.width == 3264);
+        REQUIRE(info.height == 2448);
+        REQUIRE(info.orientation == cserve::RIGHTTOP);
+
     }
 }
