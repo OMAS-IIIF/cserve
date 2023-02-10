@@ -36,8 +36,6 @@
 #include "LuaServer.h"
 #include "makeunique.h"
 #include "DefaultHandler.h"
-#include "Global.h"
-//#include "../handlers/scripthandler/ScriptHandler.h"
 
 #include "CserveVersion.h"
 
@@ -417,7 +415,7 @@ namespace cserve {
         }
 
         if (_keep_alive_timeout > 0) {
-            struct timeval tv;
+            struct timeval tv{};
             tv.tv_sec = _keep_alive_timeout;
             tv.tv_usec = 0;
             setsockopt(socket_id.sid, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof tv);

@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __cserve_server_h
-#define __cserve_server_h
+#ifndef cserve_server_h
+#define cserve_server_h
 
 
 #include <map>

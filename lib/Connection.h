@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __cserve_connection_h
-#define __cserve_connection_h
+#ifndef cserve_connection_h
+#define cserve_connection_h
 
 #include <iostream>
 #include <fstream>

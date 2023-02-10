@@ -10,7 +10,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <algorithm>
-#include <cctype>
 #include <locale>
 #include <new>
 #include <iomanip>

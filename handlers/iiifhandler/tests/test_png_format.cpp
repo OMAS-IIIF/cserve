@@ -290,8 +290,8 @@ TEST_CASE("Image tests", "PNG") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/mario.tif", compression));
-        //auto res = Command::exec("compare -quiet -metric mae data/mario.tif scratch/mario.tif scratch/out.png 2>&1");
-        //REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric mae data/mario.tif scratch/mario.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
         std::filesystem::remove("scratch/mario.tif");
     }
 

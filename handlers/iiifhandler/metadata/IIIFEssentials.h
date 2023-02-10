@@ -89,7 +89,7 @@ namespace cserve {
         *
         * \param[in] datastr Serialzed metadata packet
         */
-        inline explicit IIIFEssentials(const std::string &datastr);
+        explicit IIIFEssentials(const std::string &datastr);
 
         inline void clear() {
             _is_set = false;

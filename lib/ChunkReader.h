@@ -13,8 +13,8 @@
  * \brief Implements reading of chunks
  *
  */
-#ifndef __cserve_chunk_reader_h
-#define __cserve_chunk_reader_h
+#ifndef cserve_chunk_reader_h
+#define cserve_chunk_reader_h
 
 #include <iostream>
 #include <vector>
