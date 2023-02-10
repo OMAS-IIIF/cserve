@@ -27,7 +27,6 @@
 
 #include "Global.h"
 #include "spdlog/fmt/bundled/format.h"
-#include "../IIIFPhotometricInterpretation.h"
 
 static const char file_[] = __FILE__;
 
@@ -38,9 +37,9 @@ extern "C" {
 
 typedef struct _memtiff {
     unsigned char *data;
-    tsize_t size;
-    tsize_t incsiz;
-    tsize_t flen;
+    toff_t size;
+    toff_t incsiz;
+    toff_t flen;
     toff_t fptr;
 } MEMTIFF;
 
@@ -65,15 +64,15 @@ static MEMTIFF *memTiffOpen(tsize_t incsiz = 10240, tsize_t initsiz = 10240) {
     return memtif;
 }
 
-static tsize_t memTiffReadProc(thandle_t handle, tdata_t buf, tsize_t size) {
+static tmsize_t memTiffReadProc(thandle_t handle, tdata_t buf, tsize_t size) {
     auto *memtif = (MEMTIFF *) handle;
 
-    tsize_t n;
+    tmsize_t n;
 
-    if (((tsize_t) memtif->fptr + size) <= memtif->flen) {
+    if ((memtif->fptr + size) <= memtif->flen) {
         n = size;
     } else {
-        n = memtif->flen - static_cast<tsize_t>(memtif->fptr);
+        n = static_cast<tmsize_t>(memtif->flen - memtif->fptr);
     }
 
     memcpy(buf, memtif->data + memtif->fptr, n);
@@ -82,14 +81,13 @@ static tsize_t memTiffReadProc(thandle_t handle, tdata_t buf, tsize_t size) {
     return n;
 }
 
-static tsize_t memTiffWriteProc(thandle_t handle, tdata_t buf, tsize_t size) {
+static tmsize_t memTiffWriteProc(thandle_t handle, tdata_t buf, tsize_t size) {
     auto *memtif = (MEMTIFF *) handle;
 
     if (((tsize_t) memtif->fptr + size) > memtif->size) {
         if ((memtif->data = (unsigned char *) realloc(memtif->data, memtif->fptr + memtif->incsiz + size)) == nullptr) {
             throw cserve::IIIFImageError(file_, __LINE__, "realloc failed", errno);
         }
-
         memtif->size = memtif->fptr + memtif->incsiz + size;
     }
 
@@ -175,9 +173,9 @@ static int memTiffMapProc(thandle_t handle, tdata_t *base, toff_t *psize) {
 static void memTiffUnmapProc(thandle_t handle, tdata_t base, toff_t size) {}
 
 static void memTiffFree(MEMTIFF *memtif) {
+    if (memtif == nullptr) return;
     if (memtif->data != nullptr) free(memtif->data);
     memtif->data = nullptr;
-    if (memtif != nullptr) free(memtif);
     memtif = nullptr;
 }
 
@@ -312,22 +310,22 @@ namespace cserve {
                                  wmfile);
         }
 
-        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &spp, 1);
+        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &spp, 1)
 
         if (spp != 1) {
             TIFFClose(tif);
             throw IIIFImageError(file_, __LINE__, "ERROR in read_watermark: ssp ≠ 1: " + wmfile);
         }
 
-        TIFF_GET_FIELD (tif, TIFFTAG_BITSPERSAMPLE, &bps, 1);
+        TIFF_GET_FIELD (tif, TIFFTAG_BITSPERSAMPLE, &bps, 1)
 
         if (bps != 8) {
             TIFFClose(tif);
             throw IIIFImageError(file_, __LINE__, "ERROR in read_watermark: bps ≠ 8: " + wmfile);
         }
 
-        TIFF_GET_FIELD (tif, TIFFTAG_PHOTOMETRIC, &pmi, PHOTOMETRIC_MINISBLACK);
-        TIFF_GET_FIELD (tif, TIFFTAG_PLANARCONFIG, &pc, PLANARCONFIG_CONTIG);
+        TIFF_GET_FIELD (tif, TIFFTAG_PHOTOMETRIC, &pmi, PHOTOMETRIC_MINISBLACK)
+        TIFF_GET_FIELD (tif, TIFFTAG_PLANARCONFIG, &pc, PLANARCONFIG_CONTIG)
 
         if (pc != PLANARCONFIG_CONTIG) {
             TIFFClose(tif);
@@ -436,12 +434,12 @@ namespace cserve {
         }
 
         auto sll = (unsigned int) TIFFScanlineSize(tif);
-        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &stmp, 1);
+        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &stmp, 1)
         img.nc = static_cast<int>(stmp);
 
-        TIFF_GET_FIELD (tif, TIFFTAG_BITSPERSAMPLE, &stmp, 1);
+        TIFF_GET_FIELD (tif, TIFFTAG_BITSPERSAMPLE, &stmp, 1)
         img.bps = stmp;
-        TIFF_GET_FIELD (tif, TIFFTAG_ORIENTATION, &ori, ORIENTATION_TOPLEFT);
+        TIFF_GET_FIELD (tif, TIFFTAG_ORIENTATION, &ori, ORIENTATION_TOPLEFT)
         img.orientation = static_cast<Orientation>(ori);
 
         if (1 != TIFFGetField(tif, TIFFTAG_PHOTOMETRIC, &stmp)) {
@@ -487,8 +485,8 @@ namespace cserve {
             }
         }
 
-        TIFF_GET_FIELD (tif, TIFFTAG_PLANARCONFIG, &planar, PLANARCONFIG_CONTIG);
-        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLEFORMAT, &safo, SAMPLEFORMAT_UINT);
+        TIFF_GET_FIELD (tif, TIFFTAG_PLANARCONFIG, &planar, PLANARCONFIG_CONTIG)
+        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLEFORMAT, &safo, SAMPLEFORMAT_UINT)
 
         uint16_t *es;
         int eslen = 0;
@@ -565,11 +563,11 @@ namespace cserve {
         float f;
         if (1 == TIFFGetField(tif, TIFFTAG_XRESOLUTION, &f)) {
             img.ensure_exif();
-            img.exif->addKeyVal(std::string("Exif.Image.XResolution"), f);
+            img.exif->addKeyVal("Exif.Image.XResolution", IIIFExif::toRational(f));
         }
         if (1 == TIFFGetField(tif, TIFFTAG_YRESOLUTION, &f)) {
             img.ensure_exif();
-            img.exif->addKeyVal(std::string("Exif.Image.YResolution"), f);
+            img.exif->addKeyVal(std::string("Exif.Image.YResolution"), IIIFExif::toRational(f));
         }
 
         short s;
@@ -599,10 +597,10 @@ namespace cserve {
         if (1 == TIFFGetField(tif, TIFFTAG_EXIFIFD, &exif_ifd_offs)) {
             img.ensure_exif();
             readExif(img, tif, exif_ifd_offs); // TODO:::::::::: change signature
-            unsigned short ori;
-            if (img.exif->getValByKey("Exif.Image.Orientation", ori)) {
+            unsigned short exif_ori;
+            if (img.exif->getValByKey("Exif.Image.Orientation", exif_ori)) {
                 if (static_cast<Orientation>(ori) != img.orientation) {
-                    Server::logger()->warn("Inconsistent orientation: TIFF-orientation={} EXIF-orientation={}", img.orientation, ori);
+                    Server::logger()->warn("Inconsistent orientation: TIFF-orientation={} EXIF-orientation={}", img.orientation, exif_ori);
                 }
              }
         }
@@ -1038,7 +1036,7 @@ namespace cserve {
             info.success = IIIFImgInfo::DIMS;
 
             unsigned short ori;
-            TIFF_GET_FIELD (tif, TIFFTAG_ORIENTATION, &ori, ORIENTATION_TOPLEFT);
+            TIFF_GET_FIELD (tif, TIFFTAG_ORIENTATION, &ori, ORIENTATION_TOPLEFT)
             info.orientation = static_cast<Orientation>(ori);
 
             char *emdatastr;
@@ -1061,8 +1059,15 @@ namespace cserve {
         auto rowsperstrip = (uint32_t) -1;
         if ((filepath == "stdout:") || (filepath == "HTTP")) {
             memtif = memTiffOpen();
-            tif = TIFFClientOpen("MEMTIFF", "w", (thandle_t) memtif, memTiffReadProc, memTiffWriteProc, memTiffSeekProc,
-                                 memTiffCloseProc, memTiffSizeProc, memTiffMapProc, memTiffUnmapProc);
+            tif = TIFFClientOpen("MEMTIFF", "w",
+                                 (thandle_t) memtif,
+                                 memTiffReadProc,
+                                 memTiffWriteProc,
+                                 memTiffSeekProc,
+                                 memTiffCloseProc,
+                                 memTiffSizeProc,
+                                 memTiffMapProc,
+                                 memTiffUnmapProc);
         } else {
             if ((tif = TIFFOpen(filepath.c_str(), "w")) == nullptr) {
                 if (memtif != nullptr) memTiffFree(memtif);
@@ -1119,9 +1124,9 @@ namespace cserve {
                             unsigned char u;
                             signed char s;
                         } v{};
-                        v.s = img.bpixels[img.nc * (y * img.nx + x) + 1] - 128;
+                        v.s = static_cast<signed char>(img.bpixels[img.nc * (y * img.nx + x) + 1] - 128);
                         img.bpixels[img.nc * (y * img.nx + x) + 1] = v.u;
-                        v.s = img.bpixels[img.nc * (y * img.nx + x) + 2] - 128;
+                        v.s = static_cast<signed char>(img.bpixels[img.nc * (y * img.nx + x) + 2] - 128);
                         img.bpixels[img.nc * (y * img.nx + x) + 2] = v.u;
                     }
                 }
@@ -1132,9 +1137,9 @@ namespace cserve {
                             unsigned short u;
                             signed short s;
                         } v{};
-                        v.s = img.wpixels[img.nc * (y * img.nx + x) + 1] - 32768;
+                        v.s = static_cast<signed short>(img.wpixels[img.nc * (y * img.nx + x) + 1] - 32768);
                         img.wpixels[img.nc * (y * img.nx + x) + 1] = v.u;
-                        v.s = img.wpixels[img.nc * (y * img.nx + x) + 2] - 32768;
+                        v.s = static_cast<signed short>(img.wpixels[img.nc * (y * img.nx + x) + 2] - 32768);
                         img.wpixels[img.nc * (y * img.nx + x) + 2] = v.u;
                     }
                 }
@@ -1147,7 +1152,7 @@ namespace cserve {
         }
         TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, img.nc);
 
-        if (img.es.size() > 0) {
+        if (!img.es.empty()) {
             TIFFSetField(tif, TIFFTAG_EXTRASAMPLES, img.es.size(), img.es.data());
         }
 
@@ -1221,7 +1226,7 @@ namespace cserve {
                     buf = img.icc->iccBytes();
                 }
 
-                if (buf.size() > 0) {
+                if (!buf.empty()) {
                     TIFFSetField(tif, TIFFTAG_ICCPROFILE, buf.size(), buf.data());
                 }
             } catch (IIIFError &err) {
@@ -1234,7 +1239,7 @@ namespace cserve {
         if ((img.iptc != nullptr) & (!(img.skip_metadata & SKIP_IPTC))) {
             try {
                 std::vector<unsigned char> buf = img.iptc->iptcBytes();
-                if (buf.size() > 0) {
+                if (!buf.empty()) {
                     TIFFSetField(tif, TIFFTAG_RICHTIFFIPTC, buf.size(), buf.data());
                 }
             } catch (IIIFError &err) {
@@ -1259,7 +1264,7 @@ namespace cserve {
         // Custom tag for SipiEssential metadata
         //
         if (es.is_set()) {
-            std::string emdata = es;
+            std::string emdata = std::string(es);
             TIFFSetField(tif, TIFFTAG_SIPIMETA, emdata.c_str());
         }
         //TIFFCheckpointDirectory(tif);
@@ -1277,7 +1282,7 @@ namespace cserve {
                 TIFFWriteScanline(tif, rawdata + i * img.nc * img.nx, (int) i, 0);
             }
         } else if (img.bps == 16) {
-            uint16_t *rawdata = (uint16_t *) img.wpixels.get();
+            auto *rawdata = (uint16_t *) img.wpixels.get();
             for (size_t i = 0; i < img.ny; i++) {
                 TIFFWriteScanline(tif, rawdata + i * img.nc * img.nx, (int) i, 0);
             }
@@ -1302,7 +1307,7 @@ namespace cserve {
                 fflush(stdout);
             } else if (filepath == "HTTP") {
                 try {
-                    img.connection()->sendAndFlush(memtif->data, memtif->flen);
+                    img.connection()->sendAndFlush(memtif->data, static_cast<std::streamsize>(memtif->flen));
                 } catch (int i) {
                     memTiffFree(memtif);
                     throw IIIFImageError(file_, __LINE__,
@@ -1327,35 +1332,56 @@ namespace cserve {
                         float f;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &f)) {
                             Exiv2::Rational r = IIIFExif::toRational(f);
-                            img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", r);
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", r);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                            }
                         }
                         break;
                     }
                     case EXIF_DT_UINT8: {
                         unsigned char uc;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &uc)) {
-                            img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", uc);
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", uc);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                            }
                         }
                         break;
                     }
                     case EXIF_DT_UINT16: {
                         unsigned short us;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &us)) {
-                            img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", us);
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", us);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                            }
                         }
                         break;
                     }
                     case EXIF_DT_UINT32: {
                         unsigned int ui;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &ui)) {
-                            img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", ui);
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", ui);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("Error reading EXIF data of tag with id={}.",
+                                                       exiftag_list[i].tag_id);
+                            }
                         }
                         break;
                     }
                     case EXIF_DT_STRING: {
                         char *tmpstr = nullptr;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &tmpstr)) {
-                            img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpstr);
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpstr);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                            }
                         }
                         break;
                     }
@@ -1363,12 +1389,15 @@ namespace cserve {
                         float *tmpbuf;
                         uint16_t len;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &len, &tmpbuf)) {
-                            auto *r = new Exiv2::Rational[len];
-                            for (int i; i < len; i++) {
-                                r[i] = IIIFExif::toRational(tmpbuf[i]);
+                            std::vector<Exiv2::Rational> r(len);
+                            for (int ii = 0; ii < len; ii++) {
+                                r[ii] = IIIFExif::toRational(tmpbuf[ii]);
                             }
-                            img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", r, len);
-                            delete[] r;
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", r.data(), len);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                            }
                         }
                         break;
                     }
@@ -1376,7 +1405,11 @@ namespace cserve {
                         uint8_t *tmpbuf;
                         uint16_t len;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &len, &tmpbuf)) {
-                            img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                            }
                         }
                         break;
                     }
@@ -1384,7 +1417,11 @@ namespace cserve {
                         uint16_t *tmpbuf;
                         uint16_t len; // in bytes !!
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &len, &tmpbuf)) {
-                            img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                            }
                         }
                         break;
                     }
@@ -1392,7 +1429,11 @@ namespace cserve {
                         uint32_t *tmpbuf;
                         uint16_t len;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &len, &tmpbuf)) {
-                            img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                            }
                         }
                         break;
                     }
@@ -1402,12 +1443,20 @@ namespace cserve {
 
                         if (exiftag_list[i].len == 0) {
                             if (TIFFGetField(tif, exiftag_list[i].tag_id, &len, &tmpbuf)) {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                                try {
+                                    img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                                } catch (const IIIFError &err) {
+                                    Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                }
                             }
                         } else {
                             len = exiftag_list[i].len;
                             if (TIFFGetField(tif, exiftag_list[i].tag_id, &tmpbuf)) {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                                try {
+                                    img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                                } catch (const IIIFError &err) {
+                                    Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                }
                             }
                         }
                         break;
@@ -1477,10 +1526,10 @@ namespace cserve {
                 case EXIF_DT_RATIONAL_PTR: {
                     std::vector<Exiv2::Rational> vr;
                     if (img.exif->getValByKey(exiftag_list[i].tag_id, "Photo", vr)) {
-                        int len = vr.size();
+                        size_t len = vr.size();
                         auto *f = new float[len];
-                        for (int i = 0; i < len; i++) {
-                            f[i] = (float) vr[i].first / (float) vr[i].second; //!!!!!!!!!!!!!!!!!!!!!!!!!
+                        for (int ii = 0; ii < len; ii++) {
+                            f[ii] = (float) vr[ii].first / (float) vr[ii].second; //!!!!!!!!!!!!!!!!!!!!!!!!!
                         }
                         TIFFSetField(tif, exiftag_list[i].tag_id, len, f);
                         delete[] f;
@@ -1500,7 +1549,7 @@ namespace cserve {
                 case EXIF_DT_UINT16_PTR: {
                     std::vector<uint16_t> vus;
                     if (img.exif->getValByKey(exiftag_list[i].tag_id, "Photo", vus)) {
-                        int len = vus.size();
+                        size_t len = vus.size();
                         TIFFSetField(tif, exiftag_list[i].tag_id, len, vus.data());
                         count++;
                     }
@@ -1509,7 +1558,7 @@ namespace cserve {
                 case EXIF_DT_UINT32_PTR: {
                     std::vector<uint32_t> vui;
                     if (img.exif->getValByKey(exiftag_list[i].tag_id, "Photo", vui)) {
-                        int len = vui.size();
+                        size_t len = vui.size();
                         TIFFSetField(tif, exiftag_list[i].tag_id, len, vui.data());
                         count++;
                     }
@@ -1518,7 +1567,7 @@ namespace cserve {
                 case EXIF_DT_PTR: {
                     std::vector<unsigned char> vuc;
                     if (img.exif->getValByKey(exiftag_list[i].tag_id, "Photo", vuc)) {
-                        int len = vuc.size();
+                        size_t len = vuc.size();
                         TIFFSetField(tif, exiftag_list[i].tag_id, len, vuc.data());
                         count++;
                     }

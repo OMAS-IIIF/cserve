@@ -10,8 +10,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-#include <cstdlib>
-#include <cstring>
+
 #include <cmath>
 #include <vector>
 #include <array>
@@ -33,7 +32,7 @@ static int calcDecodeLength(const std::string &b64input) {
     else if (b64input[b64input.length() - 1] == '=')
         padding = 1;
 
-    return (int) b64input.length()*0.75 - padding;
+    return (int) (b64input.length()*0.75) - padding;
 }
 
 std::string base64Encode(const std::vector<unsigned char> &message) {
@@ -50,7 +49,7 @@ std::string base64Encode(const std::vector<unsigned char> &message) {
     bio = BIO_new_fp(stream, BIO_NOCLOSE);
     bio = BIO_push(b64, bio);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-    BIO_write(bio, message.data(), message.size());
+    BIO_write(bio, message.data(), static_cast<int>(message.size()));
     (void) BIO_flush(bio);
     BIO_free_all(bio);
     fclose(stream);
@@ -72,7 +71,7 @@ std::vector<unsigned char> base64Decode(const std::string &b64message) {
     bio = BIO_new_fp(stream, BIO_NOCLOSE);
     bio = BIO_push(b64, bio);
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-    decodedLength = BIO_read(bio, buffer.get(), b64message.size());
+    decodedLength = BIO_read(bio, buffer.get(), static_cast<int>(b64message.size()));
     buffer[decodedLength] = '\0';
 
     BIO_free_all(bio);
@@ -86,6 +85,11 @@ std::vector<unsigned char> base64Decode(const std::string &b64message) {
 }
 
 namespace cserve {
+
+    IIIFEssentials::IIIFEssentials(const std::string &datastr)
+    : _is_set(false), _use_icc(false), _hash_type(none) {
+        parse(datastr);
+    }
 
     IIIFEssentials::IIIFEssentials(const IIIFEssentials &other) {
         _is_set = other._is_set;
@@ -160,7 +164,7 @@ namespace cserve {
         return *this;
     }
 
-    IIIFEssentials &IIIFEssentials::operator=(IIIFEssentials &&other) {
+    IIIFEssentials &IIIFEssentials::operator=(IIIFEssentials &&other) noexcept {
         if (this != &other) {
             _is_set = other._is_set;
             _origname = other._origname;
@@ -181,7 +185,21 @@ namespace cserve {
         return *this;
     }
 
-    std::string IIIFEssentials::hash_type_string(void) const {
+    IIIFEssentials &IIIFEssentials::operator=(const std::string &str) {
+        IIIFEssentials es{str};
+        _is_set = es._is_set;
+        _origname = es._origname;
+        _mimetype = es._mimetype;
+        _hash_type = es._hash_type;
+        _data_chksum = es._data_chksum;
+        _use_icc = es._use_icc;
+        _icc_profile = es._icc_profile;
+
+        return *this;
+    }
+
+
+    std::string IIIFEssentials::hash_type_string() const {
         std::string hash_type_str;
         switch (_hash_type) {
             case HashType::none:    hash_type_str = "none";   break;
@@ -204,7 +222,7 @@ namespace cserve {
         else _hash_type = HashType::none;
     }
 
-    std::vector<unsigned char> IIIFEssentials::icc_profile(void) {
+    std::vector<unsigned char> IIIFEssentials::icc_profile() {
         return base64Decode(_icc_profile);
     }
 
@@ -213,7 +231,7 @@ namespace cserve {
     }
 
     // for string delimiter
-    std::vector<std::string> split (std::string s, std::string delimiter) {
+    std::vector<std::string> split (const std::string& s, const std::string& delimiter) {
         size_t pos_start = 0, pos_end, delim_len = delimiter.length();
         std::string token;
         std::vector<std::string> res;

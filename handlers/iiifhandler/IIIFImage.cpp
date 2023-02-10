@@ -153,12 +153,12 @@ namespace cserve {
 
         switch (bps) {
             case 8: {
-                if (val > 0xff) IIIFImageError(file_, __LINE__, "Error in setPixel: val > 0xff");
+                if (val > 0xff) throw IIIFImageError(file_, __LINE__, "Error in setPixel: val > 0xff");
                 bpixels[nc * (x * nx + y) + c] = static_cast<byte>(val);
                 break;
             }
             case 16: {
-                if (val > 0xffff) IIIFImageError(file_, __LINE__, "Error in setPixel: val > 0xffff");
+                if (val > 0xffff) throw IIIFImageError(file_, __LINE__, "Error in setPixel: val > 0xffff");
                 wpixels[nc * (x * nx + y) + c] = static_cast<word>(val);
                 break;
             }
@@ -261,10 +261,10 @@ namespace cserve {
 
     //============================================================================
 
-     IIIFImage IIIFImage::read(std::string filepath,
+     IIIFImage IIIFImage::read(const std::string& filepath,
                                int pagenum,
-                               std::shared_ptr<IIIFRegion> region,
-                               std::shared_ptr<IIIFSize> size,
+                               const std::shared_ptr<IIIFRegion>& region,
+                               const std::shared_ptr<IIIFSize>& size,
                                bool force_bps_8,
                                ScalingQuality scaling_quality) {
         size_t pos = filepath.find_last_of('.');
@@ -300,11 +300,11 @@ namespace cserve {
 
     IIIFImage IIIFImage::readOriginal(const std::string &filepath,
                                       int pagenum,
-                                      std::shared_ptr<IIIFRegion> region,
-                                      std::shared_ptr<IIIFSize> size,
+                                      const std::shared_ptr<IIIFRegion>& region,
+                                      const std::shared_ptr<IIIFSize>& size,
                                       const std::string &origname,
                                       HashType htype) {
-        IIIFImage img = IIIFImage::read(filepath, pagenum, std::move(region), std::move(size), false);
+        IIIFImage img = IIIFImage::read(filepath, pagenum, region, size, false);
 
         if (!img.emdata.is_set()) {
             Hash internal_hash(htype);
@@ -359,11 +359,11 @@ namespace cserve {
     [[maybe_unused]]
     IIIFImage IIIFImage::readOriginal(const std::string &filepath,
                                       int pagenum,
-                                      std::shared_ptr<IIIFRegion> region,
-                                      std::shared_ptr<IIIFSize> size,
+                                      const std::shared_ptr<IIIFRegion>& region,
+                                      const std::shared_ptr<IIIFSize>& size,
                                       HashType htype) {
         std::string origname = getFileName(filepath);
-        return IIIFImage::readOriginal(filepath, pagenum, std::move(region), std::move(size), origname, htype);
+        return IIIFImage::readOriginal(filepath, pagenum, region, size, origname, htype);
     }
     //============================================================================
 
@@ -428,7 +428,7 @@ namespace cserve {
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
                     auto Y = (double) bpixels[nc * (j * nx + i) + 2];
-                    auto Cb = (double) bpixels[nc * (j * nx + i) + 1];;
+                    auto Cb = (double) bpixels[nc * (j * nx + i) + 1];
                     auto Cr = (double) bpixels[nc * (j * nx + i) + 0];
 
                     int r = (int) (Y + 1.40200 * (Cr - 0x80));
@@ -452,7 +452,7 @@ namespace cserve {
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
                     auto Y = (double) wpixels[nc * (j * nx + i) + 2];
-                    auto Cb = (double) wpixels[nc * (j * nx + i) + 1];;
+                    auto Cb = (double) wpixels[nc * (j * nx + i) + 1];
                     auto Cr = (double) wpixels[nc * (j * nx + i) + 0];
 
                     int r = (int) (Y + 1.40200 * (Cr - 0x80));

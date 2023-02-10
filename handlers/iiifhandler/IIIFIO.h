@@ -9,12 +9,13 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __iiif_io_h
-#define __iiif_io_h
+#ifndef iiif_io_h
+#define iiif_io_h
 
 #include <unordered_map>
 #include <string>
 #include <stdexcept>
+#include <utility>
 
 #include "IIIFIO.h"
 #include "IIIFImage.h"
@@ -60,7 +61,7 @@ namespace cserve {
         IIIFImage read(const std::string &filepath,
                        int pagenum,
                        std::shared_ptr<IIIFRegion> region) {
-            return read(filepath, pagenum, region, nullptr, false,
+            return read(filepath, pagenum, std::move(region), nullptr, false,
                         {HIGH, HIGH, HIGH, HIGH});
         }
 
@@ -68,7 +69,7 @@ namespace cserve {
                        int pagenum,
                        std::shared_ptr<IIIFRegion> region,
                        std::shared_ptr<IIIFSize> size) {
-            return read(filepath, pagenum, region, size, false,
+            return read(filepath, pagenum, std::move(region), std::move(size), false,
                         {HIGH, HIGH, HIGH, HIGH});
         }
 
@@ -76,7 +77,7 @@ namespace cserve {
                        int pagenum, std::shared_ptr<IIIFRegion> region,
                        std::shared_ptr<IIIFSize> size,
                        bool force_bps_8) {
-            return read(filepath, pagenum, region, size, force_bps_8,
+            return read(filepath, pagenum, std::move(region), std::move(size), force_bps_8,
                  {HIGH, HIGH, HIGH, HIGH});
         }
 

@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __defined_essentials_h
-#define __defined_essentials_h
+#ifndef defined_essentials_h
+#define defined_essentials_h
 
 #include <cstdlib>
 #include <sstream>
@@ -34,12 +34,12 @@ namespace cserve {
     */
     class IIIFEssentials {
     private:
-        bool _is_set;
+        bool _is_set{};
         std::string _origname; //!< original filename
         std::string _mimetype; //!< original mime type
         HashType _hash_type; //!< type of checksum
         std::string _data_chksum; //!< the checksum of pixel data
-        bool _use_icc; //!< use this ICC profile when converting from JPEG200 to other format
+        bool _use_icc{}; //!< use this ICC profile when converting from JPEG200 to other format
         std::string _icc_profile; //!< ICC profile if JPEG2000 can not deal with it directly
 
     public:
@@ -80,18 +80,16 @@ namespace cserve {
 
         IIIFEssentials &operator=(const IIIFEssentials &other);
 
-        IIIFEssentials &operator=(IIIFEssentials &&other);
+        IIIFEssentials &operator=(IIIFEssentials &&other) noexcept ;
 
-        inline IIIFEssentials operator=(const std::string &str) {
-            return IIIFEssentials{str};
-        }
+        IIIFEssentials &operator=(const std::string &str);
 
         /*!
         * Constructor taking a serialized packet (as string)
         *
         * \param[in] datastr Serialzed metadata packet
         */
-        inline IIIFEssentials(const std::string &datastr) { parse(datastr); }
+        inline explicit IIIFEssentials(const std::string &datastr);
 
         inline void clear() {
             _is_set = false;
@@ -106,7 +104,7 @@ namespace cserve {
         /*!
         * Getter for original name
         */
-        inline std::string origname(void) { return _origname; }
+        inline std::string origname() { return _origname; }
 
         /*!
         * Setter for original name
@@ -119,7 +117,7 @@ namespace cserve {
         /*!
         * Getter for mimetype
         */
-        inline std::string mimetype(void) { return _mimetype; }
+        inline std::string mimetype() { return _mimetype; }
 
         /*!
         * Setter for original name
@@ -129,12 +127,12 @@ namespace cserve {
         /*!
         * Getter for checksum type as shttps::HashType
         */
-        inline HashType hash_type(void) { return _hash_type; }
+        inline HashType hash_type() { return _hash_type; }
 
         /*!
         * Getter for checksum type as string
         */
-        std::string hash_type_string(void) const;
+        [[nodiscard]] std::string hash_type_string() const;
 
         /*!
         * Setter for checksum type
@@ -155,7 +153,7 @@ namespace cserve {
          *
          * @return Chekcsum as std::string
         */
-        inline std::string data_chksum(void) { return _data_chksum; }
+        inline std::string data_chksum() { return _data_chksum; }
 
         /*!
         * Setter for checksum
@@ -166,7 +164,7 @@ namespace cserve {
          * Do I have to use this ICC profile? (only when converting from JPEG2000
          * @return Bool if this ICC profile should be used....
          */
-        inline bool use_icc(void) { return _use_icc; }
+        [[nodiscard]] inline bool use_icc() const { return _use_icc; }
 
         /*!
          * Setter for boolean flag for the usage of the essential's ICC profile
@@ -174,7 +172,7 @@ namespace cserve {
          */
         inline void use_icc(bool use_icc_p) { _use_icc = use_icc_p; }
 
-        std::vector<unsigned char> icc_profile(void);
+        std::vector<unsigned char> icc_profile();
          /*!
           * Setter for ICC profile
           *
@@ -190,21 +188,15 @@ namespace cserve {
         /*!
         * Check if essential metadata has been set.
         */
-        inline bool is_set(void) { return _is_set; }
+        [[nodiscard]] inline bool is_set() const { return _is_set; }
 
         /*!
         * String conversion operator
         */
-        inline operator std::string() const {
+        inline explicit operator std::string() const {
             std::stringstream ss;
             ss << *this;
             return ss.str();
-            /*
-            std::string tmpstr = _origname + "|" + _mimetype + "|" + hash_type_string() + "|" + _data_chksum;
-            if (_use_icc) tmpstr += "|USE_ICC|"; else tmpstr += "|IGNORE_ICC|" ;
-            if (!_icc_profile.empty()) tmpstr += _icc_profile; else tmpstr += "NULL";
-            return tmpstr;
-            */
         }
 
         /*!

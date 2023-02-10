@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __sipi_image_h
-#define __sipi_image_h
+#ifndef sipi_image_h
+#define sipi_image_h
 
 #include <sstream>
 #include <utility>
@@ -54,7 +54,7 @@ namespace cserve {
         HIGH = 0, MEDIUM = 1, LOW = 2
     } ScalingMethod;
 
-    typedef struct _ScalingQuality {
+    typedef struct ScalingQuality_ {
         ScalingMethod jk2;
         ScalingMethod jpeg;
         ScalingMethod tiff;
@@ -232,22 +232,22 @@ class IIIFImageError : public IIIFError {
         /*!
          * Getter for nx
          */
-        inline size_t getNx() const { return nx; };
+        [[nodiscard]] inline size_t getNx() const { return nx; };
 
         /*!
          * Getter for ny
          */
-        inline size_t getNy() const { return ny; };
+        [[nodiscard]] inline size_t getNy() const { return ny; };
 
         /*!
          * Getter for nc (includes alpha channels!)
          */
-        inline size_t getNc() const { return nc; };
+        [[nodiscard]] inline size_t getNc() const { return nc; };
 
         /*!
          * Getter for number of alpha channels
          */
-        inline size_t getNalpha() const { return es.size(); }
+        [[nodiscard]] inline size_t getNalpha() const { return es.size(); }
 
         /*!
          * Get bits per sample of image
@@ -260,7 +260,7 @@ class IIIFImageError : public IIIFError {
          * Get orientation
          * @return Returns orientation tag
          */
-        inline Orientation getOrientation() const { return orientation; };
+        [[nodiscard]] inline Orientation getOrientation() const { return orientation; };
 
         /*!
          * Set orientation parameter
@@ -279,25 +279,25 @@ class IIIFImageError : public IIIFError {
          * Getter for Exif data
          * @return Shared pointer to IIIFExif instance or nullptr
          */
-        inline std::shared_ptr<IIIFExif> getExif() const { return exif; }
+        [[nodiscard]] inline std::shared_ptr<IIIFExif> getExif() const { return exif; }
 
         /*!
          * Getter for IPTC data
          * @return Shared poinmter to IPTC instance or nullptr
          */
-        inline std::shared_ptr<IIIFIptc> getIptc() const { return iptc; }
+        [[nodiscard]] inline std::shared_ptr<IIIFIptc> getIptc() const { return iptc; }
 
         /*!
          * Getter for XMP data
          * @return shared pointer to XMP instance or nullptr
          */
-        inline std::shared_ptr<IIIFXmp> getXmp() const { return xmp; }
+        [[nodiscard]] inline std::shared_ptr<IIIFXmp> getXmp() const { return xmp; }
 
         /*!
          * Getter for ICC data
          * @return shared pointer to ICC instance or nullptr
          */
-        inline std::shared_ptr<IIIFIcc> getIcc() const { return icc; }
+        [[nodiscard]] inline std::shared_ptr<IIIFIcc> getIcc() const { return icc; }
 
         /*! Destructor
          *
@@ -368,10 +368,10 @@ class IIIFImageError : public IIIFError {
          *
          * \throws SipiError
          */
-        static IIIFImage read(std::string filepath,
+        static IIIFImage read(const std::string& filepath,
                               int pagenum = 0,
-                              std::shared_ptr<IIIFRegion> region = nullptr,
-                              std::shared_ptr<IIIFSize> size = nullptr,
+                              const std::shared_ptr<IIIFRegion>& region = nullptr,
+                              const std::shared_ptr<IIIFSize>& size = nullptr,
                               bool force_bps_8 = false,
                               ScalingQuality scaling_quality = {HIGH, HIGH, HIGH, HIGH});
 
@@ -398,8 +398,8 @@ class IIIFImageError : public IIIFError {
          */
         static IIIFImage readOriginal(const std::string &filepath,
                                       int pagenum,
-                                      std::shared_ptr<IIIFRegion> region,
-                                      std::shared_ptr<IIIFSize> size,
+                                      const std::shared_ptr<IIIFRegion>& region,
+                                      const std::shared_ptr<IIIFSize>& size,
                                       const std::string &origname,
                                       HashType htype);
 
@@ -426,8 +426,8 @@ class IIIFImageError : public IIIFError {
          */
         [[maybe_unused]] static IIIFImage readOriginal(const std::string &filepath,
                                       int pagenum = 0,
-                                      std::shared_ptr<IIIFRegion> region = nullptr,
-                                      std::shared_ptr<IIIFSize> size = nullptr,
+                                      const std::shared_ptr<IIIFRegion>& region = nullptr,
+                                      const std::shared_ptr<IIIFSize>& size = nullptr,
                                       HashType htype = HashType::sha256);
 
         /*!

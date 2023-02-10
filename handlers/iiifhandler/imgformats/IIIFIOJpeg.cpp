@@ -1224,7 +1224,7 @@ namespace cserve {
         if (img.essential_metadata().is_set()) {
             char start[]{'S', 'I', 'P', 'I'};// = "SIPI\000";
             size_t start_l = sizeof(start);
-            std::string es_str = img.essential_metadata();
+            std::string es_str = std::string(img.essential_metadata());
             unsigned char siz[4];
             siz[0] = (unsigned char) ((es_str.size() >> 24) & 0x000000ff);
             siz[1] = (unsigned char) ((es_str.size() >> 16) & 0x000000ff);
@@ -1274,7 +1274,7 @@ namespace cserve {
 
         if (es.is_set()) {
             try {
-                std::string esstr = es;
+                std::string esstr = std::string(es);
                 unsigned int len = esstr.length();
                 char sipi_buf[512 + 1];
                 strncpy(sipi_buf, esstr.c_str(), 512);

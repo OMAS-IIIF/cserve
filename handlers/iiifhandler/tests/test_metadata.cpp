@@ -7,7 +7,6 @@
 #include <fstream>
 
 #include <lcms2.h>
-#include <unistd.h>
 
 #include "catch2/catch_all.hpp"
 #include "../metadata/IIIFEssentials.h"
@@ -77,7 +76,7 @@ std::shared_ptr<char[]> xmp_from_tiff(const std::string &filename, unsigned int 
 }
 
 
-inline std::vector<uint8_t> read_file(std::string file_path) {
+inline std::vector<uint8_t> read_file(const std::string& file_path) {
     std::ifstream instream(file_path, std::ios::in | std::ios::binary);
     std::vector<uint8_t> data((std::istreambuf_iterator<char>(instream)), std::istreambuf_iterator<char>());
     return data;
@@ -118,7 +117,7 @@ TEST_CASE("Testing IIIFEssentials class", "[IIIFEssentials]") {
 
     SECTION("IIIFEssentials constructors 3") {
         cserve::IIIFEssentials essentials(origname, mimetype, htype, checksum, icc_profile);
-        std::string serialized = essentials;
+        std::string serialized = std::string(essentials);
         REQUIRE(serialized == "test/testfile.jpg|image/jpeg|sha256|abcdefghijklmnopqrstuvwxyz|USE_ICC|SUNDcHJvZmlsZQ==");
         cserve::IIIFEssentials essentials1{serialized};
         REQUIRE(essentials1.is_set());
@@ -132,7 +131,7 @@ TEST_CASE("Testing IIIFEssentials class", "[IIIFEssentials]") {
 
     SECTION("IIIFEssentials constructors 4") {
         cserve::IIIFEssentials essentials(origname, mimetype, htype, checksum);
-        std::string serialized = essentials;
+        std::string serialized = std::string(essentials);
         REQUIRE(serialized == "test/testfile.jpg|image/jpeg|sha256|abcdefghijklmnopqrstuvwxyz|IGNORE_ICC|NULL");
         cserve::IIIFEssentials essentials1{serialized};
         REQUIRE(essentials1.is_set());

@@ -99,7 +99,7 @@ namespace cserve {
          * \param[in] tfunc Transfer function tables as retrieved by libtiff with either (1 << bitspersample) or 3*(1 << bitspersample) entries
          * \param[in] Length of tranfer function table
          */
-        IIIFIcc(float white_point_p[], float primaries_p[], const unsigned short *tfunc = nullptr,
+        IIIFIcc(const float white_point_p[], const float primaries_p[], const unsigned short *tfunc = nullptr,
                 int tfunc_len = 0);
 
         /**
@@ -113,7 +113,7 @@ namespace cserve {
          */
         IIIFIcc &operator=(const IIIFIcc &rhs);
 
-        IIIFIcc &operator=(IIIFIcc &&rhs);
+        IIIFIcc &operator=(IIIFIcc &&rhs) noexcept;
 
         /*!
          * Get the blob containing the ICC profile
@@ -139,21 +139,21 @@ namespace cserve {
          * Get the profile type
          * \retruns Gives the predefined profile type
          */
-        inline PredefinedProfiles getProfileType() const { return profile_type; };
+        [[nodiscard]] inline PredefinedProfiles getProfileType() const { return profile_type; };
 
         /*!
          * returns a littleCMS formatter with the given bits/sample
          * \param[in] bps Desired bits/sample
          * \returns Formatter as used by cmsTransfrom
          */
-        unsigned int iccFormatter(int bps) const;
+        unsigned int iccFormatter(size_t bps) const;
 
         /*!
          * returns a littleCMS formatter with the given bits/sample for the given SipImage
          * \param img The SipiImage instance whose color profile is used to create the formatter
          * \returns Formatter as used by cmsTransfrom
          */
-        unsigned int iccFormatter(int nc, int bps, PhotometricInterpretation photo) const;
+        static unsigned int iccFormatter(size_t nc, size_t bps, PhotometricInterpretation photo) ;
 
         /**
          * Print info to output stream

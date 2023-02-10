@@ -305,8 +305,8 @@ namespace cserve {
             if (img.exif == nullptr) {
                 img.exif = std::make_shared<IIIFExif>();
             }
-            img.exif->addKeyVal("Exif.Image.XResolution", fres_x);
-            img.exif->addKeyVal("Exif.Image.YResolution", fres_y);
+            img.exif->addKeyVal("Exif.Image.XResolution", IIIFExif::toRational(fres_x));
+            img.exif->addKeyVal("Exif.Image.YResolution", IIIFExif::toRational(fres_y));
             img.exif->addKeyVal("Exif.Image.ResolutionUnit", 2); // DPI
         }
 
@@ -583,7 +583,7 @@ namespace cserve {
         }
 
         if (es.is_set()) {
-            std::string esstr = es;
+            std::string esstr = std::string(es);
             unsigned int len = esstr.length();
             char iiif_buf[512 + 1];
             strncpy(iiif_buf, esstr.c_str(), 512);

@@ -25,13 +25,11 @@ static const char file_[] = __FILE__;
 #include "../Rec709-Rec1886_icc.h"
 
 #include "../IIIFImage.h"
-#include "makeunique.h"
-#include "../IIIFPhotometricInterpretation.h"
 
 namespace cserve {
 
     void icc_error_logger(cmsContext ContextID, cmsUInt32Number ErrorCode, const char *text) {
-        Server::logger()->error("ICC-CMS-ERROR: {}", text);
+        Server::logger()->error("ICC-CMS-ERROR: {} Error code: {}", text, ErrorCode);
     }
 
     IIIFIcc::IIIFIcc(const unsigned char *icc_buf, int icc_len) {
@@ -154,7 +152,7 @@ namespace cserve {
             }
             case icc_LAB: {
                 cmsContext context = cmsCreateContext(nullptr, nullptr);
-                icc_profile = cmsCreateLab4Profile(NULL);
+                icc_profile = cmsCreateLab4Profile(nullptr);
                 cmsDeleteContext(context);
                 profile_type = icc_LAB;
                 break;
@@ -162,7 +160,7 @@ namespace cserve {
         }
     }
 
-    IIIFIcc::IIIFIcc(float white_point_p[], float primaries_p[], const unsigned short tfunc[], const int tfunc_len) {
+    IIIFIcc::IIIFIcc(const float white_point_p[], const float primaries_p[], const unsigned short tfunc[], const int tfunc_len) {
         cmsSetLogErrorHandler(icc_error_logger);
         cmsCIExyY white_point;
         white_point.x = white_point_p[0];
@@ -180,7 +178,7 @@ namespace cserve {
         primaries.Blue.y = primaries_p[5];
         primaries.Blue.Y = 1.0;
 
-        cmsContext context = cmsCreateContext(0, 0);
+        cmsContext context = cmsCreateContext(nullptr, nullptr);
         cmsToneCurve *tonecurve[3];
         if (tfunc == nullptr) {
             tonecurve[0] = cmsBuildGamma(context, 2.2);
@@ -220,7 +218,7 @@ namespace cserve {
         return *this;
     }
 
-    IIIFIcc &IIIFIcc::operator=(IIIFIcc &&rhs) {
+    IIIFIcc &IIIFIcc::operator=(IIIFIcc &&rhs)  noexcept {
         if (this != &rhs) {
             profile_type = rhs.profile_type;
             icc_profile = rhs.icc_profile;
@@ -257,7 +255,7 @@ namespace cserve {
         return icc_profile;
     }
 
-    unsigned int IIIFIcc::iccFormatter(int bps) const {
+    unsigned int IIIFIcc::iccFormatter(size_t bps) const {
         cmsSetLogErrorHandler(icc_error_logger);
         cmsUInt32Number format = (bps == 16) ? BYTES_SH(2) : BYTES_SH(1);
         cmsColorSpaceSignature csig = cmsGetColorSpace(icc_profile);
@@ -291,9 +289,9 @@ namespace cserve {
     }
 
 
-    unsigned int IIIFIcc::iccFormatter(int nc, int bps, PhotometricInterpretation photo)  const {
+    unsigned int IIIFIcc::iccFormatter(size_t nc, size_t bps, PhotometricInterpretation photo)  {
         cmsSetLogErrorHandler(icc_error_logger);
-        cmsUInt32Number format = 0;
+        cmsUInt32Number format;
         switch (bps) {
             case 8: {
                 format = BYTES_SH(1) | CHANNELS_SH(nc) | PLANAR_SH(0);
@@ -308,10 +306,7 @@ namespace cserve {
             }
         }
         switch (photo) {
-            case MINISWHITE: {
-                format |= COLORSPACE_SH(PT_GRAY);
-                break;
-            }
+            case MINISWHITE:
             case MINISBLACK: {
                 format |= COLORSPACE_SH(PT_GRAY);
                 break;
@@ -322,11 +317,9 @@ namespace cserve {
             }
             case PALETTE: {
                 throw IIIFError(file_, __LINE__, "Photometric interpretation \"PALETTE\" not supported");
-                break;
             }
             case MASK: {
                 throw IIIFError(file_, __LINE__, "Photometric interpretation \"MASK\" not supported");
-                break;
             }
             case SEPARATED: { // --> CMYK
                 format |= COLORSPACE_SH(PT_CMYK);
@@ -336,10 +329,7 @@ namespace cserve {
                 format |= COLORSPACE_SH(PT_YCbCr);
                 break;
             }
-            case CIELAB: {
-                format |= COLORSPACE_SH(PT_Lab);
-                break;
-            }
+            case CIELAB:
             case ICCLAB: {
                 format |= COLORSPACE_SH(PT_Lab);
                 break;
@@ -350,19 +340,15 @@ namespace cserve {
             }
             case CFA: {
                 throw IIIFError(file_, __LINE__, "Photometric interpretation \"Color Field Array (CFS)\" not supported");
-                break;
             }
             case LOGL: {
                 throw IIIFError(file_, __LINE__, "Photometric interpretation \"LOGL\" not supported");
-                break;
             }
             case LOGLUV: {
                 throw IIIFError(file_, __LINE__, "Photometric interpretation \"LOGLUV\" not supported");
-                break;
             }
             case LINEARRAW: {
                 throw IIIFError(file_, __LINE__, "Photometric interpretation \"LINEARRAW\" not supported");
-                break;
             }
             default: {
                 throw IIIFError(file_, __LINE__, "Photometric interpretation \"unknown\" not supported");

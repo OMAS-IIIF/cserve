@@ -65,7 +65,7 @@ namespace cserve {
         return img;
     }
 
-    std::unique_ptr<byte[]> crop(std::unique_ptr<byte[]> inbuf, int nx, int ny, int nc, const std::shared_ptr<IIIFRegion> &region) {
+    std::unique_ptr<byte[]> crop(std::unique_ptr<byte[]> inbuf, size_t nx, size_t ny, size_t nc, const std::shared_ptr<IIIFRegion> &region) {
         if (region->getType() == IIIFRegion::FULL) {
             return std::move(inbuf);
         }
@@ -84,7 +84,7 @@ namespace cserve {
         return std::move(outbuf);
     }
 
-    std::unique_ptr<word[]> crop(std::unique_ptr<word[]> inbuf, int nx, int ny, int nc, const std::shared_ptr<IIIFRegion> &region) {
+    std::unique_ptr<word[]> crop(std::unique_ptr<word[]> inbuf, size_t nx, size_t ny, size_t nc, const std::shared_ptr<IIIFRegion> &region) {
         if (region->getType() == IIIFRegion::FULL) {
             return std::move(inbuf);
         }

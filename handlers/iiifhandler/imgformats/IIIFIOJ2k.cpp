@@ -1036,7 +1036,7 @@ namespace cserve {
             // Custom tag for SipiEssential metadata
             //
             if (es.is_set()) {
-                std::string esstr = es;
+                std::string esstr = std::string(es);
                 std::string emdata = "SIPI:" + esstr;
                 kdu_codestream_comment comment = codestream.add_comment();
                 comment.put_text(emdata.c_str());

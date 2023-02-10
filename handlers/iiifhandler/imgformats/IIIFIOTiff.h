@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __sipi_io_tiff_h
-#define __sipi_io_tiff_h
+#ifndef sipi_io_tiff_h
+#define sipi_io_tiff_h
 
 #include <string>
 
@@ -35,21 +35,21 @@ namespace cserve {
          * \param[in] tif Pointer to TIFF file handle
          * \param[in] exif_offset Offset of EXIF directory in TIFF file
          */
-        void readExif(IIIFImage &img, TIFF *tif, toff_t exif_offset);
+        static void readExif(IIIFImage &img, TIFF *tif, toff_t exif_offset);
 
         /*!
          * Write the EXIF data to the TIFF file
           * \param img Pointer to SipiImage instance
           * \param[in] tif Pointer to TIFF file handle
          */
-        void writeExif(const IIIFImage &img, TIFF *tif);
+        static void writeExif(const IIIFImage &img, TIFF *tif);
 
 
     public:
-        virtual ~IIIFIOTiff() {};
+        ~IIIFIOTiff() override {};
 
         [[maybe_unused]]
-        static void initLibrary(void);
+        static void initLibrary();
 
         IIIFImage read(const std::string &filepath,
                        int pagenum, std::shared_ptr<IIIFRegion> region,
@@ -57,7 +57,7 @@ namespace cserve {
                        bool force_bps_8,
                        ScalingQuality scaling_quality) override;
 
-        IIIFImgInfo getDim(const std::string &filepath, int pagenum = 0) override;
+        IIIFImgInfo getDim(const std::string &filepath, int pagenum) override;
 
         /*!
          * Write a TIFF image to a file, stdout or to a memory buffer

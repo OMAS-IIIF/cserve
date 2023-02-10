@@ -24,6 +24,8 @@ namespace std {
 #include <vector>
 #include <exiv2/exiv2.hpp>
 
+#include "../IIIFError.h"
+
 namespace cserve {
 
     /**
@@ -44,6 +46,126 @@ namespace cserve {
         uint32_t binary_size;
         Exiv2::ExifData exifData;   //!< Private member variable holding the exiv2 EXIF data
         Exiv2::ByteOrder byteorder; //!< Private member holding the byteorder of the EXIF data
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::string &val) {
+            val = v->toString();
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<std::string> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(v->toString(i));
+            }
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, char &val) {
+            val = static_cast<char>(v->toInt64());
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<char> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(static_cast<char>(v->toInt64(i)));
+            }
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, unsigned char &val) {
+            val = static_cast<unsigned char>(v->toUint32());
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<unsigned char> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(static_cast<unsigned char>(v->toUint32(i)));
+            }
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, short &val) {
+            val = static_cast<short>(v->toInt64());
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<short> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(static_cast<short>(v->toInt64(i)));
+            }
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, unsigned short &val) {
+            val = static_cast<unsigned short>(v->toUint32());
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<unsigned short> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(static_cast<unsigned short>(v->toUint32(i)));
+            }
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, int &val) {
+            val = static_cast<int>(v->toInt64());
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<int> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(static_cast<int>(v->toInt64(i)));
+            }
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, unsigned int &val) {
+            val = static_cast<unsigned int>(v->toUint32());
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<unsigned int> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(static_cast<unsigned int>(v->toUint32(i)));
+            }
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, float &val) {
+            val = static_cast<float>(v->toFloat());
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<float> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(static_cast<float>(v->toFloat(i)));
+            }
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, double &val) {
+            val = static_cast<double>(v->toFloat());
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<double> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(static_cast<double>(v->toFloat(i)));
+            }
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, Exiv2::Rational &val) {
+            val = v->toRational();
+            return v->ok();
+        }
+
+        static inline bool assign_val(std::unique_ptr<Exiv2::Value> v, std::vector<Exiv2::Rational> &val) {
+            for (int i = 0; i < v->count(); i++) {
+                val.push_back(v->toRational(i));
+            }
+            return v->ok();
+        }
 
     public:
         /*!
@@ -124,477 +246,129 @@ namespace cserve {
          */
         static Exiv2::URational toURational(double f);
 
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val_p Value as string
-         */
-        void addKeyVal(const std::string &key_p, const std::string &val_p);
 
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val_p Value as string
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const std::string &val_p);
+        template<class T>
+        void addKeyVal(const std::string &key_p, const T &val) {
+            exifData[key_p] = val;
+        }
+
+        template<class T>
+        void addKeyVal(uint16_t tag, const std::string &groupName, const T &val) {
+            Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+            std::unique_ptr<Exiv2::Value> v;
+            if (typeid(T) == typeid(std::string)) {
+                v = Exiv2::Value::create(Exiv2::asciiString);
+            }
+            else if (typeid(T) == typeid(int8_t)) {
+                v = Exiv2::Value::create(Exiv2::signedByte);
+            }
+            else if (typeid(T) == typeid(uint8_t)) {
+                v = Exiv2::Value::create(Exiv2::unsignedByte);
+            }
+            else if (typeid(T) == typeid(int16_t)) {
+                v = Exiv2::Value::create(Exiv2::signedShort);
+            }
+            else if (typeid(T) == typeid(uint16_t)) {
+                v = Exiv2::Value::create(Exiv2::unsignedShort);
+            }
+            else if (typeid(T) == typeid(int32_t)) {
+                v = Exiv2::Value::create(Exiv2::signedLong);
+            }
+            else if (typeid(T) == typeid(uint32_t)) {
+                v = Exiv2::Value::create(Exiv2::unsignedLong);
+            }
+            else if (typeid(T) == typeid(float)) {
+                v = Exiv2::Value::create(Exiv2::tiffFloat);
+            }
+            else if (typeid(T) == typeid(double)) {
+                v = Exiv2::Value::create(Exiv2::tiffDouble);
+            }
+            else if (typeid(T) == typeid(Exiv2::Rational)) {
+                v = Exiv2::Value::create(Exiv2::signedRational);
+            }
+            else if (typeid(T) == typeid(Exiv2::URational)) {
+                v = Exiv2::Value::create(Exiv2::unsignedRational);
+            }
+            else {
+                throw IIIFError(__FILE__, __LINE__, "Unsupported type of addKeyVal(2)");
+            }
+
+            v->read((unsigned char *) &val, sizeof(T), Exiv2::littleEndian);
+            exifData.add(key, v.get());
+        }
+
+        template<class T>
+        void addKeyVal(uint16_t tag, const std::string &groupName, const T *valptr, size_t len) {
+            Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+            std::unique_ptr<Exiv2::Value> v;
+            if (typeid(T) == typeid(int8_t)) {
+                v = Exiv2::Value::create(Exiv2::signedByte);
+            }
+            else if (typeid(T) == typeid(uint8_t)) {
+                v = Exiv2::Value::create(Exiv2::unsignedByte);
+            }
+            else if (typeid(T) == typeid(int16_t)) {
+                v = Exiv2::Value::create(Exiv2::signedShort);
+            }
+            else if (typeid(T) == typeid(uint16_t)) {
+                v = Exiv2::Value::create(Exiv2::unsignedShort);
+            }
+            else if (typeid(T) == typeid(int32_t)) {
+                v = Exiv2::Value::create(Exiv2::signedLong);
+            }
+            else if (typeid(T) == typeid(int32_t)) {
+                v = Exiv2::Value::create(Exiv2::unsignedLong);
+            }
+            else if (typeid(T) == typeid(float)) {
+                v = Exiv2::Value::create(Exiv2::tiffFloat);
+            }
+            else if (typeid(T) == typeid(double)) {
+                v = Exiv2::Value::create(Exiv2::tiffDouble);
+            }
+            else if (typeid(T) == typeid(Exiv2::Rational)) {
+                v = Exiv2::Value::create(Exiv2::signedRational);
+            }
+            else if (typeid(T) == typeid(Exiv2::URational)) {
+                v = Exiv2::Value::create(Exiv2::unsignedRational);
+            }
+            else {
+                throw IIIFError(__FILE__, __LINE__, "Unsupported type of addKeyVal(2)");
+            }
+            v->read((unsigned char *) valptr, static_cast<long>(len*sizeof(unsigned short)), Exiv2::littleEndian);
+            exifData.add(key, v.get());
+        }
+
+        template<class T>
+        bool getValByKey(const std::string &key_p, T &val)  {
+            try {
+                Exiv2::ExifKey key = Exiv2::ExifKey(key_p);
+                auto pos = exifData.findKey(key);
+                if (pos == exifData.end()) {
+                    return false;
+                }
+                auto v = pos->getValue();
+                return assign_val(std::move(v), val);
+            } catch (const Exiv2::Error &err) {
+                return false;
+            }
+        }
+
+        template<class T>
+        bool getValByKey(uint16_t tag, const std::string &groupName, T &val) {
+            try {
+                Exiv2::ExifKey key = Exiv2::ExifKey(tag, groupName);
+                auto pos = exifData.findKey(key);
+                if (pos == exifData.end()) {
+                    return false;
+                }
+                auto v = pos->getValue();
+                return assign_val(std::move(v), val);
+
+            } catch (const Exiv2::Error &err) {
+                return false;
+            }
+        }
 
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val_p Value as float
-         */
-        void addKeyVal(const std::string &key_p, const float &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] vals_p Pointer to array of floats
-         * \param[in] len Length of float array
-         */
-        void addKeyVal(const std::string &key_p, const float *vals_p, unsigned int len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val_p Value as float
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const float &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] vals_p Pointer to array of floats
-         * \param[in] len Length of float array
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const float *vals_p, unsigned int len);
-
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val_p Value as short
-         */
-        void addKeyVal(const std::string &key_p, const short &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] vals_p Pointer to array of shorts
-         * \param[in] len Length of short array
-         */
-        void addKeyVal(const std::string &key_p, const short *vals_p, unsigned int len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val_p Value as short
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const short &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] vals_p Pointer to array of shorts
-         * \param[in] len Length of short array
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const short *vals_p, unsigned int len);
-
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val_p Value as unsigned short
-         */
-        void addKeyVal(const std::string &key, const unsigned short &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] vals_p Pointer to array of unsigned shorts
-         * \param[in] len Length of unsigned short array
-         */
-        void addKeyVal(const std::string &key, const unsigned short *vals_p, int unsigned len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val_p Value as unsigned short
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const unsigned short &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] vals_p Pointer to array of unsigned shorts
-         * \param[in] len Length of unsigned short array
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const unsigned short *vals_p, unsigned int len);
-
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val_p Value as int
-         */
-        void addKeyVal(const std::string &key, const int &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] vals_p Pointer to array of int
-         * \param[in] len Length of int array
-         */
-        void addKeyVal(const std::string &key, const int *vals_p, int unsigned len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val_p Value as int
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const int &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] vals_p Pointer to array of ints
-         * \param[in] len Length of int array
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const int *vals_p, unsigned int len);
-
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val_p Value as unsigned int
-         */
-        void addKeyVal(const std::string &key, const unsigned int &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] vals_p Pointer to array of unsigned int
-         * \param[in] len Length of int array
-         */
-        void addKeyVal(const std::string &key, const unsigned int *vals_p, unsigned int len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val_p Value as unsigned int
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const unsigned int &val_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] vals_p Pointer to array of unsigned ints
-         * \param[in] len Length of unsigned int array
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const unsigned int *vals_p, unsigned int len);
-
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val_p Value as Exiv2::Rational
-         */
-        void addKeyVal(const std::string &key, const Exiv2::Rational &r);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] vals_p Pointer to array of Exiv2::Rationals
-         * \param[in] len Length of Exiv2::Rational array
-         */
-        void addKeyVal(const std::string &key, const Exiv2::Rational *vals_p, unsigned int len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val1_p Numerator of value
-         * \param[in] val2_p Denominator of value
-         */
-        void addKeyVal(const std::string &key, const int &val1_p, const int &val2_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val_p Value as Exiv2::Rational
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const Exiv2::Rational &r);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] vals_p Pointer to array of Exiv2::Rationals
-         * \param[in] len Length of Exiv2::Rational array
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const Exiv2::Rational *vals_p, unsigned int len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val1_p Numerator of value
-         * \param[in] val2_p Denominator of value
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const int &val1_p, const int &val2_p);
-
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val_p Value as Exiv2::URational
-         */
-        void addKeyVal(const std::string &key, const Exiv2::URational &ur);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] vals_p Pointer to array of Exiv2::URationals
-         * \param[in] len Length of Exiv2::Rational array
-         */
-        void addKeyVal(const std::string &key, const Exiv2::URational *vals_p, unsigned int len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] val1_p Numerator of value
-         * \param[in] val2_p Denominator of value
-         */
-        void addKeyVal(const std::string &key, const unsigned int &val1_p, const unsigned int &val2_p);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val_p Value as Exiv2::URational
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const Exiv2::URational &ur);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] vals_p Pointer to array of Exiv2::Rationals
-         * \param[in] len Length of Exiv2::Rational array
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const Exiv2::URational *vals_p, unsigned int len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] val1_p Numerator of value
-         * \param[in] val2_p Denominator of value
-         */
-        void
-        addKeyVal(uint16_t tag, const std::string &groupName, const unsigned int &val1_p, const unsigned int &val2_p);
-
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[in] vals_p Buffer of unspecified data
-         * \param[in] len Length of buffer
-         */
-        void addKeyVal(const std::string &key_p, const unsigned char *vals_p, unsigned int len);
-
-        /*!
-         * Add key/value pair to EXIF data
-         * \param[in] key_p Key as string
-         * \param[in] vals_p Buffer of unspecified data
-         * \param[in] len Length of buffer
-         */
-        void addKeyVal(uint16_t tag, const std::string &groupName, const unsigned char *vals_p, unsigned int len);
-
-        //............................................................................
-        // Getting values from the EXIF object
-        //
-
-        //____________________________________________________________________________
-        // string values
-        //
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] key_p Key of value to be retrieved (form: "groupname:key")
-         * \param[out] str_p Value as string
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(const std::string& key_p, std::string &str_p);
-
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[out] str_p Value as string
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(uint16_t tag, const std::string &groupName, std::string &str_p);
-
-        bool getValByKey(uint16_t tag, const std::string &groupName, std::vector<std::string> &str_p);
-
-
-        //____________________________________________________________________________
-        // unsigned char values
-        //
-        bool getValByKey(const std::string& key_p, unsigned char &uc);
-
-        bool getValByKey(uint16_t tag, const std::string &groupName, unsigned char &uc);
-
-        bool getValByKey(uint16_t tag, const std::string &groupName, std::vector<unsigned char> &vuc);
-
-
-        //____________________________________________________________________________
-        // float values
-        //
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] key_p Key of value to be retrieved (form: "groupname:key")
-         * \param[out] val_p Value as float
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(const std::string& key_p, float &val_p);
-
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[out] val_p Value as float
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(uint16_t tag, const std::string &groupName, float &val_p);
-
-        bool getValByKey(uint16_t tag, const std::string &groupName, std::vector<float> &val_p);
-
-
-        //____________________________________________________________________________
-        // Rational values
-        //
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] key_p Key of value to be retrieved (form: "grouname:key")
-         * \param[out] s Value as Exiv2::Rational
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(const std::string& key_p, Exiv2::Rational &r);
-
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[out] s Value as Exiv2::Rational
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(uint16_t tag, const std::string &groupName, Exiv2::Rational &r);
-
-        bool getValByKey(uint16_t tag, const std::string &groupName, std::vector<Exiv2::Rational> &r);
-
-
-        //____________________________________________________________________________
-        // short values
-        //
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] key_p Key of value to be retrieved (form: "groupname:key")
-         * \param[out] s Value as short
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(const std::string& key_p, short &s);
-
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[out] s Value as short
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(uint16_t tag, const std::string &groupName, short &s);
-
-        bool getValByKey(uint16_t tag, const std::string &groupName, std::vector<short> &s);
-
-
-        //____________________________________________________________________________
-        // unsigned short values
-        //
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] key_p Key of value to be retrieved (form: "groupname:key")
-         * \param[out] s Value as unsigned short
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(const std::string& key_p, unsigned short &s);
-
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[out] s Value as unsigned short
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(uint16_t tag, const std::string &groupName, unsigned short &s);
-
-        bool getValByKey(uint16_t tag, const std::string &groupName, std::vector<unsigned short> &s);
-
-
-        //____________________________________________________________________________
-        // int values
-        //
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] key_p Key of value to be retrieved (form: "groupname:key")
-         * \param[out] s Value as int
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(const std::string& key_p, int &s);
-
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[out] s Value as int
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(uint16_t tag, const std::string &groupName, int &s);
-
-        bool getValByKey(uint16_t tag, const std::string &groupName, std::vector<int> &s);
-
-
-        //____________________________________________________________________________
-        // unsigned int values
-        //
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] key_p Key of value to be retrieved (form: "groupname:key")
-         * \param[out] s Value as unsigned int
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(const std::string& key_p, unsigned int &s);
-
-        /*!
-         * Retrieve a value from the EXIF data using the key
-         * \param[in] tag EXIF tag number
-         * \param[in] groupName EXIF tag group name
-         * \param[out] s Value as unsigned int
-         * \returns true, if key is existing and the value could be retrieved, false otherwise
-         */
-        bool getValByKey(uint16_t tag, const std::string &groupName, unsigned int &s);
-
-        bool getValByKey(uint16_t tag, const std::string &groupName, std::vector<unsigned int> &s);
 
         friend std::ostream &operator<<(std::ostream &lhs, IIIFExif &rhs);
 
