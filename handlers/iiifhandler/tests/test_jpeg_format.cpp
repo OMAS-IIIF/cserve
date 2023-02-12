@@ -7,6 +7,7 @@
 #include "catch2/catch_all.hpp"
 #include "../IIIFImage.h"
 #include "../imgformats/IIIFIOJpeg.h"
+#include "../metadata/IIIFExif.h"
 
 struct CommandResult {
     std::string output;
@@ -122,6 +123,32 @@ TEST_CASE("Image tests", "JPEG") {
         REQUIRE(info.width == 3264);
         REQUIRE(info.height == 2448);
         REQUIRE(info.orientation == cserve::RIGHTTOP);
+    }
 
+    SECTION("EXIF-metadata") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = jpegio.read("data/img_exif_gps.jpg",
+                                            0,
+                                            region,
+                                            size,
+                                            false,
+                                            {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        auto exif = img.getExif();
+        REQUIRE(exif != nullptr);
+
+        Exiv2::Rational brightness_value;
+        REQUIRE_NOTHROW(exif->getValByKey("Exif.Photo.BrightnessValue", brightness_value));
+        REQUIRE(brightness_value == Exiv2::Rational{117307, 10524});
+
+        std::string model;
+        REQUIRE_NOTHROW(exif->getValByKey("Exif.Image.Model", model));
+        REQUIRE(model == "iPhone 12 Pro");
+
+        uint16_t flash;
+        REQUIRE_NOTHROW(exif->getValByKey("Exif.Photo.Flash", flash));
+        REQUIRE(flash == 16);
     }
 }
+
+
