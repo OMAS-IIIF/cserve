@@ -145,7 +145,7 @@ namespace cserve {
                 peer_name = peer_name_p;
             }
 
-            std::string get_peer_name() {
+            [[nodiscard]] std::string get_peer_name() const {
                 return peer_name;
             }
 
@@ -209,7 +209,7 @@ namespace cserve {
 
         inline void remove_from_working_socket(const SocketInfo &sockid) { working_sockets.erase(sockid); }
 
-        inline int working_socket_number() { return working_sockets.size(); }
+        inline size_t working_socket_number() { return working_sockets.size(); }
 
         void move_to_waiting(int pos);
 

@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __cserve_parsing_h
-#define __cserve_parsing_h
+#ifndef cserve_parsing_h
+#define cserve_parsing_h
 
 #include <string>
 #include <regex>
@@ -74,4 +74,4 @@ namespace cserve::Parsing {
         [[maybe_unused]] float parse_float(std::string &str);
     }
 
-#endif //__cserve_parsing_h
+#endif //cserve_parsing_h

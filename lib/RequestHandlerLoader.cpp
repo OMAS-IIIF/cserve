@@ -43,6 +43,6 @@ std::shared_ptr<cserve::RequestHandler> cserve::RequestHandlerLoader::get_instan
     }
 
     cserve::Server::logger()->info("Loaded request handler plugin \"{}\"", path);
-    return std::shared_ptr<cserve::RequestHandler>(allocFunc(), [deleteFunc](cserve::RequestHandler *p){ deleteFunc(p); });
+    return {allocFunc(), [deleteFunc](cserve::RequestHandler *p){ deleteFunc(p); }};
 }
 

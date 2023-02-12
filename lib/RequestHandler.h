@@ -37,7 +37,7 @@ namespace cserve {
          */
         virtual ~RequestHandler() = default;
 
-        virtual const std::string& name() const = 0;
+        [[nodiscard]] virtual const std::string& name() const = 0;
 
         inline void set_route(const std::string &route) { _route = route; }
 

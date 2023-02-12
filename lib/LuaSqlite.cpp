@@ -322,6 +322,8 @@ namespace cserve {
                         lua_pushstring(L, str); // table - col - str
                         break;
                     }
+                    default:
+                        ;
                 }
                 lua_rawset(L, -3); // table
             }
