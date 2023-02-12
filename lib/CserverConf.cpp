@@ -25,7 +25,7 @@ namespace cserve {
     void cserverConfGlobals(lua_State *L, cserve::Connection &conn, void *user_data) {
         auto *conf = (CserverConf *) user_data;
         const auto values = conf->get_values();
-        lua_createtable(L, 0, values.size());
+        lua_createtable(L, 0, static_cast<int>(values.size()));
         for (auto const& [name, val] : values) {
             if (name == "jwtkey") continue;
             if (name == "sslcert") continue;
@@ -53,7 +53,7 @@ namespace cserve {
                     break;
                 case cserve::ConfValue::LUAROUTES:
                     std::vector<cserve::RouteInfo> routes = val->get_luaroutes().value();
-                    lua_createtable(L, routes.size(), 0);  // "table1 - index_L1 - table2"
+                    lua_createtable(L, static_cast<int>(routes.size()), 0);  // "table1 - index_L1 - table2"
                     int index = 0;
                     for (auto& route: routes) {
                         lua_createtable(L, 0, 3); // "table1 - index_L1 - table2 - table3"
@@ -157,7 +157,7 @@ namespace cserve {
                                  const std::string &description) {
         std::string optionname = "--" + name;
         std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
-        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, std::move(description),
+        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, description,
                                                             envname, _cserverOpts);
     }
 
@@ -165,51 +165,51 @@ namespace cserve {
                                  const std::string &description) {
         std::string optionname = "--" + name;
         std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
-        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, std::move(description),
+        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, description,
                                                             envname, _cserverOpts);
     }
 
-    void CserverConf::add_config(const std::string &prefix, std::string name, float defaultval,
+    void CserverConf::add_config(const std::string &prefix, const std::string& name, float defaultval,
                                  const std::string &description) {
         std::string optionname = "--" + name;
         std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
-        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, std::move(description),
+        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, description,
                                                             envname, _cserverOpts);
     }
 
-    void CserverConf::add_config(const std::string &prefix, std::string name, const char *defaultval,
+    void CserverConf::add_config(const std::string &prefix, const std::string& name, const char *defaultval,
                                  const std::string &description) {
         std::string optionname = "--" + name;
         std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
         _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, std::string(defaultval),
-                                                            std::move(description), envname, _cserverOpts);
+                                                            description, envname, _cserverOpts);
     }
 
-    void CserverConf::add_config(const std::string &prefix, std::string name, const std::string &defaultval,
+    void CserverConf::add_config(const std::string &prefix, const std::string& name, const std::string &defaultval,
                                  const std::string &description) {
         std::string optionname = "--" + name;
         std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
-        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, std::move(defaultval),
-                                                            std::move(description), envname, _cserverOpts);
+        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval,
+                                                            description, envname, _cserverOpts);
     }
 
-    void CserverConf::add_config(const std::string &prefix, std::string name, const cserve::DataSize &defaultval,
+    void CserverConf::add_config(const std::string &prefix, const std::string& name, const cserve::DataSize &defaultval,
                                  const std::string &description) {
         std::string optionname = "--" + name;
         std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
-        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, std::move(description),
+        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, description,
                                                             envname, _cserverOpts);
     }
 
-    void CserverConf::add_config(const std::string &prefix, std::string name, spdlog::level::level_enum defaultval,
+    void CserverConf::add_config(const std::string &prefix, const std::string& name, spdlog::level::level_enum defaultval,
                                  const std::string &description) {
         std::string optionname = "--" + name;
         std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
-        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, std::move(description),
+        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval, description,
                                                             envname, _cserverOpts);
     }
 
-    void CserverConf::add_config(const std::string &prefix, std::string name, std::vector<cserve::RouteInfo> defaultval,
+    void CserverConf::add_config(const std::string &prefix, const std::string& name, const std::vector<cserve::RouteInfo>& defaultval,
                                  const std::string &description) {
         //
         // routes automatically prepend the prefix to the option name (which usually ist just "routes". Thus
@@ -218,8 +218,8 @@ namespace cserve {
         std::string fullname = prefix + "_" + name;
         std::string optionname = "--" + fullname;
         std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
-        _values[fullname] = std::make_shared<cserve::ConfValue>(prefix, optionname, std::move(defaultval),
-                                                            std::move(description), envname, _cserverOpts);
+        _values[fullname] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval,
+                                                            description, envname, _cserverOpts);
     }
 
     void CserverConf::parse_cmdline_args(int argc, const char *argv[]) {

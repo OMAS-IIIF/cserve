@@ -125,9 +125,9 @@ namespace cserve {
             return *this;
         }
 
-        inline std::string get_prefix() const { return _prefix; }
+        [[nodiscard]] inline std::string get_prefix() const { return _prefix; }
 
-        inline std::string get_optionname() const { return _optionname; }
+        [[nodiscard]] inline std::string get_optionname() const { return _optionname; }
 
         [[nodiscard]] inline DataType get_type() const { return _value_type; }
 
@@ -204,7 +204,7 @@ namespace cserve {
         }
 
 
-        inline std::optional<std::vector<RouteInfo>> get_luaroutes() const {
+        [[nodiscard]] inline std::optional<std::vector<RouteInfo>> get_luaroutes() const {
             if (_value_type == LUAROUTES) {
                 std::vector<std::string> tmp_str_vec{};
                 if ((_luaroutes_value.size() == 1) && (_luaroutes_value[0].find(';'))) {
@@ -215,7 +215,7 @@ namespace cserve {
                 }
                 std::vector<RouteInfo> routes{};
                 for (auto& rstr: tmp_str_vec) {
-                    routes.push_back(RouteInfo(rstr));
+                    routes.emplace_back(rstr);
                 }
                 return routes;
             }

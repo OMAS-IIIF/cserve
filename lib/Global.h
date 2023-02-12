@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __cserve_global_h
-#define __cserve_global_h
+#ifndef cserve_global_h
+#define cserve_global_h
 
 #include <string>
 #include <sstream>
@@ -64,7 +64,7 @@ namespace cserve {
     inline void debug_output(int line, const std::string &str) {
         const std::lock_guard<std::mutex> lock(debug_mutex);
         std::cerr << ">>>DEBUG line=" << line << ": " << str << std::endl;
-    };
+    }
 
 }
 

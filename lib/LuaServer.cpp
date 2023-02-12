@@ -45,6 +45,18 @@ static const char servertablename[] = "server";
 
 namespace cserve {
 
+    class JsonProcessingError : public std::runtime_error {
+    private:
+        std::string msg;
+    public:
+        explicit JsonProcessingError(const std::string &string) : runtime_error(string) {}
+
+        explicit JsonProcessingError(const char *string) : runtime_error(string) {}
+
+        explicit JsonProcessingError(const runtime_error &error) : runtime_error(error) {}
+
+    };
+
     char luaconnection[] = "__cserveconnection";
 
     /*!
@@ -175,7 +187,7 @@ namespace cserve {
 */
 
     static std::string base64_decode(std::string const &encoded_string) {
-        int in_len = encoded_string.size();
+        size_t in_len = encoded_string.size();
         int i = 0;
         int j = 0;
         int in_ = 0;
@@ -1148,7 +1160,7 @@ namespace cserve {
 
             if (str != nullptr) {
                 try {
-                    conn->send(str, len);
+                    conn->send(str, static_cast<std::streamsize>(len));
                 } catch (int ierr) {
                     lua_settop(L, 0); // clear stack
                     lua_pushboolean(L, false);
@@ -1484,7 +1496,7 @@ namespace cserve {
                 // Calculate how long the request took.
                 auto end = get_time::now();
                 auto diff = end - start;
-                int duration = std::chrono::duration_cast<ms>(diff).count();
+                int duration = static_cast<int>(std::chrono::duration_cast<ms>(diff).count());
 
                 // Return true to indicate that this function call succeeded.
                 lua_pushboolean(L, true);
@@ -1507,7 +1519,7 @@ namespace cserve {
 
                 lua_pushstring(L, "header"); // table1 - "header"
                 std::unordered_map<std::string, std::string> &responseHeaders = curlConnection.responseHeaders;
-                lua_createtable(L, 0, responseHeaders.size()); // table - "header" - table2
+                lua_createtable(L, 0, static_cast<int>(responseHeaders.size())); // table - "header" - table2
                 for (auto const &iterator : responseHeaders) {
                     lua_pushstring(L, iterator.first.c_str()); // table - "header" - table2 - headername
                     lua_pushstring(L, iterator.second.c_str()); // table - "header" - table2 - headername - headervalue
@@ -1552,7 +1564,7 @@ namespace cserve {
                 skey = std::string(lua_tostring(L, index + 1));
 
                 if (is_array) {
-                    throw std::string("'server.table_to_json(table)': Cannot mix int and strings as key");
+                    throw JsonProcessingError("'server.table_to_json(table)': Cannot mix int and strings as key");
                 }
                 if (!is_table) {
                     json_obj = nlohmann::json::object();
@@ -1563,7 +1575,7 @@ namespace cserve {
                 (void) lua_tointeger(L, index + 1);
 
                 if (is_table) {
-                    throw std::string("'server.table_to_json(table)': Cannot mix int and strings as key");
+                    throw JsonProcessingError("'server.table_to_json(table)': Cannot mix int and strings as key");
                 }
                 if (!is_array) {
                     json_obj = nlohmann::json::array();
@@ -1571,7 +1583,7 @@ namespace cserve {
                 }
             } else {
                 // something else as key....
-                throw std::string("'server.table_to_json(table)': Cannot convert key to JSON object field");
+                throw JsonProcessingError("'server.table_to_json(table)': Cannot convert key to JSON object field");
             }
 
             //
@@ -1592,7 +1604,7 @@ namespace cserve {
                      } else if (is_array) {
                         json_obj += ival;
                     } else {
-                        throw table_error;
+                        throw JsonProcessingError(table_error);
                     }
                 } else {
                     // the lua number is a double
@@ -1601,7 +1613,7 @@ namespace cserve {
                     } else if (is_array) {
                         json_obj += dval;
                     } else {
-                        throw table_error;
+                        throw JsonProcessingError(table_error);
                     }
                 }
             } else if (lua_type(L, index + 2) == LUA_TSTRING) {
@@ -1613,7 +1625,7 @@ namespace cserve {
                 } else if (is_array) {
                     json_obj += val;
                 } else {
-                    throw table_error;
+                    throw JsonProcessingError(table_error);
                 }
             } else if (lua_type(L, index + 2) == LUA_TBOOLEAN) {
                 // a boolean value
@@ -1624,7 +1636,7 @@ namespace cserve {
                 } else if (is_array) {
                     json_obj += val;
                 } else {
-                    throw table_error;
+                    throw JsonProcessingError(table_error);
                 }
             } else if (lua_type(L, index + 2) == LUA_TTABLE) {
                 if (is_table) {
@@ -1632,10 +1644,10 @@ namespace cserve {
                 } else if (is_array) {
                     json_obj += subtable(L, index + 2);
                 } else {
-                    throw table_error;
+                    throw JsonProcessingError(table_error);
                 }
             } else {
-                throw table_error;
+                throw JsonProcessingError(table_error);
             }
             lua_pop(L, 1);
         }
@@ -1666,10 +1678,10 @@ namespace cserve {
         nlohmann::json root;
         try {
             root = subtable(L, 1);
-        } catch (std::string &errmsg) {
+        } catch (const JsonProcessingError &errmsg) {
             lua_settop(L, 0); // clear stack
             lua_pushboolean(L, false);
-            lua_pushstring(L, errmsg.c_str());
+            lua_pushstring(L, errmsg.what());
         }
 
         lua_pushboolean(L, true); // we are successful...
@@ -1687,7 +1699,7 @@ namespace cserve {
 
     static void lua_jsonobj(lua_State *L, const nlohmann::json &obj) {
         if (obj.type() != nlohmann::json::value_t::object) {
-            throw std::string("'lua_jsonobj expects object");
+            throw JsonProcessingError("'lua_jsonobj expects object");
         }
 
         lua_createtable(L, 0, 0);
@@ -1740,13 +1752,13 @@ namespace cserve {
 
     static void lua_jsonarr(lua_State *L, const nlohmann::json &obj) {
         if (obj.type() != nlohmann::json::value_t::array) {
-            throw std::string("'lua_jsonarr expects array");
+            throw JsonProcessingError("'lua_jsonarr expects array");
         }
 
         lua_createtable(L, 0, 0);
         size_t index = 0;
-        for (auto val : obj) {
-            lua_pushinteger(L, index);
+        for (const auto &val : obj) {
+            lua_pushinteger(L, static_cast<int>(index));
             switch (val.type()) {
                 case nlohmann::json::value_t::null: {
                     lua_pushnil(L); // ToDo: we should create a custom Lua object named NULL!
@@ -1840,10 +1852,10 @@ namespace cserve {
                 lua_pushstring(L, "'server.json_to_table(jsonstr)': Not a valid json string");
                 return 2;
             }
-        } catch (std::string &errmsg) {
+        } catch (const JsonProcessingError &errmsg) {
             lua_settop(L, 0); // clear stack
             lua_pushboolean(L, false);
-            lua_pushstring(L, errmsg.c_str());
+            lua_pushstring(L, errmsg.what());
         }
 
         return 2;
@@ -1954,43 +1966,43 @@ namespace cserve {
                             std::string path = lua_tostring(L, -1);
                             cookie.path(path);
                         } else {
-                            throw std::string("'server.sendCookie(name, value[, options])': path is not string");
+                            throw JsonProcessingError("'server.sendCookie(name, value[, options])': path is not string");
                         }
                     } else if (optname == "domain") {
                         if (lua_isstring(L, -1)) {
                             std::string domain = lua_tostring(L, -1);
                             cookie.domain(domain);
                         } else {
-                            throw std::string("'server.sendCookie(name, value[, options])': domain is not string");
+                            throw JsonProcessingError("'server.sendCookie(name, value[, options])': domain is not string");
                         }
                     } else if (optname == "expires") {
                         if (lua_isinteger(L, -1)) {
                             int expires = lua_tointeger(L, -1);
                             cookie.expires(expires);
                         } else {
-                            throw std::string("'server.sendCookie(name, value[, options])': expires is not integer");
+                            throw JsonProcessingError("'server.sendCookie(name, value[, options])': expires is not integer");
                         }
                     } else if (optname == "secure") {
                         if (lua_isboolean(L, -1)) {
                             bool secure = lua_toboolean(L, -1);
                             if (secure) cookie.secure(secure);
                         } else {
-                            throw std::string("'server.sendCookie(name, value[, options])': secure is not boolean");
+                            throw JsonProcessingError("'server.sendCookie(name, value[, options])': secure is not boolean");
                         }
                     } else if (optname == "http_only") {
                         if (lua_isboolean(L, -1)) {
                             bool http_only = lua_toboolean(L, -1);
                             if (http_only) cookie.httpOnly(http_only);
                         } else {
-                            throw std::string("'server.sendCookie(name, value[, options])': http_only is not boolean");
+                            throw JsonProcessingError("'server.sendCookie(name, value[, options])': http_only is not boolean");
                         }
                     } else {
-                        throw std::string("'server.sendCookie(name, value[, options])': unknown option: ") + optname;
+                        throw JsonProcessingError("'server.sendCookie(name, value[, options])': unknown option: " + optname);
                     }
-                } catch (std::string &errmsg) {
+                } catch (const JsonProcessingError &errmsg) {
                     lua_settop(L, 0); // clear stack
                     lua_pushboolean(L, false);
-                    lua_pushstring(L, errmsg.c_str());
+                    lua_pushstring(L, errmsg.what());
                     return 2;
                 }
 
@@ -2163,8 +2175,15 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         auto token = jwt::create<nlohmann_traits>().set_type("JWT");
-
-        nlohmann::json root = subtable(L, 1);
+        nlohmann::json root;
+        try {
+            root = subtable(L, 1);
+        } catch (const JsonProcessingError &err) {
+            lua_settop(L, 0); // clear stack
+            lua_pushboolean(L, false);
+            lua_pushstring(L, err.what());
+            return 2;
+        }
         for (const auto &[key, val]: root.items()) {
             if (key == "iss") {
                 if (val.is_string()) {
@@ -2286,10 +2305,10 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         lua_pushboolean(L, true);
         try {
             lua_jsonobj(L, jsonobj);
-        } catch (std::string &errorMsg) {
+        } catch (const JsonProcessingError  &errorMsg) {
             lua_settop(L, 0); // clear stack
             lua_pushboolean(L, false);
-            std::string tmpstr = std::string("'server.decode_jwt(token)': Error in decoding token: ") + errorMsg;
+            std::string tmpstr = std::string("'server.decode_jwt(token)': Error in decoding token: ") + errorMsg.what();
             lua_pushstring(L, tmpstr.c_str());
             return 2;
         }
@@ -2615,7 +2634,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         lua_pushstring(L, "header"); // table1 - "index_L1"
         std::vector<std::string> headers = conn.header();
-        lua_createtable(L, 0, headers.size()); // table1 - "index_L1" - table2
+        lua_createtable(L, 0, static_cast<int>(headers.size())); // table1 - "index_L1" - table2
 
         for (auto & header : headers) {
             lua_pushstring(L, header.c_str()); // table1 - "index_L1" - table2 - "index_L2"
@@ -2628,7 +2647,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         std::unordered_map<std::string, std::string> cookies = conn.cookies();
         lua_pushstring(L, "cookies"); // table1 - "index_L1"
-        lua_createtable(L, 0, cookies.size()); // table1 - "index_L1" - table2
+        lua_createtable(L, 0, static_cast<int>(cookies.size())); // table1 - "index_L1" - table2
 
         for (const auto& cookie : cookies) {
             lua_pushstring(L, cookie.first.c_str());
@@ -2652,7 +2671,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         if (!get_params.empty()) {
             lua_pushstring(L, "get"); // table1 - "index_L1"
-            lua_createtable(L, 0, get_params.size()); // table1 - "index_L1" - table2
+            lua_createtable(L, 0, static_cast<int>(get_params.size())); // table1 - "index_L1" - table2
 
             for (auto & get_param : get_params) {
                 (void) lua_pushstring(L, get_param.c_str()); // table1 - "index_L1" - table2 - "index_L2"
@@ -2667,7 +2686,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         if (!post_params.empty()) {
             lua_pushstring(L, "post"); // table1 - "index_L1"
-            lua_createtable(L, 0, post_params.size()); // table1 - "index_L1" - table2
+            lua_createtable(L, 0, static_cast<int>(post_params.size())); // table1 - "index_L1" - table2
 
             for (auto & post_param : post_params) {
                 lua_pushstring(L, post_param.c_str()); // table1 - "index_L1" - table2 - "index_L2"
@@ -2682,12 +2701,12 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         if (!uploads.empty()) {
             lua_pushstring(L, "uploads"); // table1 - "index_L1"
-            lua_createtable(L, 0, uploads.size());     // table1 - "index_L1" - table2
+            lua_createtable(L, 0, static_cast<int>(uploads.size()));     // table1 - "index_L1" - table2
 
             for (unsigned i = 0; i < uploads.size(); i++) {
                 // In Lua, indexes are 1-based.
                 lua_pushinteger(L, i + 1);             // table1 - "index_L1" - table2 - "index_L2"
-                lua_createtable(L, 0, uploads.size()); // "table1" - "index_L1" - "table2" - "index_L2" - "table3"
+                lua_createtable(L, 0, static_cast<int>(uploads.size())); // "table1" - "index_L1" - "table2" - "index_L2" - "table3"
 
                 lua_pushstring(L,
                                "fieldname");          // "table1" - "index_L1" - "table2" - "index_L2" - "table3" - "index_L3"
@@ -2716,7 +2735,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                 lua_pushstring(L,
                                "filesize");           // "table1" - "index_L1" - "table2" - "index_L2" - "table3" - "index_L3"
                 lua_pushinteger(L,
-                                uploads[i].filesize); // "table1" - "index_L1" - "table2" - "index_L2" - "table3" - "index_L3" - "value_L3"
+                                static_cast<int>(uploads[i].filesize)); // "table1" - "index_L1" - "table2" - "index_L2" - "table3" - "index_L3" - "value_L3"
                 lua_rawset(L, -3);                       // "table1" - "index_L1" - "table2" - "index_L2" - "table3"
 
                 lua_rawset(L, -3); // table1 - "index_L1" - table2
@@ -2728,7 +2747,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
 
         if (!request_params.empty()) {
             lua_pushstring(L, "request"); // table1 - "index_L1"
-            lua_createtable(L, 0, request_params.size()); // table1 - "index_L1" - table2
+            lua_createtable(L, 0, static_cast<int>(request_params.size())); // table1 - "index_L1" - table2
 
             for (auto & request_param : request_params) {
                 lua_pushstring(L, request_param.c_str()); // table1 - "index_L1" - table2 - "index_L2"
@@ -3011,7 +3030,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         if (!lua_isstring(L, -1)) {
-            throw Error(file_, __LINE__, "\"TRACE\", \"DEBUG\", \"INFO\", \"WARN\", \"ERR\", \"CRITICAL\" or \"OFF\" expected for " + table + "." + variable);
+            throw Error(file_, __LINE__, R"("TRACE", "DEBUG", "INFO", "WARN", "ERR", "CRITICAL" or "OFF" expected for )" + table + "." + variable);
         }
 
         std::string loglevel_str = lua_tostring(L, -1);
@@ -3030,7 +3049,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             loglevel = loglevel_map.at(loglevel_str);
         }
         catch (const std::out_of_range &err) {
-            throw Error(file_, __LINE__, "\"TRACE\", \"DEBUG\", \"INFO\", \"WARN\", \"ERR\", \"CRITICAL\" or \"OFF\" expected for " + table + "." + variable);
+            throw Error(file_, __LINE__, R"("TRACE", "DEBUG", "INFO", "WARN", "ERR", "CRITICAL" or "OFF" expected for )" + table + "." + variable);
         }
 
         lua_pop(L, 2);
@@ -3408,7 +3427,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                 break;
             }
             case LuaValstruct::TABLE_TYPE: {
-                lua_createtable(L, 0, lv->value.table.size());
+                lua_createtable(L, 0, static_cast<int>(lv->value.table.size()));
                 for( const auto& keyval : lv->value.table ) {
                     lua_pushstring(L, keyval.first.c_str());
                     pushLuaValue(L, keyval.second);

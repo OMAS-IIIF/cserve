@@ -11,7 +11,6 @@
  */
 #include <string>
 #include <iostream>
-#include <sstream>
 #include <cstring>
 
 #include <sqlite3.h>
@@ -185,7 +184,7 @@ namespace cserve {
         }
 
         sqlite3_stmt *stmt_handle;
-        int status = sqlite3_prepare_v2(db->sqlite_handle, sql, strlen(sql), &stmt_handle, nullptr);
+        int status = sqlite3_prepare_v2(db->sqlite_handle, sql, static_cast<int>(strlen(sql)), &stmt_handle, nullptr);
 
         if (status != SQLITE_OK) {
             lua_pushstring(L, sqlite3_errmsg(db->sqlite_handle));
@@ -215,7 +214,7 @@ namespace cserve {
                                            {"__tostring", Sqlite_tostring},
                                            {"__shl",      Sqlite_query},
                                            {"__bnot",     Sqlite_destroy},
-                                           {0,            0}};
+                                           {nullptr,            nullptr}};
     //=========================================================================
 
 
@@ -268,9 +267,9 @@ namespace cserve {
                     size_t len;
                     const char *val = lua_tolstring(L, i, &len);
                     if (strlen(val) == len) { // it's a real string
-                        status = sqlite3_bind_text(stmt->stmt_handle, i - 1, val, len, SQLITE_TRANSIENT);
+                        status = sqlite3_bind_text(stmt->stmt_handle, i - 1, val, static_cast<int>(len), SQLITE_TRANSIENT);
                     } else {
-                        status = sqlite3_bind_blob(stmt->stmt_handle, i - 1, val, len, SQLITE_TRANSIENT);
+                        status = sqlite3_bind_blob(stmt->stmt_handle, i - 1, val, static_cast<int>(len), SQLITE_TRANSIENT);
                     }
                 } else if (lua_isnil(L, i)) {
                     status = sqlite3_bind_null(stmt->stmt_handle, i - 1);
@@ -369,7 +368,7 @@ namespace cserve {
                                          {"__tostring", Stmt_tostring},
                                          {"__call",     Stmt_next},
                                          {"__bnot",     Stmt_destroy},
-                                         {0,            0}};
+                                         {nullptr,            nullptr}};
     //=========================================================================
 
 

@@ -127,7 +127,7 @@ namespace cserve {
               _description(std::move(description)),
               _envname(std::move(envname)), _value_type(DATASIZE) {
         app->add_option(std::move(optionname), _datasize_value.size_ref(), _description)
-                ->envname(_envname)->transform(CLI::AsSizeValue(0));
+                ->envname(_envname)->transform(CLI::AsSizeValue(false));
     }
 
     ConfValue::ConfValue(std::string prefix, std::string optionname, spdlog::level::level_enum loglevel,

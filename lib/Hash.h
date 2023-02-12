@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __cserve_hash_h
-#define __cserve_hash_h
+#ifndef cserve_hash_h
+#define cserve_hash_h
 
 #include <iostream>
 

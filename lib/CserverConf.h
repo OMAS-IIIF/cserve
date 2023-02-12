@@ -53,17 +53,17 @@ namespace cserve {
 
         void add_config(const std::string &prefix, const std::string &name, int defaultval, const std::string &description);
 
-        void add_config(const std::string &prefix, std::string name, float defaultval, const std::string &description);
+        void add_config(const std::string &prefix, const std::string& name, float defaultval, const std::string &description);
 
-        void add_config(const std::string &prefix, std::string name, const char *defaultval, const std::string &description);
+        void add_config(const std::string &prefix, const std::string& name, const char *defaultval, const std::string &description);
 
-        void add_config(const std::string &prefix, std::string name, const std::string &defaultval, const std::string &description);
+        void add_config(const std::string &prefix, const std::string& name, const std::string &defaultval, const std::string &description);
 
-        void add_config(const std::string &prefix, std::string name, const cserve::DataSize &defaultval, const std::string &description);
+        void add_config(const std::string &prefix, const std::string& name, const cserve::DataSize &defaultval, const std::string &description);
 
-        void add_config(const std::string &prefix, std::string name, spdlog::level::level_enum defaultval, const std::string &description);
+        void add_config(const std::string &prefix, const std::string& name, spdlog::level::level_enum defaultval, const std::string &description);
 
-        void add_config(const std::string &prefix, std::string name, std::vector<cserve::RouteInfo> defaultval, const std::string &description);
+        void add_config(const std::string &prefix, const std::string& name, const std::vector<cserve::RouteInfo>& defaultval, const std::string &description);
 
         void parse_cmdline_args(int argc, const char *argv[]);
 

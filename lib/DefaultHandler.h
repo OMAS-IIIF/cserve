@@ -22,7 +22,7 @@ namespace cserve {
     public:
         DefaultHandler() : RequestHandler() {}
 
-        const std::string& name() const override;
+        [[nodiscard]] const std::string& name() const override;
 
         void handler(Connection& conn, LuaServer &lua, const std::string &route) override;
     };

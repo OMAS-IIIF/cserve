@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __defined_cserve_error_h
-#define __defined_cserve_error_h
+#ifndef defined_cserve_error_h
+#define defined_cserve_error_h
 
 #include <iostream>
 #include <string>

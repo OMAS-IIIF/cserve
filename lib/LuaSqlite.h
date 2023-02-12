@@ -19,6 +19,6 @@
 
 namespace cserve {
     extern void sqliteGlobals(lua_State *L, cserve::Connection &conn, void *user_data);
-};
+}
 
 #endif //CSERVE_LUASQLITE_H
