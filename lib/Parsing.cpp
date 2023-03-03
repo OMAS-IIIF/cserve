@@ -64,6 +64,8 @@ namespace cserve::Parsing {
             {"xhtml",   {"application/xhtml+xml"}},
             {"css",     {"text/css"}},
             {"xml",     {"text/xml", "application/xml"}},
+            {"odd",     {"text/xml", "text/html"}},
+            {"rng",     {"text/xml", "application/xml", "text/html"}},
             {"z",       {"application/x-compress"}},
             {"tgz",     {"application/x-compress"}},
             {"dvi",     {"application/x-dvi"}},

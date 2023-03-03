@@ -98,7 +98,7 @@ namespace cserve {
         //
         IIIFQualityFormat::FormatType in_format = IIIFQualityFormat::UNSUPPORTED;
 
-        std::string actual_mimetype = Parsing::getFileMimetype(infile).first;
+        std::string actual_mimetype = Parsing::getBestFileMimetype(infile);
         if (actual_mimetype == "image/tiff")
             in_format = IIIFQualityFormat::TIF;
         if (actual_mimetype == "image/jpeg")

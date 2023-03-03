@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LuaTest</title>
+</head>
+<body>
+<lua>
+server.print("Hello from Lua!")
+</lua>
+</body>
+</html>
