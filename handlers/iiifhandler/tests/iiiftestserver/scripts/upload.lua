@@ -3,12 +3,8 @@
 --- Created by rosenth.
 --- DateTime: 11.07.21 19:16
 ---
-function __send_error(msg)
-    server.print(msg)
-    server.log(msg, server.loglevel.LOG_ERR)
-    server.sendStatus(500)
-    return false
-end
+require "send_response"
+
 
 local filesize
 local origname
@@ -26,13 +22,11 @@ else
     protocol = 'http://'
 end
 
-for fileindex, fileinfo in pairs(server.uploads) do
-    filesize = fileinfo.filesize
-    origname = fileinfo.origname
-    mimetype = fileinfo.mimetype
-
+files = {}
+for imgindex, fileinfo in pairs(server.uploads) do
+    local mimetype
     local success, consistency
-    success, consistency = server.file_mimeconsistency(fileindex)
+    success, consistency = server.file_mimeconsistency(imgindex)
     if not success then
         return send_error(500, consistency)
     end
@@ -50,37 +44,35 @@ for fileindex, fileinfo in pairs(server.uploads) do
         mimetype = fileinfo["mimetype"]
     end
 
+    local info = {
+        filesize = fileinfo.filesize,
+        origname = fileinfo.origname,
+        mimetype = mimetype,
+        consistency = consistency
+    }
+
     if mimetype == "image/tiff" or mimetype == "image/jpeg" or mimetype == "image/png" or mimetype == "image/jpx" or mimetype == "image/jp2" then
-        success, myimg[imgindex] = SipiImage.new(imgindex)
+        success, myimg[imgindex] = IIIFImage.new(imgindex)
         if not success then
             server.log(myimg[imgindex], server.loglevel.error)
             send_error(500, myimg[imgindex])
             return false
         end
 
-        local uuid62
-        success, uuid62 = server.uuid62()
-        if not success then
-            server.log(uuid62, server.loglevel.error)
-            send_error(500, uuid62)
-            return false
-        end
-
         filename = fileinfo["origname"]
         filebody = filename:match("(.+)%..+")
         newfilename[imgindex] = "_" .. filebody .. '.jp2'
-        iiifurls[uuid62 .. ".jp2"] = protocol .. server.host .. '/iiif/' .. newfilename[imgindex]
-        iiifurls["filename"] = newfilename[imgindex]
+        info["filename"] = newfilename[imgindex]
 
         --
         -- Set orientation to topleft
         --
-        myimg[imgindex]:topleft()
+        --myimg[imgindex]:topleft()
 
         --
         -- Create the destination path
         --
-        fullfilepath = config.imgroot .. '/' .. newfilepath
+        fullfilepath = config.imgroot .. '/' .. newfilename[imgindex]
 
         --
         -- write the file to the destination
@@ -91,42 +83,19 @@ for fileindex, fileinfo in pairs(server.uploads) do
         end
     else
         fpath = config.imgroot .. '/' .. fileinfo.origname
+        info["filename"] = fileinfo.origname
         success, errmsg = server.copyTmpfile(fileindex, fpath)
         if not success then
-            return send_error(errmsg)
+            return send_error(500, errmsg)
         end
-
     end
-
+    table.insert(files, info)
     cnt = cnt + 1
 end
 
 result = {
     status = 'OK',
     cnt = cnt,
-    origname = origname,
-    mimetype = mimetype,
-    filesize = filesize,
-    consistency = consistency
+    files = files
 }
-local success, jsonresult = server.table_to_json(result)
-
---
--- remove uploaded file
---
-success, errmsg = server.fs.unlink(fpath)
-if not success then
-    return send_error(errmsg)
-end
-
-if not success then
-    server.log("server.table_to_json fail
-    ed: " .. errmsg, server.loglevel.LOG_ERR)
-    server.sendStatus(500)
-    print.print("server.table_to_json failed: " .. errmsg)
-    return false
-end
-server.sendHeader('Content-type', 'application/json')
-server.sendStatus(200)
-server.print(jsonresult)
-return true
+return send_success(result)

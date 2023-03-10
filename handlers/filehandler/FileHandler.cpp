@@ -15,6 +15,7 @@
 
 #include <vector>
 #include "Cserve.h"
+#include "HttpSendError.h"
 #include "FileHandler.h"
 #include "Parsing.h"
 
@@ -43,16 +44,8 @@ namespace cserve {
         std::string uri = conn.uri();
 
         if (_docroot.empty()) {
-            try {
-                conn.setBuffer();
-                conn.status(Connection::INTERNAL_SERVER_ERROR);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << "Error in FileHandler: FileHandler request data missing.\r\n";
-                conn.flush();
-            }
-            catch (InputFailure &err) {}
-            Server::logger()->error("Error in FileHandler: FileHandler request data missing.");
-            return;
+            send_error(conn, Connection::INTERNAL_SERVER_ERROR, "Error in FileHandler: FileHandler request data missing.");
+             return;
         }
 
         lua.add_servertableentry("docroot", _docroot);
@@ -93,14 +86,7 @@ namespace cserve {
         }
 
         if (access(path.c_str(), R_OK) != 0) { // test, if file exists
-            try {
-                conn.status(Connection::NOT_FOUND);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << "File not found.\r\n";
-                conn.flush();
-            }
-            catch (InputFailure &err) {}
-            Server::logger()->error("FileHandler: '{}' not readable.", path.string());
+            send_error(conn, Connection::NOT_FOUND, fmt::format("File not found: '{}'", path.c_str()));
             return;
         }
 
@@ -108,27 +94,11 @@ namespace cserve {
 
         if (stat(path.c_str(), &s) == 0) {
             if (!(s.st_mode & S_IFREG)) { // we have not a regular file, do nothing!
-                try {
-                    conn.setBuffer();
-                    conn.status(Connection::NOT_FOUND);
-                    conn.header("Content-Type", "text/text; charset=utf-8");
-                    conn << path << " not a regular file\r\n";
-                    conn.flush();
-                }
-                catch (InputFailure &err) {}
-                Server::logger()->error("FileHandler: '{}' is not regular file.", path.string());
+                send_error(conn, Connection::NOT_FOUND, fmt::format("'{}' not a regular file.", path.c_str()));
                 return;
             }
         } else {
-            try {
-                conn.setBuffer();
-                conn.status(Connection::NOT_FOUND);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << "Could not stat file" << path << "\r\n";
-                conn.flush();
-            }
-            catch (InputFailure &err) {}
-            Server::logger()->error("FileHandler: Could not stat '{}'", path.string());
+            send_error(conn, Connection::NOT_FOUND, fmt::format("Could not stat file: '{}'", path.c_str()));
             return;
         }
         std::pair<std::string, std::string> mime = Parsing::getFileMimetype(path.string());
@@ -165,16 +135,7 @@ namespace cserve {
                         return;
                     }
                 } catch (Error &err) {
-                    try {
-                        conn.status(Connection::INTERNAL_SERVER_ERROR);
-                        conn.header("Content-Type", "text/text; charset=utf-8");
-                        conn << "Lua Error:\r\n==========\r\n" << err << "\r\n";
-                        conn.flush();
-                    } catch (int i) {
-                        Server::logger()->error("FileHandler: error executing lua chunk: {}", err.to_string());
-                        return;
-                    }
-                    Server::logger()->error("FileHandler: error executing lua chunk: {}", err.to_string());
+                    send_error(conn, Connection::INTERNAL_SERVER_ERROR, fmt::format("Filehandler Lua Error:\r\n==========\r\n{}\r\n", err.to_string()));
                     return;
                 }
 
@@ -212,14 +173,7 @@ namespace cserve {
                             return;
                         }
                     } catch (Error &err) {
-                        try {
-                            conn.status(Connection::INTERNAL_SERVER_ERROR);
-                            conn.header("Content-Type", "text/text; charset=utf-8");
-                            conn << "Lua Error:\r\n==========\r\n" << err << "\r\n";
-                            conn.flush();
-                        } catch (InputFailure &iofail) {}
-
-                        Server::logger()->error("FileHandler: error executing lua chunk: {}", err.to_string());
+                        send_error(conn, Connection::INTERNAL_SERVER_ERROR, fmt::format("Lua Error:\r\n==========\r\n{}\r\n", err.to_string()));
                         return;
                     }
                 }

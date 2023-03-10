@@ -77,11 +77,11 @@ namespace cserve {
                     catch (const std::out_of_range &err) { ; // do nothing, no size restriction
                     }
                     if (!ok) {
-                        send_error(conn, Connection::UNAUTHORIZED, "Unauthorized access");
+                        send_error(conn, Connection::UNAUTHORIZED, "Unauthorized access (#1)");
                         return;
                     }
                 } else {
-                    send_error(conn, Connection::UNAUTHORIZED, "Unauthorized access");
+                    send_error(conn, Connection::UNAUTHORIZED, "Unauthorized access (#2)");
                     return;
                 }
             }

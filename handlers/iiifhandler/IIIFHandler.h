@@ -39,6 +39,7 @@ namespace cserve {
     class IIIFHandler: public RequestHandler {
     private:
         const static std::string _name;
+        std::string _scriptdir;
         std::string _imgroot;
         std::string _cachedir;
         std::string _pre_flight_func_name;
@@ -55,8 +56,11 @@ namespace cserve {
 
         std::shared_ptr<IIIFCache> _cache;
     public:
+        /**
+         * Initializes the libraries the IIF handler needs
+         */
         [[maybe_unused]]
-        IIIFHandler() : RequestHandler() {}
+        IIIFHandler();
 
         [[nodiscard]]
         const std::string& name() const override;

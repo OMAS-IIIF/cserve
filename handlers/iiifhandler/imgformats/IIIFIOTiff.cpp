@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cerrno>
+#include <unordered_map>
 
 #include "../IIIFError.h"
 #include "../IIIFImage.h"
@@ -192,6 +193,7 @@ typedef enum {
     EXIF_DT_UINT16 = 3,
     EXIF_DT_UINT32 = 4,
     EXIF_DT_RATIONAL = 5,
+    EXIF_DT_URATIONAL = 6,
     EXIF_DT_2ST = 7,
 
     EXIF_DT_RATIONAL_PTR = 101,
@@ -223,8 +225,10 @@ typedef struct exif_tag_ {
     };
 } ExifTag_type;
 
-static ExifTag_type exiftag_list[] = {{EXIFTAG_EXPOSURETIME,             EXIF_DT_RATIONAL,   0L, {0L}},
-                                      {EXIFTAG_FNUMBER,                  EXIF_DT_RATIONAL,   0L, {0L}},
+#include "exif_tagmap.h"
+
+static ExifTag_type exiftag_list[] = {{EXIFTAG_EXPOSURETIME,             EXIF_DT_URATIONAL,   0L, {0L}},
+                                      {EXIFTAG_FNUMBER,                  EXIF_DT_URATIONAL,   0L, {0L}},
                                       {EXIFTAG_EXPOSUREPROGRAM,          EXIF_DT_UINT16,     0L, {0L}},
                                       {EXIFTAG_SPECTRALSENSITIVITY,      EXIF_DT_STRING,     0L, {0L}},
                                       {EXIFTAG_ISOSPEEDRATINGS,          EXIF_DT_UINT16_PTR, 0L, {0L}},
@@ -233,17 +237,17 @@ static ExifTag_type exiftag_list[] = {{EXIFTAG_EXPOSURETIME,             EXIF_DT
                                       {EXIFTAG_DATETIMEORIGINAL,         EXIF_DT_STRING,     0L, {0L}},
                                       {EXIFTAG_DATETIMEDIGITIZED,        EXIF_DT_STRING,     0L, {0L}},
                                       {EXIFTAG_COMPONENTSCONFIGURATION,  EXIF_DT_UNDEFINED,  0L, {1L}}, // !!!! would be 4cc
-                                      {EXIFTAG_COMPRESSEDBITSPERPIXEL,   EXIF_DT_RATIONAL,   0L, {0L}},
+                                      {EXIFTAG_COMPRESSEDBITSPERPIXEL,   EXIF_DT_URATIONAL,  0L, {0L}},
                                       {EXIFTAG_SHUTTERSPEEDVALUE,        EXIF_DT_RATIONAL,   0L, {0L}},
-                                      {EXIFTAG_APERTUREVALUE,            EXIF_DT_RATIONAL,   0L, {0l}},
+                                      {EXIFTAG_APERTUREVALUE,            EXIF_DT_URATIONAL,  0L, {0l}},
                                       {EXIFTAG_BRIGHTNESSVALUE,          EXIF_DT_RATIONAL,   0L, {0l}},
                                       {EXIFTAG_EXPOSUREBIASVALUE,        EXIF_DT_RATIONAL,   0L, {0l}},
-                                      {EXIFTAG_MAXAPERTUREVALUE,         EXIF_DT_RATIONAL,   0L, {0l}},
-                                      {EXIFTAG_SUBJECTDISTANCE,          EXIF_DT_RATIONAL,   0L, {0l}},
+                                      {EXIFTAG_MAXAPERTUREVALUE,         EXIF_DT_URATIONAL,  0L, {0l}},
+                                      {EXIFTAG_SUBJECTDISTANCE,          EXIF_DT_URATIONAL,   0L, {0l}},
                                       {EXIFTAG_METERINGMODE,             EXIF_DT_UINT16,     0L, {0l}},
                                       {EXIFTAG_LIGHTSOURCE,              EXIF_DT_UINT16,     0L, {0l}},
                                       {EXIFTAG_FLASH,                    EXIF_DT_UINT16,     0L, {0l}},
-                                      {EXIFTAG_FOCALLENGTH,              EXIF_DT_RATIONAL,   0L, {0l}},
+                                      {EXIFTAG_FOCALLENGTH,              EXIF_DT_URATIONAL,   0L, {0l}},
                                       {EXIFTAG_SUBJECTAREA,              EXIF_DT_UINT16_PTR, 0L, {0L}}, //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ARRAY OF SHORTS
                                       {EXIFTAG_MAKERNOTE,                EXIF_DT_UNDEFINED,  0L, {0L}},
                                       {EXIFTAG_USERCOMMENT,              EXIF_DT_PTR,        0L, {0L}},
@@ -269,7 +273,7 @@ static ExifTag_type exiftag_list[] = {{EXIFTAG_EXPOSURETIME,             EXIF_DT
                                       {EXIFTAG_CUSTOMRENDERED,           EXIF_DT_UINT16,     0L, {0l}},
                                       {EXIFTAG_EXPOSUREMODE,             EXIF_DT_UINT16,     0L, {0l}},
                                       {EXIFTAG_WHITEBALANCE,             EXIF_DT_UINT16,     0L, {0l}},
-                                      {EXIFTAG_DIGITALZOOMRATIO,         EXIF_DT_RATIONAL,   0L, {0l}},
+                                      {EXIFTAG_DIGITALZOOMRATIO,         EXIF_DT_URATIONAL,   0L, {0l}},
                                       {EXIFTAG_FOCALLENGTHIN35MMFILM,    EXIF_DT_UINT16,     0L, {0l}},
                                       {EXIFTAG_SCENECAPTURETYPE,         EXIF_DT_UINT16,     0L, {0l}},
                                       {EXIFTAG_GAINCONTROL,              EXIF_DT_UINT16,     0L, {0l}},
@@ -370,7 +374,7 @@ namespace cserve {
 
 
     static void tiffWarning(const char *module, const char *fmt, va_list argptr) {
-        Server::logger()->warn("ERROR IN TIFF! Module: {}", module);
+        Server::logger()->warn("WARNING IN TIFF! Module: {}", module);
         char buf[512];
         vsnprintf(buf, 511, fmt, argptr);
         buf[511] = '\0';
@@ -1322,6 +1326,26 @@ namespace cserve {
         }
     }
 
+    static std::string get_group(int tag_id) {
+        std::string group;
+        try {
+            switch (exif_IFD_map.at(tag_id)) {
+                case EXIF_IFD_IMAGE:
+                    group = "Image";
+                    break;
+                case EXIF_IFD_PHOTO:
+                    group = "Photo";
+                    break;
+                case EXIF_IFD_GPSINFO:
+                    group = "GPSInfo";
+                    break;
+            }
+        } catch (const std::out_of_range &err) {
+            group = "Image";
+        }
+        return std::move(group);
+    }
+
     void IIIFIOTiff::readExif(IIIFImage &img, TIFF *tif, toff_t exif_offset) {
         uint16_t curdir = TIFFCurrentDirectory(tif);
 
@@ -1333,9 +1357,21 @@ namespace cserve {
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &f)) {
                             Exiv2::Rational r = IIIFExif::toRational(f);
                             try {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", r);
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), r);
                             } catch (const IIIFError &err) {
-                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
+                            }
+                        }
+                        break;
+                    }
+                    case EXIF_DT_URATIONAL: {
+                        float f;
+                        if (TIFFGetField(tif, exiftag_list[i].tag_id, &f)) {
+                            Exiv2::Rational r = IIIFExif::toURational(f);
+                            try {
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), r);
+                            } catch (const IIIFError &err) {
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
                             }
                         }
                         break;
@@ -1344,9 +1380,9 @@ namespace cserve {
                         unsigned char uc;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &uc)) {
                             try {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", uc);
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), uc);
                             } catch (const IIIFError &err) {
-                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
                             }
                         }
                         break;
@@ -1355,9 +1391,9 @@ namespace cserve {
                         unsigned short us;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &us)) {
                             try {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", us);
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), us);
                             } catch (const IIIFError &err) {
-                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
                             }
                         }
                         break;
@@ -1366,9 +1402,9 @@ namespace cserve {
                         unsigned int ui;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &ui)) {
                             try {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", ui);
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), ui);
                             } catch (const IIIFError &err) {
-                                Server::logger()->warn("Error reading EXIF data of tag with id={}.",
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}.",
                                                        exiftag_list[i].tag_id);
                             }
                         }
@@ -1378,9 +1414,11 @@ namespace cserve {
                         char *tmpstr = nullptr;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &tmpstr)) {
                             try {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpstr);
+                                std::string tmptmpstr{tmpstr};
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), tmptmpstr);
                             } catch (const IIIFError &err) {
-                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}. {}", __LINE__, exiftag_list[i].tag_id,
+                                                       tmpstr == nullptr ? "NULLPTR" : tmpstr);
                             }
                         }
                         break;
@@ -1394,9 +1432,9 @@ namespace cserve {
                                 r[ii] = IIIFExif::toRational(tmpbuf[ii]);
                             }
                             try {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", r.data(), len);
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), r.data(), len);
                             } catch (const IIIFError &err) {
-                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
                             }
                         }
                         break;
@@ -1406,9 +1444,9 @@ namespace cserve {
                         uint16_t len;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &len, &tmpbuf)) {
                             try {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), tmpbuf, len);
                             } catch (const IIIFError &err) {
-                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
                             }
                         }
                         break;
@@ -1418,9 +1456,9 @@ namespace cserve {
                         uint16_t len; // in bytes !!
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &len, &tmpbuf)) {
                             try {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), tmpbuf, len);
                             } catch (const IIIFError &err) {
-                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
                             }
                         }
                         break;
@@ -1430,9 +1468,9 @@ namespace cserve {
                         uint16_t len;
                         if (TIFFGetField(tif, exiftag_list[i].tag_id, &len, &tmpbuf)) {
                             try {
-                                img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                                img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), tmpbuf, len);
                             } catch (const IIIFError &err) {
-                                Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                Server::logger()->warn("(#{}) Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
                             }
                         }
                         break;
@@ -1444,18 +1482,18 @@ namespace cserve {
                         if (exiftag_list[i].len == 0) {
                             if (TIFFGetField(tif, exiftag_list[i].tag_id, &len, &tmpbuf)) {
                                 try {
-                                    img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                                    img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), tmpbuf, len);
                                 } catch (const IIIFError &err) {
-                                    Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                    Server::logger()->warn("Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
                                 }
                             }
                         } else {
                             len = exiftag_list[i].len;
                             if (TIFFGetField(tif, exiftag_list[i].tag_id, &tmpbuf)) {
                                 try {
-                                    img.exif->addKeyVal(exiftag_list[i].tag_id, "Photo", tmpbuf, len);
+                                    img.exif->addKeyVal(exiftag_list[i].tag_id, get_group(exiftag_list[i].tag_id), tmpbuf, len);
                                 } catch (const IIIFError &err) {
-                                    Server::logger()->warn("Error reading EXIF data of tag with id={}.", exiftag_list[i].tag_id);
+                                    Server::logger()->warn("Error reading EXIF data of tag with id={}.", __LINE__, exiftag_list[i].tag_id);
                                 }
                             }
                         }
@@ -1486,6 +1524,18 @@ namespace cserve {
                     Exiv2::Rational r;
                     if (img.exif->getValByKey(exiftag_list[i].tag_id, "Photo", r)) {
                         float f = (float) r.first / (float) r.second;
+                        std::cerr << "1) &&== EXIF TAG=" << exiftag_list[i].tag_id << " RAT: "<< f << std::endl;
+                        TIFFSetField(tif, exiftag_list[i].tag_id, f);
+                        count++;
+                    }
+                    break;
+                }
+                case EXIF_DT_URATIONAL: {
+                    Exiv2::Rational r;
+                    if (img.exif->getValByKey(exiftag_list[i].tag_id, "Photo", r)) {
+                        float f = (float) r.first / (float) r.second;
+                        if (f < 0.0F) f = -f;
+                        std::cerr << "1) &&== EXIF TAG=" << exiftag_list[i].tag_id << " RAT: "<< f << std::endl;
                         TIFFSetField(tif, exiftag_list[i].tag_id, f);
                         count++;
                     }

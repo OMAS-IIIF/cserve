@@ -127,7 +127,7 @@ add_library(iiifhandler MODULE
         imgformats/IIIFIOPng.cpp imgformats/IIIFIOPng.h
         imgformats/IIIFIOJpeg.cpp imgformats/IIIFIOJpeg.h
         imgformats/IIIFIOJ2k.cpp imgformats/IIIFIOJ2k.h
-        IIIFPhotometricInterpretation.h IIIFGetCanonicalUrl.cpp)
+        IIIFPhotometricInterpretation.h IIIFGetCanonicalUrl.cpp imgformats/exif_tagmap.h)
 
 add_dependencies(iiifhandler
         icc_profiles

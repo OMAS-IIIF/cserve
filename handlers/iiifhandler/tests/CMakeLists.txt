@@ -50,7 +50,7 @@ add_executable (iiifparser_tests test_iiifparser.cpp
         ../iiifparser/IIIFSize.cpp ../iiifparser/IIIFSize.h
         ../iiifparser/IIIFRotation.cpp ../iiifparser/IIIFRotation.h
         ../iiifparser/IIIFQualityFormat.cpp ../iiifparser/IIIFQualityFormat.h
-        ../iiifparser/IIIFIdentifier.cpp ../iiifparser/IIIFIdentifier.h)
+        ../iiifparser/IIIFIdentifier.cpp ../iiifparser/IIIFIdentifier.h ../imgformats/exif_tagmap.h)
 
 target_link_libraries(iiifparser_tests PRIVATE
         cserve

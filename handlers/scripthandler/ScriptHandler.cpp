@@ -11,6 +11,7 @@
  */
 #include <unistd.h>
 
+#include "HttpSendError.h"
 #include "ScriptHandler.h"
 #include "../../lib/LuaServer.h"
 #include "../../lib/Cserve.h"
@@ -41,28 +42,12 @@ namespace cserve {
             scriptname = routedata.at(route);
         }
         catch(std::out_of_range &err) {
-            try {
-                conn.setBuffer();
-                conn.status(Connection::INTERNAL_SERVER_ERROR);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << "Error in ScriptHandler: No script route defined.\r\n";
-                conn.flush();
-            }
-            catch (InputFailure &err) {}
-            Server::logger()->error("Error in ScriptHandler: No script route defined.");
+            send_error(conn, Connection::INTERNAL_SERVER_ERROR, "ScriptHandler: No script route defined.");
             return;
         }
 
         if (scriptname.empty()) {
-            try {
-                conn.setBuffer();
-                conn.status(Connection::INTERNAL_SERVER_ERROR);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << "Error in ScriptHandler: No script path defined.\r\n";
-                conn.flush();
-            }
-            catch (InputFailure &err) {}
-            Server::logger()->error("Error in ScriptHandler: No script path defined.");
+            send_error(conn, Connection::INTERNAL_SERVER_ERROR, "ScriptHandler: No script path defined.");
             return;
         }
 
@@ -71,25 +56,11 @@ namespace cserve {
 
         std::error_code ec; // For noexcept overload usage.
         if (!std::filesystem::exists(scriptpath, ec) && !ec) {
-            try {
-                conn.status(Connection::NOT_FOUND);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << "File not found\n";
-                conn.flush();
-            }
-            catch (InputFailure &err) {}
-            Server::logger()->error("Error in ScriptHandler: Script '{}' not existing", scriptpath.string());
+            send_error(conn, Connection::NOT_FOUND, fmt::format("ScriptHandler: Script '{}' not existing", scriptpath.string()));
             return;
         }
         if (access(scriptpath.c_str(), R_OK) != 0) { // test, if file exists
-            try {
-                conn.status(Connection::NOT_FOUND);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << "File not found\n";
-                conn.flush();
-            }
-            catch (InputFailure &err) {}
-            Server::logger()->error("Error in ScriptHandler: Script '{}' not readable", scriptpath.string());
+            send_error(conn, Connection::NOT_FOUND, fmt::format("ScriptHandler: File not found: '{}'", scriptpath.string()));
             return;
         }
 
@@ -109,17 +80,8 @@ namespace cserve {
                         return;
                     }
                 } catch (Error &err) {
-                    try {
-                        conn.setBuffer();
-                        conn.status(Connection::INTERNAL_SERVER_ERROR);
-                        conn.header("Content-Type", "text/text; charset=utf-8");
-                        conn << "Lua Error:\r\n==========\r\n" << err << "\r\n";
-                        conn.flush();
-                    } catch (int i) {
-                        return;
-                    }
-
-                    Server::logger()->error("ScriptHandler: error executing lua script: '{}'", err.to_string());
+                    send_error(conn, Connection::INTERNAL_SERVER_ERROR,
+                               fmt::format("Scripthandler Lua Error:\r\n==========\r\n{}\r\n", err.to_string()));
                     return;
                 }
                 conn.flush();
@@ -157,16 +119,8 @@ namespace cserve {
                             return;
                         }
                     } catch (Error &err) {
-                        try {
-                            conn.status(Connection::INTERNAL_SERVER_ERROR);
-                            conn.header("Content-Type", "text/text; charset=utf-8");
-                            conn << "Lua Error:\r\n==========\r\n" << err << "\r\n";
-                            conn.flush();
-                        } catch (InputFailure &iofail) {
-                            return;
-                        }
-
-                        Server::logger()->error("ScriptHandler: error executing lua chunk: '{}'", err.to_string());
+                        send_error(conn, Connection::INTERNAL_SERVER_ERROR,
+                                   fmt::format("Lua Error:\r\n==========\r\n{}}\r\n", err.to_string()));
                         return;
                     }
                 }
@@ -175,25 +129,14 @@ namespace cserve {
                 conn << htmlcode;
                 conn.flush();
             } else {
-                conn.status(Connection::INTERNAL_SERVER_ERROR);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << "Script has no valid extension: '" << extension << "' !";
-                conn.flush();
-                Server::logger()->error("ScriptHandler: error executing script, unknown extension: '{}'", extension);
+                send_error(conn, Connection::INTERNAL_SERVER_ERROR,
+                           fmt::format("Script has no valid extension: '{}'", extension));
             }
         } catch (InputFailure &iofail) {
+            Server::logger()->error("ScriptHandler: internal error: cannot send data...");
             return; // we have an io error => just return, the thread will exit
         } catch (Error &err) {
-            try {
-                conn.status(Connection::INTERNAL_SERVER_ERROR);
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn << err;
-                conn.flush();
-            } catch (InputFailure &iofail) {
-                return;
-            }
-            std::cerr << "=====>ScriptHandler::handler: " << __LINE__ << std::endl;
-            Server::logger()->error("ScriptHandler: internal error: '{}'", err.to_string());
+            send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
             return;
         }
     }

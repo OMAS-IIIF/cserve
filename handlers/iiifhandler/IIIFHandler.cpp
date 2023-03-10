@@ -18,10 +18,15 @@
 #include "IIIFHandler.h"
 #include "IIIFCache.h"
 #include "IIIFLua.h"
+#include "imgformats/IIIFIOTiff.h"
 
 namespace cserve {
 
     const std::string IIIFHandler::_name = "iiifhandler";
+
+    IIIFHandler::IIIFHandler() : RequestHandler() {
+        IIIFIOTiff::initLibrary();
+    }
 
     const std::string& IIIFHandler::name() const {
         return _name;
@@ -37,9 +42,71 @@ namespace cserve {
         // {scheme}://{server}/{pre/fix/...}/{identifier}/file" -> serve as blob
         //
 
-
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
+
+        std::string scriptname{};
+        try {
+            scriptname = routedata.at(route);
+        }
+        catch(std::out_of_range &err) {
+            send_error(conn, Connection::INTERNAL_SERVER_ERROR, "Error in IIIFHandler: No script route defined.");
+            return;
+        }
+
+        if (scriptname != "/C++") {
+            if (scriptname.empty()) {
+                send_error(conn, Connection::INTERNAL_SERVER_ERROR, "IIIFHandler: No script path defined.");
+                return;
+            }
+            std::filesystem::path scriptpath(_scriptdir);
+            scriptpath /= scriptname;
+
+            std::error_code ec; // For noexcept overload usage.
+            if (!std::filesystem::exists(scriptpath, ec) && !ec) {
+                send_error(conn, Connection::NOT_FOUND, fmt::format("ScriptHandler: Script '{}' not existing", scriptpath.string()));
+                return;
+            }
+            if (access(scriptpath.c_str(), R_OK) != 0) { // test, if file exists
+                send_error(conn, Connection::NOT_FOUND, fmt::format("ScriptHandler: File not found: '{}'", scriptpath.string()));
+                return;
+            }
+
+            std::string extension = scriptpath.extension();
+
+            try {
+                if (extension == ".lua") { // pure lua
+                    std::ifstream inf;
+                    inf.open(scriptpath); //open the input file
+                    std::stringstream sstr;
+                    sstr << inf.rdbuf(); //read the file
+                    std::string luacode = sstr.str();//str holds the content of the file
+                    inf.close();
+                    try {
+                        if (lua.executeChunk(luacode, scriptpath.c_str()) < 0) {
+                            conn.flush();
+                            return;
+                        }
+                    } catch (Error &err) {
+                        send_error(conn, Connection::INTERNAL_SERVER_ERROR,
+                                   fmt::format("Scripthandler Lua Error:\r\n==========\r\n{}\r\n", err.to_string()));
+                        return;
+                    }
+                    conn.flush();
+                } else {
+                    send_error(conn, Connection::INTERNAL_SERVER_ERROR,
+                               fmt::format("Script has no valid extension: '{}'", extension));
+                }
+            } catch (InputFailure &iofail) {
+                Server::logger()->error("ScriptHandler: internal error: cannot send data...");
+                return; // we have an io error => just return, the thread will exit
+            } catch (Error &err) {
+                send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
+                return;
+            }
+            return;
+        }
+
 
         std::vector<std::string> parts;
         {
@@ -248,6 +315,7 @@ namespace cserve {
     }
 
     void IIIFHandler::get_config_variables(const CserverConf &conf) {
+        _scriptdir = conf.get_string("scriptdir").value_or("-- no scriptdir --");
         _imgroot = conf.get_string("imgroot").value_or("-- no imgroot --");
         _max_tmp_age = conf.get_int("max_tmp_age").value_or(86400);
         _prefix_as_path = conf.get_bool("prefix_as_path").value_or(false);

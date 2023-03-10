@@ -267,34 +267,47 @@ namespace cserve {
                                const std::shared_ptr<IIIFSize>& size,
                                bool force_bps_8,
                                ScalingQuality scaling_quality) {
-        size_t pos = filepath.find_last_of('.');
-        std::string fext = filepath.substr(pos + 1);
-        std::string _fext;
+        std::filesystem::path fpath(filepath);
+        std::string fext(fpath.extension().string());
 
-        _fext.resize(fext.size());
+        std::string _fext;
         std::transform(fext.begin(), fext.end(), _fext.begin(), ::tolower);
 
         try {
-            if ((_fext == "tif") || (_fext == "tiff")) {
-                return io[std::string("tif")]->read(filepath, pagenum, region, size, force_bps_8, scaling_quality);
+            if (_fext.empty()) {
+                for (auto const &iterator : io) {
+                    try {
+                        return iterator.second->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+                    }
+                    catch (const IIIFImageError &err) { }
+                }
+            } else if ((_fext == "tif") || (_fext == "tiff")) {
+                return io["tif"]->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
             } else if ((_fext == "jpg") || (_fext == "jpeg")) {
-                return io[std::string("jpg")]->read(filepath, pagenum, region, size, force_bps_8, scaling_quality);
+                return io["jpg"]->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
             } else if (_fext == "png") {
-                return io[std::string("png")]->read(filepath, pagenum, region, size, force_bps_8, scaling_quality);
+                return io["png"]->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
             } else if ((_fext == "jp2") || (_fext == "jpx") || (_fext == "j2k")) {
-                return io[std::string("jpx")]->read(filepath, pagenum, region, size, force_bps_8, scaling_quality);
+                return io["jpx"]->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+            }
+            // file seems to have the wrong extension, let's try all image formats we support
+            for (auto const &iterator : io) {
+                try {
+                    return iterator.second->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+                }
+                catch (const IIIFImageError &err) { }
             }
         }
         catch (const IIIFImageError &err) {
             for (auto const &iterator : io) {
                 try {
-                    return iterator.second->read(filepath, pagenum, region, size, force_bps_8, scaling_quality);
+                    return iterator.second->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
                 }
                 catch (const IIIFImageError &err) { }
             }
-            throw IIIFImageError(file_, __LINE__, "Could not read file " + filepath);
+            throw IIIFImageError(file_, __LINE__, fmt::format("Could not read file '{}'", fpath.string()));
          }
-         throw IIIFImageError(file_, __LINE__, "Could not read file " + filepath);
+         throw IIIFImageError(file_, __LINE__, fmt::format("Could not read file '{}'", fpath.string()));
     }
     //============================================================================
 

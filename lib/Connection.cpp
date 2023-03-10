@@ -459,7 +459,7 @@ namespace cserve {
                                     throw Error(file_, __LINE__, "_tmpdir is empty");
                                 }
 
-                                tmpname = _tmpdir + "/sipi_XXXXXXXX";
+                                tmpname = _tmpdir + "/cserve_XXXXXXXX";
 
                                 auto writable = make_unique<char[]>(tmpname.size() + 1);
                                 std::copy(tmpname.begin(), tmpname.end(), writable.get());
@@ -467,7 +467,7 @@ namespace cserve {
                                 int fd = mkstemp(writable.get());
 
                                 if (fd == -1) {
-                                    throw Error(file_, __LINE__, "Could not create temporary filename!");
+                                    throw Error(file_, __LINE__, fmt::format("Could not create temporary filename in '{}'!", _tmpdir));
                                 }
 
                                 tmpname = string(writable.get());
@@ -475,7 +475,7 @@ namespace cserve {
                                 ofstream outf(tmpname, ofstream::out | ofstream::trunc | ofstream::binary);
 
                                 if (outf.fail()) {
-                                    throw Error(file_, __LINE__, "Could not open temporary file!");
+                                    throw Error(file_, __LINE__, fmt::format("Could not open temporary file '{}'!", tmpname));
                                 }
 
                                 //

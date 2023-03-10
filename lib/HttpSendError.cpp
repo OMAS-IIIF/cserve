@@ -20,7 +20,7 @@ namespace cserve {
         try {
             conn_obj.status(code);
             conn_obj.setBuffer();
-            conn_obj.header("Content-Type", "text/plain");
+            conn_obj.header("Content-Type", "text/plain; charset=utf-8");
 
             switch (code) {
                 case Connection::BAD_REQUEST:
@@ -61,14 +61,13 @@ namespace cserve {
             conn_obj << http_err_name;
 
             if (!errmsg.empty()) {
-                conn_obj << ": " << errmsg;
+                conn_obj << ": " << errmsg << "\r\n";
             }
-
             conn_obj.flush();
         }
         catch (InputFailure &err) {}
 
-        cserve::Server::logger()->error("GET {} failed ({})", conn_obj.uri(), http_err_name);
+        cserve::Server::logger()->error("HTTP request {} failed ({}): {}", conn_obj.uri(), http_err_name, errmsg);
     }
 
     /*!

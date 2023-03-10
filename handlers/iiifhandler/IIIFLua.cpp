@@ -1,7 +1,8 @@
 #include <string>
 #include <iostream>
+#include <filesystem>
 #include <cstring>
-
+#include <sys/stat.h>
 #include <Connection.h>
 #include <Parsing.h>
 
@@ -429,9 +430,9 @@ namespace cserve {
 
         try {
             if (!original.empty()) {
-                cserve::IIIFImage::readOriginal(imgpath, pagenum, region, size, original, htype);
+                *simg.image = cserve::IIIFImage::readOriginal(imgpath, pagenum, region, size, original, htype);
             } else {
-                cserve::IIIFImage::read(imgpath, pagenum, region, size);
+                *simg.image = cserve::IIIFImage::read(imgpath, pagenum, region, size);
             }
         } catch (IIIFImageError &err) {
             delete img->image;
@@ -914,15 +915,12 @@ namespace cserve {
         };
 
         std::string tag{tagname};
-        std::cerr << "?=?=?=?=? TAGNAME=" << tag << std::endl;
         auto tagiter = taglist.find(tag);
         std::string fulltag{"Exif." + tagiter->second.first + "." + tagiter->first};
         if (tagiter != taglist.end()) {
             switch (tagiter->second.second) {
                 case EXIV2_ASCII:
-                    std::cerr << "?=?=?=?=? Before LUA:get_exif" << std::endl;
                     get_exif_string(L, exif, fulltag);
-                    std::cerr << "?=?=?=?=? After LUA:get_exif" << std::endl;
                     break;
                 case EXIV2_ASCIIV:
                     get_exif_stringv(L, exif, fulltag);
@@ -1703,7 +1701,7 @@ namespace cserve {
                                               {"rotate",               SImage_rotate}, // myimg * 45.0
                                               {"watermark",            SImage_watermark}, // myimg + "wm-path"
                                               {"mimetype_consistency", SImage_mimetype_consistency},
-                                              {0,                      0}};
+                                              {nullptr,                      nullptr}};
     //=========================================================================
 
     static int SImage_gc(lua_State *L) {
@@ -1726,7 +1724,7 @@ namespace cserve {
 
     static const luaL_Reg SImage_meta[] = {{"__gc",       SImage_gc},
                                            {"__tostring", SImage_tostring},
-                                           {0,            0}};
+                                           {nullptr,            nullptr}};
     //=========================================================================
 
 
