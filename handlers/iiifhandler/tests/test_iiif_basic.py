@@ -81,9 +81,19 @@ class TestServer:
         status_code = manager.get_status_code('iiif/DenyLeaves.jpg/full/max/0/default.jpg')
         assert status_code == 401
 
+    def test_file_allow(self, manager):
+        """get file from IIIF directory"""
+        iiifurl = "iiif/{}/file".format("_test.csv")
+        assert manager.compare_iiif_bytes("iiif/test_allow.csv/file", manager.iiif_imgroot_path("test_allow.csv"))
+
+    def test_file_deny(self, manager):
+        """deny get file from IIIF directory"""
+        status_code = manager.get_status_code('iiif/test_deny.csv/file')
+        assert status_code == 401
+
     def test_iiif_upload_tiff(self, manager):
         """upload of tiff image and conversion to JPX and back"""
-        expect_response = {
+        expected_response = {
             'cnt': 1,
             'files': [
                 {'consistency': True,
@@ -95,6 +105,26 @@ class TestServer:
             'status': 'OK'
         }
         response = manager.upload("upload", "./data/IMG_8207.tiff", "image/tiff")
-        assert response == expect_response
+        assert response == expected_response
         difference = manager.compare_iiif_images("iiif/_IMG_8207.jp2/full/max/0/default.tif", "./data/IMG_8207.tiff", "PAE")
         assert difference == 0
+
+    def test_iiif_upload_file(self, manager):
+        """upload a non-image file"""
+        expected_response = {
+            'cnt': 1,
+            'files': [
+                {
+                    'consistency': True,
+                    'filename': '_test.csv',
+                    'filesize': 39707,
+                    'mimetype': 'text/csv',
+                    'origname': 'test.csv'
+                 }
+            ],
+            'status': 'OK'
+        }
+        response = manager.upload('upload', "./data/test.csv", "text/csv")
+        assert response == expected_response
+        iiifurl = "iiif/{}/file".format("_test.csv")
+        assert manager.compare_iiif_bytes(iiifurl, "./data/test.csv")

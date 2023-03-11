@@ -48,10 +48,10 @@ namespace cserve {
         std::string watermark;                                // path to watermark file, or empty, if no watermark required
         auto restriction_size = std::make_shared<IIIFSize>(); // size of restricted image... (SizeType::FULL if unrestricted)
 
-        if (luaserver.luaFunctionExists(_pre_flight_func_name)) {
+        if (luaserver.luaFunctionExists(_iiif_preflight_funcname)) {
             std::unordered_map<std::string, std::string> pre_flight_info;
             try {
-                pre_flight_info = call_pre_flight(conn, luaserver, params.at(IIIF_PREFIX), sid.get_identifier());
+                pre_flight_info = call_iiif_preflight(conn, luaserver, params.at(IIIF_PREFIX), sid.get_identifier());
             }
             catch (IIIFError &err) {
                 send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());

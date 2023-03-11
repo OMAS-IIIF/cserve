@@ -105,6 +105,7 @@ add_library(iiifhandler MODULE
         IIIFError.cpp IIIFError.h
         IIIFSendInfo.cpp
         IIIFSendFile.cpp
+        IIIFSendBlob.cpp
         IIIFPreflight.cpp
         IIIFCheckFileAccess.cpp
         IIIFCache.cpp IIIFCache.h

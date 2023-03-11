@@ -20,8 +20,8 @@ namespace cserve {
         std::string infile;
 
         IIIFIdentifier sid(params.at(IIIF_IDENTIFIER));
-        if (luaserver.luaFunctionExists(_pre_flight_func_name)) {
-            pre_flight_info = call_pre_flight(conn_obj, luaserver, params.at(IIIF_PREFIX), sid.get_identifier()); // may throw SipiError
+        if (luaserver.luaFunctionExists(_iiif_preflight_funcname)) {
+            pre_flight_info = call_iiif_preflight(conn_obj, luaserver, params.at(IIIF_PREFIX), sid.get_identifier()); // may throw SipiError
             infile = pre_flight_info["infile"];
         }
         else {

@@ -239,12 +239,7 @@ namespace cserve {
 
         try {
             if (file_ok && id_ok) {
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn.setBuffer();
-                conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
-                conn << ">>>Send file as blob" << Connection::endl;
-                conn << "prefix=" << iiif_str_params[IIIF_PREFIX] << Connection::endl;
-                conn << "file=" << iiif_str_params[IIIF_IDENTIFIER] << Connection::endl;
+                send_iiif_blob(conn, lua, iiif_str_params);
             }
             else if (info_ok && id_ok) {
                 send_iiif_info(conn, lua, iiif_str_params);
@@ -292,7 +287,8 @@ namespace cserve {
         conf.add_config(_name, "prefix_as_path", false, "Flag, if set indicates that the IIIF prefix is part of the path to the image file (deprecated).");
         conf.add_config(_name, "cachedir", "./cache", "Path to cache folder.");
         conf.add_config(_name, "cachesize", DataSize("200MB"), "Maximal size of cache, e.g. '500M'.");
-        conf.add_config(_name, "preflight_name", "pre_flight", "Name of the preflight lua function.");
+        conf.add_config(_name, "iiif_preflight_name", "iiif_preflight", "Name of the preflight lua function for IIIF requests.");
+        conf.add_config(_name, "file_preflight_name", "file_preflight", "Name of the preflight lua function for file requests (..../file).");
         conf.add_config(_name, "max_num_cache_files", 200, "The maximal number of files to be cached.");
         conf.add_config(_name, "cache_hysteresis", 0.15f, "If the cache becomes full, the given percentage of file space is marked for reuse (0.0 - 1.0).");
         conf.add_config(_name, "thumbsize", "!128,128", "Size of the thumbnails (to be used within Lua).");
@@ -323,7 +319,8 @@ namespace cserve {
         _cache_size = conf.get_datasize("cachesize").value_or(DataSize("200MB"));
         _max_num_chache_files = conf.get_int("max_num_cache_files").value_or(200);
         _cache_hysteresis = conf.get_float("cache_hysteresis").value_or(0.15f);
-        _pre_flight_func_name = conf.get_string("preflight_name").value_or("pre_flight");
+        _iiif_preflight_funcname = conf.get_string("iiif_preflight_name").value_or("iiif_preflight");
+        _file_preflight_funcname = conf.get_string("file_preflight_name").value_or("file_preflight");
         _thumbnail_size = conf.get_string("thumbsize").value_or("!128,128");
         _jpeg_quality = conf.get_int("jpeg_quality").value_or(80);
         _scaling_quality.jpeg = get_scaling_quality(conf, "jpeg_scaling_quality", "medium");
@@ -374,7 +371,7 @@ namespace cserve {
         lua_rawset(L, -3); // table1
 
         lua_pushstring(L, "preflight_name");
-        lua_pushstring(L, _pre_flight_func_name.c_str());
+        lua_pushstring(L, _iiif_preflight_funcname.c_str());
         lua_rawset(L, -3); // table1
 
         lua_pushstring(L, "thumbsize");

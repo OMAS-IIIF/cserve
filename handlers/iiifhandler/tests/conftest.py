@@ -2,7 +2,7 @@ import filecmp
 import shlex
 import tempfile
 from inspect import getmembers
-from typing import Any
+from typing import Any, Dict
 
 import psutil
 import pytest
@@ -272,13 +272,13 @@ class CserverProcessManager:
         return int(compare_out_regex_match.group(1))
 
 
-    def upload(self, route: str, filepath: str, mimetype: str) -> Any:
+    def upload(self, route: str, filepath: str, mimetype: str, data: Dict = None) -> Any:
         response = {}
         basename = os.path.basename(filepath)
         files = {'file': (basename, open(filepath, 'rb'), mimetype)}
         route = 'http://localhost:8080/' + route
         try:
-            response = requests.post(route, files=files)
+            response = requests.post(route, data=data, files=files)
             response.raise_for_status()
         except:
             raise CserverTestError("POST request to {} failed: {}".format(route, response.json()["message"]))

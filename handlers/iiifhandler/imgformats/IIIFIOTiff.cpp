@@ -1524,7 +1524,6 @@ namespace cserve {
                     Exiv2::Rational r;
                     if (img.exif->getValByKey(exiftag_list[i].tag_id, "Photo", r)) {
                         float f = (float) r.first / (float) r.second;
-                        std::cerr << "1) &&== EXIF TAG=" << exiftag_list[i].tag_id << " RAT: "<< f << std::endl;
                         TIFFSetField(tif, exiftag_list[i].tag_id, f);
                         count++;
                     }
@@ -1535,7 +1534,6 @@ namespace cserve {
                     if (img.exif->getValByKey(exiftag_list[i].tag_id, "Photo", r)) {
                         float f = (float) r.first / (float) r.second;
                         if (f < 0.0F) f = -f;
-                        std::cerr << "1) &&== EXIF TAG=" << exiftag_list[i].tag_id << " RAT: "<< f << std::endl;
                         TIFFSetField(tif, exiftag_list[i].tag_id, f);
                         count++;
                     }

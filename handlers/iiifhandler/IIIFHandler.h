@@ -42,7 +42,8 @@ namespace cserve {
         std::string _scriptdir;
         std::string _imgroot;
         std::string _cachedir;
-        std::string _pre_flight_func_name;
+        std::string _iiif_preflight_funcname;
+        std::string _file_preflight_funcname;
         int _max_tmp_age;
         bool _prefix_as_path;
         DataSize _cache_size;
@@ -73,10 +74,14 @@ namespace cserve {
 
         void set_lua_globals(lua_State *L, cserve::Connection &conn) override;
 
-        std::unordered_map<std::string, std::string> call_pre_flight(Connection &conn_obj,
-                                                                     LuaServer &luaserver,
-                                                                     const std::string &prefix,
-                                                                     const std::string &identifier) const;
+        std::unordered_map<std::string, std::string> call_iiif_preflight(Connection &conn_obj,
+                                                                         LuaServer &luaserver,
+                                                                         const std::string &prefix,
+                                                                         const std::string &identifier) const;
+
+        std::unordered_map<std::string, std::string> call_blob_preflight(Connection &conn_obj,
+                                                                         LuaServer &luaserver,
+                                                                         const std::string &filepath) const;
 
         std::unordered_map<std::string, std::string> check_file_access(Connection &conn_obj,
                                                                        LuaServer &luaserver,
@@ -86,6 +91,8 @@ namespace cserve {
         void send_iiif_info(Connection &conn_obj, LuaServer &luaserver, const std::unordered_map<Parts,std::string> &params) const;
 
         void send_iiif_file(Connection &conn_obj, LuaServer &luaserver, const std::unordered_map<Parts,std::string> &params) const;
+
+        void send_iiif_blob(Connection &conn_obj, LuaServer &luaserver, const std::unordered_map<Parts,std::string> &params) const;
 
         inline std::shared_ptr<IIIFCache> cache() const { return _cache; }
 

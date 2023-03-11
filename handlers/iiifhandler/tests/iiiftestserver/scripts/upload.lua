@@ -6,15 +6,11 @@
 require "send_response"
 
 
-local filesize
-local origname
-local mimetype
 local cnt = 0
 local fpath
 
 local myimg = {}
 local newfilename = {}
-local iiifurls = {}
 
 if server.secure then
     protocol = 'https://'
@@ -61,7 +57,13 @@ for imgindex, fileinfo in pairs(server.uploads) do
 
         filename = fileinfo["origname"]
         filebody = filename:match("(.+)%..+")
-        newfilename[imgindex] = "_" .. filebody .. '.jp2'
+        local format = '.'
+        if server.post and server.post["format"] ~= nil then
+            format = format .. server.post["format"]
+        else
+            format = format .. 'jp2'
+        end
+        newfilename[imgindex] = "_" .. filebody .. format
         info["filename"] = newfilename[imgindex]
 
         --
@@ -82,9 +84,9 @@ for imgindex, fileinfo in pairs(server.uploads) do
             server.print('Error converting image to j2k: ', filename, ' ** ', errmsg)
         end
     else
-        fpath = config.imgroot .. '/' .. fileinfo.origname
-        info["filename"] = fileinfo.origname
-        success, errmsg = server.copyTmpfile(fileindex, fpath)
+        fpath = config.imgroot .. '/_' .. fileinfo.origname
+        info["filename"] = '_' .. fileinfo.origname
+        success, errmsg = server.copyTmpfile(imgindex, fpath)
         if not success then
             return send_error(500, errmsg)
         end
