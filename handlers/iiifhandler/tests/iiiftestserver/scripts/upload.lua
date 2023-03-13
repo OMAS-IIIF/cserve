@@ -20,8 +20,7 @@ end
 
 files = {}
 for imgindex, fileinfo in pairs(server.uploads) do
-    local mimetype
-    local success, consistency
+    local mimetype, consistency
     success, consistency = server.file_mimeconsistency(imgindex)
     if not success then
         return send_error(500, consistency)
@@ -69,7 +68,7 @@ for imgindex, fileinfo in pairs(server.uploads) do
         --
         -- Set orientation to topleft
         --
-        --myimg[imgindex]:topleft()
+        myimg[imgindex]:topleft()
 
         --
         -- Create the destination path
@@ -83,6 +82,7 @@ for imgindex, fileinfo in pairs(server.uploads) do
         if not status then
             server.print('Error converting image to j2k: ', filename, ' ** ', errmsg)
         end
+
     else
         fpath = config.imgroot .. '/_' .. fileinfo.origname
         info["filename"] = '_' .. fileinfo.origname

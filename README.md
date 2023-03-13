@@ -42,6 +42,7 @@ The following packages have to be install locally:
   - psutil
   - requests
   - pyJWT
+  - pillow
 
 The following steps have to be made:
 

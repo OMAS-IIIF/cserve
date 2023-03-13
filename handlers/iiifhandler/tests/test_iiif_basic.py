@@ -1,3 +1,5 @@
+import shutil
+
 import pytest
 import os
 import pprint
@@ -106,8 +108,7 @@ class TestServer:
         }
         response = manager.upload("upload", "./data/IMG_8207.tiff", "image/tiff")
         assert response == expected_response
-        difference = manager.compare_iiif_images("iiif/_IMG_8207.jp2/full/max/0/default.tif", "./data/IMG_8207.tiff", "PAE")
-        assert difference == 0
+        assert manager.compare_iiif_images("iiif/_IMG_8207.jp2/full/max/0/default.tif", "./data/IMG_8207.tiff")
 
     def test_iiif_upload_file(self, manager):
         """upload a non-image file"""
@@ -126,5 +127,24 @@ class TestServer:
         }
         response = manager.upload('upload', "./data/test.csv", "text/csv")
         assert response == expected_response
-        iiifurl = "iiif/{}/file".format("_test.csv")
-        assert manager.compare_iiif_bytes(iiifurl, "./data/test.csv")
+        assert manager.compare_iiif_bytes("iiif/_test.csv/file", "./data/test.csv")
+
+    def test_orientation_topleft(self, manager):
+        """rectifying the image orientation to topleft"""
+        response = manager.upload("upload", "./data/image_orientation.jpg", "image/jpeg")
+        filename = response["files"][0]["filename"]
+        assert manager.compare_iiif_images("iiif/{}/full/max/0/default.tif".format(filename), "./data/image_orientation.tif")
+
+    def test_4bit_palette_png(self, manager):
+        """Test reading 4 bit palette png with alpha channel"""
+        response = manager.upload("upload", "data/mario.png", "image/png")
+        filename = response["files"][0]["filename"]
+        assert manager.compare_iiif_images("iiif/{}/full/max/0/default.tif".format(filename), "./data/mario.tif")
+
+    def test_upscaling(self, manager):
+        response = manager.upload("upload", "data/astronomical_clock.tif", "image/tiff")
+        filename = response["files"][0]["filename"]
+        print(filename)
+        gaga = manager.download_file("iiif/{}/full/^1000,/0/default.tif".format(filename), ".tif")
+        shutil.copyfile(gaga, "./data/astronomical_clock_upscaled.tif")
+        #assert manager.compare_iiif_images("iiif/{}/full/^1000,/0/default.tif".format(filename), "./data/mario.tif")

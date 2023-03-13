@@ -1406,6 +1406,34 @@ namespace cserve {
     //=========================================================================
 
     /*!
+     * success = SipiImage.topleft(img)
+     * success = <img>:topleft()
+     *
+     * @param L Lua interpreter
+     * @return Always 2 (one param, success, on stack)
+     */
+    static int SImage_set_topleft(lua_State *L) {
+        int top = lua_gettop(L);
+
+        if (top != 1) {
+            lua_pop(L, top);
+            lua_pushboolean(L, false);
+            lua_pushstring(L, "IIIFImage.topleft(): Incorrect number of arguments");
+            return 2;
+        }
+
+        SImage *img = checkSImage(L, 1);
+
+        img->image->set_topleft();
+        img->image->setOrientation(TOPLEFT);
+
+        lua_pop(L, lua_gettop(L));
+        lua_pushboolean(L, true);
+        return 1;
+    }
+
+
+    /*!
      * SipiImage.watermark(img, <wm-file>)
      */
     static int SImage_watermark(lua_State *L) {
@@ -1699,7 +1727,8 @@ namespace cserve {
                                               {"crop",                 SImage_crop}, // myimg - "100,100,500,500"
                                               {"scale",                SImage_scale}, // myimg % "500,"
                                               {"rotate",               SImage_rotate}, // myimg * 45.0
-                                              {"watermark",            SImage_watermark}, // myimg + "wm-path"
+                                              {"topleft",              SImage_set_topleft}, //
+                                              {"watermark",             SImage_watermark}, // myimg + "wm-path"
                                               {"mimetype_consistency", SImage_mimetype_consistency},
                                               {nullptr,                      nullptr}};
     //=========================================================================

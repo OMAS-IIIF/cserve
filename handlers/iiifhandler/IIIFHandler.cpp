@@ -178,37 +178,40 @@ namespace cserve {
                     send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts before 'quality.format' missing.");
                     return;
                 }
-                rotation_ok = std::regex_match(parts[partspos], std::regex(rotation_ex));
+                std::string rotation_str = urldecode(parts[partspos]);
+                rotation_ok = std::regex_match(rotation_str, std::regex(rotation_ex));
                 if (!rotation_ok) {
                     std::string errormsg = fmt::format("IIIF rotation parameter '{}' not valid.", parts[partspos]);
                     send_error(conn, Connection::BAD_REQUEST, errormsg);
                     return;
                 }
-                iiif_str_params[IIIF_ROTATION] = parts[partspos];
+                iiif_str_params[IIIF_ROTATION] = rotation_str;
                 partspos--;
                 if (partspos < 0) {
                     send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts before 'rotation' missing.");
                     return;
                 }
-                size_ok = std::regex_match(parts[partspos], std::regex(size_ex));
+                std::string size_str = urldecode(parts[partspos]);
+                size_ok = std::regex_match(size_str, std::regex(size_ex));
                 if (!size_ok) {
                     std::string errormsg = fmt::format("IIIF size parameter '{}' not valid.", parts[partspos]);
                     send_error(conn, Connection::BAD_REQUEST, errormsg);
                     return;
                 }
-                iiif_str_params[IIIF_SIZE] = parts[partspos];
+                iiif_str_params[IIIF_SIZE] = size_str;
                 partspos--;
                 if (partspos < 0) {
                     send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts befire 'size' are missing.");
                     return;
                 }
-                region_ok = std::regex_match(parts[partspos], std::regex(region_ex));
+                std::string region_str = urldecode(parts[partspos]);
+                region_ok = std::regex_match(region_str, std::regex(region_ex));
                 if (!region_ok) {
                     std::string errormsg = fmt::format("IIIF region parameter '{}' not valid.", parts[partspos]);
                     send_error(conn, Connection::BAD_REQUEST, errormsg);
                     return;
                 }
-                iiif_str_params[IIIF_REGION] = parts[partspos];
+                iiif_str_params[IIIF_REGION] = region_str;
                 partspos--;
                 if (partspos < 0) {
                     send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Identifier is missing.");

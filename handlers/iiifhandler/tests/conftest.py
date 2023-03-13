@@ -16,6 +16,8 @@ import time
 import requests
 import glob
 
+from PIL import Image, ImageChops
+
 from pprint import pprint
 
 
@@ -255,21 +257,29 @@ class CserverProcessManager:
         else:
             return False
 
-    def compare_iiif_images(self, iiifpath: str, referencepath: str, metric: str, headers=None) -> int:
+    def compare_iiif_images(self, iiifpath: str, referencepath: str, headers=None) -> bool:
         expected_file_basename, expected_file_extension = os.path.splitext(referencepath)
         downloaded_file_path = self.download_file(iiifpath, headers=headers, suffix=expected_file_extension)
 
-        compare_process_args = shlex.split(
-            self.compare_command.format(metric, referencepath, downloaded_file_path))
-        compare_process = subprocess.run(compare_process_args,
-                                         stdout=subprocess.PIPE,
-                                         stderr=subprocess.STDOUT,
-                                         universal_newlines=True)
-
-        compare_out_str = compare_process.stdout
-        compare_out_regex_match = self.compare_out_re.match(compare_out_str)
-        assert compare_out_regex_match is not None, "Couldn't parse comparison result: {}".format(compare_out_str)
-        return int(compare_out_regex_match.group(1))
+        im1 = Image.open(referencepath)
+        im2 = Image.open(downloaded_file_path)
+        diff = ImageChops.difference(im1, im2)
+        if diff.getbbox():
+            return False
+        else:
+            return True
+        # compare_process_args = shlex.split(
+        #     self.compare_command.format(metric, referencepath, downloaded_file_path))
+        # compare_process = subprocess.run(compare_process_args,
+        #                                  stdout=subprocess.PIPE,
+        #                                  stderr=subprocess.STDOUT,
+        #                                  universal_newlines=True)
+        #
+        #
+        # compare_out_str = compare_process.stdout
+        # compare_out_regex_match = self.compare_out_re.match(compare_out_str)
+        # assert compare_out_regex_match is not None, "Couldn't parse comparison result: {}".format(compare_out_str)
+        # return int(compare_out_regex_match.group(1))
 
 
     def upload(self, route: str, filepath: str, mimetype: str, data: Dict = None) -> Any:

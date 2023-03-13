@@ -741,7 +741,7 @@ namespace cserve {
                 } else {
                     tw = th = 0;
                 }
-                if (mindim > 1024) {
+                if (mindim >= 1024) {
                     std::stringstream ss;
                     ss << "Stiles={" << tw << "," << th << "}";
                     siz.parse_string(ss.str().c_str());
@@ -885,7 +885,6 @@ namespace cserve {
                 codestream.access_siz()->parse_string("Cuse_eph=yes");
             }
 
-
             codestream.access_siz()->finalize_all(); // Set up coding defaults
 
             jp2_dimensions jp2_family_dimensions = jpx_stream.access_dimensions();
@@ -945,7 +944,7 @@ namespace cserve {
                         case icc_unknown: {
                             unsigned int icc_len;
                             auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len).get();
-                            jp2_family_colour.init(icc_bytes);
+                            jp2_family_colour.init(icc_bytes); // TODO: Crashed here
                             break;
                         }
                         case icc_sRGB: {
@@ -997,6 +996,7 @@ namespace cserve {
                             jp2_family_colour.init(icc_bytes);
                         }
                     }
+
                 }
                 catch (kdu_exception e) {
                     if (es.is_set()) es.use_icc(true);
