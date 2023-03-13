@@ -142,9 +142,4 @@ class TestServer:
         assert manager.compare_iiif_images("iiif/{}/full/max/0/default.tif".format(filename), "./data/mario.tif")
 
     def test_upscaling(self, manager):
-        response = manager.upload("upload", "data/astronomical_clock.tif", "image/tiff")
-        filename = response["files"][0]["filename"]
-        print(filename)
-        gaga = manager.download_file("iiif/{}/full/^1000,/0/default.tif".format(filename), ".tif")
-        shutil.copyfile(gaga, "./data/astronomical_clock_upscaled.tif")
-        #assert manager.compare_iiif_images("iiif/{}/full/^1000,/0/default.tif".format(filename), "./data/mario.tif")
+        assert manager.compare_iiif_images("iiif/astronomical_clock.jp2/full/^1000,/0/default.tif", "data/astronomical_clock_upscaled.tif")
