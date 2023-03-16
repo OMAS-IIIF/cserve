@@ -107,12 +107,19 @@ namespace cserve {
             return;
         }
 
-
+        std::cerr << "&&== uri=" << uri << std::endl;
+        //if (uri[0] == '/') uri.erase(0,1);
         std::vector<std::string> parts;
         {
             std::vector<std::string> tmpparts = split(uri, '/');
+            if (tmpparts[0].empty()) tmpparts.erase(tmpparts.begin());
             for (auto &part: tmpparts) {
-                parts.push_back(part);
+                if (!part.empty()) {
+                    parts.push_back(part);
+                } else {
+                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Empty parts '//' in URL.");
+                    return;
+                }
             }
         }
 
@@ -144,13 +151,8 @@ namespace cserve {
         size_t pos = parts[parts.size() - 1].find('?');
         std::string tmpstr;
 
-        if (partspos < 0) {
-            send_error(conn, Connection::BAD_REQUEST, "Empty path not allowed for IIIF request");
-            return;
-        }
         if (pos != std::string::npos) {
             options_ok = true;
-            tmpstr = parts[partspos].substr(0, pos);
             iiif_str_params[IIIF_OPTIONS] = parts[partspos].substr(pos + 1, std::string::npos);
         }
         else {
@@ -222,7 +224,7 @@ namespace cserve {
                 info_ok = true;
                 partspos--;
                 if (partspos < 0) {
-                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts before '/file' are missing.");
+                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts before '/info.json' are missing.");
                     return;
                 }
             }
@@ -236,18 +238,22 @@ namespace cserve {
             for (int i = 0; i < partspos; i++) {
                 if (i > 0) prefix << "/";
                 prefix << urldecode(parts[i]);
+                std::cerr << "&&.. parts[" << i << "] = '" << parts[i] << "'" << std::endl;
             }
             iiif_str_params[IIIF_PREFIX] = prefix.str(); // includes starting "/"!
         }
 
         try {
             if (file_ok && id_ok) {
+                std::cerr << "&&-- send_iiif_blob" << std::endl;
                 send_iiif_blob(conn, lua, iiif_str_params);
             }
             else if (info_ok && id_ok) {
+                std::cerr << "&&-- send_iiif_info" << std::endl;
                 send_iiif_info(conn, lua, iiif_str_params);
             }
             else if (id_ok && format_ok && quality_ok && region_ok && size_ok && rotation_ok) {
+                std::cerr << "&&-- send_iiif_file" << std::endl;
                 send_iiif_file(conn, lua, iiif_str_params);
             }
             else if (id_ok) {
@@ -255,10 +261,11 @@ namespace cserve {
                 conn.status(Connection::SEE_OTHER);
                 std::string redirect;
                 if (conn.secure()) {
-                    redirect = fmt::format("https://{}{}/{}/info.json", conn.host(), iiif_str_params[IIIF_PREFIX], iiif_str_params[IIIF_IDENTIFIER]);
+                    redirect = fmt::format("https://{}/{}/{}/info.json", conn.host(), iiif_str_params[IIIF_PREFIX], iiif_str_params[IIIF_IDENTIFIER]);
                 } else {
-                    redirect = fmt::format("http://{}{}/{}/info.json", conn.host(), iiif_str_params[IIIF_PREFIX], iiif_str_params[IIIF_IDENTIFIER]);
+                    redirect = fmt::format("http://{}/{}/{}/info.json", conn.host(), iiif_str_params[IIIF_PREFIX], iiif_str_params[IIIF_IDENTIFIER]);
                 }
+                std::cerr << "&&-- REDIRECT to " << redirect << std::endl;
                 conn.header("Location", redirect);
                 conn.header("Content-Type", "text/plain");
                 conn << "Redirect to " << redirect;
@@ -267,10 +274,14 @@ namespace cserve {
                 return;
             }
             else {
+                send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. IIIF URl syntax is screwed up.");
+                return;
+/*
                 conn.header("Content-Type", "text/text; charset=utf-8");
                 conn.setBuffer();
                 conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
                 conn << ">>>Send UNKNOWN!" << Connection::endl;
+*/
             }
             conn << Connection::flush_data;
         }

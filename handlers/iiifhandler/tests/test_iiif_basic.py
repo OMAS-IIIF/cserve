@@ -13,11 +13,16 @@ class TestServer:
 
     def test_iiif_parsing(self, manager):
         """return 400 for invalid IIIF URL's"""
-        # assert manager.get_status_code("iiif//lena512.jp2") == 400 # TODO!!!!
-        #assert manager.get_status_code("iiif/lena512.jp2/max/0/default.jpg") == 400
-        #assert manager.get_status_code("iiif/lena512.jp2/full/max/default.jpg") == 400
-        #assert manager.get_status_code("iiif/lena512.jp2/full/max/!/default.jpg") == 400
-        #assert manager.get_status_code("iiif/lena512.jp2/full/max/0/jpg") == 400
+        assert manager.get_status_code("iiif//lena512.jp2") == 400  # TODO!!!!
+        assert manager.get_status_code("iiif/lena512.jp2/max/0/default.jpg") == 400
+        assert manager.get_status_code("iiif/lena512.jp2/full/max/default.jpg") == 400
+        assert manager.get_status_code("iiif/lena512.jp2/full/max/!/default.jpg") == 400
+        # The following URL is valid IIIF V3 syntax:
+        # "iiif": the route
+        # "/lena512.jp2/full/max/0/": the prefixes
+        # "/jpg": the ID
+        # This URL will be redirected to "iiif/lena512.jp2/full/max/0/jpg/info.json"
+        assert manager.get_status_code("iiif/lena512.jp2/full/max/0/jpg") == 500  # this is a valid URL, but of course no file
 
     def test_get_iiif(self, manager):
         """get an image file using IIIF syntax"""
@@ -55,7 +60,7 @@ class TestServer:
             'extraFormats': ['tif', 'jp2'],
             'extraQualities': ['color', 'gray', 'bitonal'],
             'height': 800,
-            'id': 'http://localhost:8080//iiif/test_01.tif',
+            'id': 'http://localhost:8080/iiif/test_01.tif',
             'preferredFormats': ['jpg', 'tif', 'jp2', 'png'],
             'profile': 'level2',
             'protocol': 'http://iiif.io/api/image',
