@@ -107,12 +107,18 @@ namespace cserve {
             return;
         }
 
-        std::cerr << "&&== uri=" << uri << std::endl;
-        //if (uri[0] == '/') uri.erase(0,1);
+        std::unordered_map<Parts,std::string> iiif_str_params;
+        iiif_str_params[IIIF_ROUTE] = route;
+        iiif_str_params[IIIF_ROUTE].erase(0, 1);
         std::vector<std::string> parts;
         {
             std::vector<std::string> tmpparts = split(uri, '/');
-            if (tmpparts[0].empty()) tmpparts.erase(tmpparts.begin());
+            if (tmpparts[0].empty()) {
+                tmpparts.erase(tmpparts.begin());
+            }
+            if (tmpparts[0] == iiif_str_params[IIIF_ROUTE]) {
+                tmpparts.erase(tmpparts.begin());
+            }
             for (auto &part: tmpparts) {
                 if (!part.empty()) {
                     parts.push_back(part);
@@ -131,8 +137,6 @@ namespace cserve {
         std::string size_ex = R"(^(\^?max)|(\^?pct:[0-9]*\.?[0-9]*)|(\^?[0-9]*,)|(\^?,[0-9]*)|(\^?!?[0-9]*,[0-9]*)$)";
         std::string region_ex = R"(^(full)|(square)|([0-9]+,[0-9]+,[0-9]+,[0-9]+)|(pct:[0-9]*\.?[0-9]*,[0-9]*\.?[0-9]*,[0-9]*\.?[0-9]*,[0-9]*\.?[0-9]*)$)";
 
-
-        std::unordered_map<Parts,std::string> iiif_str_params;
         bool options_ok = false;
         bool format_ok = false;
         bool quality_ok = false;
@@ -148,9 +152,11 @@ namespace cserve {
             send_error(conn, Connection::BAD_REQUEST, "Empty path not allowed for IIIF request.");
             return;
         }
+        //
+        // get the URL options (everything after a possible '?'....)
+        //
         size_t pos = parts[parts.size() - 1].find('?');
         std::string tmpstr;
-
         if (pos != std::string::npos) {
             options_ok = true;
             iiif_str_params[IIIF_OPTIONS] = parts[partspos].substr(pos + 1, std::string::npos);
@@ -233,39 +239,46 @@ namespace cserve {
         if (!iiif_str_params[IIIF_IDENTIFIER].empty()) {
             id_ok = true;
         }
+        //
+        // now assemble the PREFIX path
+        //
         if (partspos > 0) { // we have a prefix
             std::stringstream prefix;
             for (int i = 0; i < partspos; i++) {
                 if (i > 0) prefix << "/";
                 prefix << urldecode(parts[i]);
-                std::cerr << "&&.. parts[" << i << "] = '" << parts[i] << "'" << std::endl;
             }
             iiif_str_params[IIIF_PREFIX] = prefix.str(); // includes starting "/"!
+        } else {
+            iiif_str_params[IIIF_PREFIX] = "";
         }
 
         try {
             if (file_ok && id_ok) {
-                std::cerr << "&&-- send_iiif_blob" << std::endl;
                 send_iiif_blob(conn, lua, iiif_str_params);
             }
             else if (info_ok && id_ok) {
-                std::cerr << "&&-- send_iiif_info" << std::endl;
                 send_iiif_info(conn, lua, iiif_str_params);
             }
             else if (id_ok && format_ok && quality_ok && region_ok && size_ok && rotation_ok) {
-                std::cerr << "&&-- send_iiif_file" << std::endl;
                 send_iiif_file(conn, lua, iiif_str_params);
             }
             else if (id_ok) {
                 conn.setBuffer();
                 conn.status(Connection::SEE_OTHER);
-                std::string redirect;
-                if (conn.secure()) {
-                    redirect = fmt::format("https://{}/{}/{}/info.json", conn.host(), iiif_str_params[IIIF_PREFIX], iiif_str_params[IIIF_IDENTIFIER]);
-                } else {
-                    redirect = fmt::format("http://{}/{}/{}/info.json", conn.host(), iiif_str_params[IIIF_PREFIX], iiif_str_params[IIIF_IDENTIFIER]);
+
+                std::stringstream ss;
+                ss << (conn.secure() ? "https://" : "http://");
+                ss << conn.host() << "/";
+                if (!iiif_str_params[IIIF_ROUTE].empty()) {
+                    ss << iiif_str_params[IIIF_ROUTE] << "/";
                 }
-                std::cerr << "&&-- REDIRECT to " << redirect << std::endl;
+                if (!iiif_str_params[IIIF_PREFIX].empty()) {
+                    ss << iiif_str_params[IIIF_PREFIX] << "/";
+                }
+                ss << iiif_str_params[IIIF_IDENTIFIER] << "/info.json";
+                std::string redirect{ss.str()};
+
                 conn.header("Location", redirect);
                 conn.header("Content-Type", "text/plain");
                 conn << "Redirect to " << redirect;
@@ -276,12 +289,6 @@ namespace cserve {
             else {
                 send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. IIIF URl syntax is screwed up.");
                 return;
-/*
-                conn.header("Content-Type", "text/text; charset=utf-8");
-                conn.setBuffer();
-                conn << "International Image Interoperability Framework (IIIF)" << Connection::endl;
-                conn << ">>>Send UNKNOWN!" << Connection::endl;
-*/
             }
             conn << Connection::flush_data;
         }

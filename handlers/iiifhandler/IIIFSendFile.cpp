@@ -59,7 +59,6 @@ namespace cserve {
             }
 
             infile = pre_flight_info["infile"];
-
             if (pre_flight_info["type"] != "allow") {
                 if (pre_flight_info["type"] == "restrict") {
                     bool ok = false;

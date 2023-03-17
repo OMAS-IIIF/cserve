@@ -46,6 +46,7 @@ class CserverProcessManager:
     iiif_url: str
     iiif_surl: str
     iiif_imgroot: str
+    iiif_route: str
 
     def __init__(self, cserver_exe: str, cserver_handlerdir: str):
         """
@@ -54,9 +55,10 @@ class CserverProcessManager:
         :param cserver_exe: Path to the executable
         :param cserver_handlerdir: Path to the directory containing all the handler
         """
-        self.iiif_url = 'http://localhost:8080/'
-        self.iiif_surl = 'https://localhost:8443/'
+        self.iiif_url = 'http://localhost:8080'
+        self.iiif_surl = 'https://localhost:8443'
         self.iiif_imgroot = "./iiiftestserver/imgroot"
+        self.iiif_route = "iiif"
         self.cserver_logfile = os.path.abspath("cserver.log")
         self.cserver_exe = cserver_exe
         self.cserver_config = {
@@ -76,13 +78,14 @@ class CserverProcessManager:
             "SCRIPTHANDLER_SCRIPTDIR": "./iiiftestserver/scripts",
             "SCRIPTHANDLER_ROUTES": "GET:/misc:misc.lua;",
             "FILEHANDLER_DOCROOT": "./iiiftestserver/docroot",
-            "FILEHANDLER_ROUTES": "GET:/:C++;"
-                                  "PUT:/:C++;"
-                                  "POST:/:C++",
+            "FILEHANDLER_ROUTES": "GET:/fileserv:C++;"
+                                  "PUT:/fileserv:C++;"
+                                  "POST:/fileserv:C++",
             "PINGHANDLER_ECHO": "PINGPONG",
             "IIIFHANDLER_IMGROOT": self.iiif_imgroot,
-            "IIIFHANDLER_ROUTES": "GET:/iiif:/C++;"
-                                  "POST:/upload:upload.lua;"
+            "IIIFHANDLER_ROUTES": "GET:/{}:/C++;"
+                                  "POST:/upload:upload.lua;".format(self.iiif_route),
+            "IIIFHANDLER_PREFIX_AS_PATH": "true"
         }
         self.compare_command = "compare -metric {} {} {} null:"
         self.compare_out_re = re.compile(r"^(\d+) \(([0-9.]+)\).*$")
@@ -182,7 +185,7 @@ class CserverProcessManager:
 
     def get(self, *args, **kwargs):
         largs = list(args)
-        largs[0] = self.iiif_url + largs[0]
+        largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
         nargs = tuple(largs)
 
         response = ""
@@ -195,7 +198,7 @@ class CserverProcessManager:
 
     def sget(self, *args, **kwargs):
         largs = list(args)
-        largs[0] = self.iiif_surl + largs[0]
+        largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
         nargs = tuple(largs)
 
         response = ""
@@ -208,7 +211,7 @@ class CserverProcessManager:
 
     def get_json(self, *args, **kwargs):
         largs = list(args)
-        largs[0] = self.iiif_url + largs[0]
+        largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
         nargs = tuple(largs)
         try:
             response = requests.get(*nargs, **kwargs)
@@ -219,7 +222,7 @@ class CserverProcessManager:
 
     def get_status_code(self, *args, **kwargs) -> int:
         largs = list(args)
-        largs[0] = self.iiif_url + largs[0]
+        largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
         nargs = tuple(largs)
 
         response = requests.get(*nargs, **kwargs)
@@ -227,7 +230,7 @@ class CserverProcessManager:
 
     def sget_json(self, *args, **kwargs):
         largs = list(args)
-        largs[0] = self.iiif_surl + largs[0]
+        largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
         nargs = tuple(largs)
         try:
             response = requests.get(*nargs, **kwargs, verify=False)
@@ -237,7 +240,8 @@ class CserverProcessManager:
         return response.json()
 
     def download_file(self, iiifpath: str, suffix: str = None, headers=None) -> str:
-        response = requests.get(self.iiif_url + iiifpath, headers=headers, stream=True)
+        url = "/".join([self.iiif_url, self.iiif_route, iiifpath])
+        response = requests.get(url, headers=headers, stream=True)
         response.raise_for_status()
         temp_fd, temp_file_path = tempfile.mkstemp(suffix=suffix)
         temp_file = os.fdopen(temp_fd, mode="wb")

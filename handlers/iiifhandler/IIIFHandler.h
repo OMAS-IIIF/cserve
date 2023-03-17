@@ -26,14 +26,15 @@
 namespace cserve {
 
     enum Parts {
-        IIIF_PREFIX = 0,
-        IIIF_IDENTIFIER = 1,
-        IIIF_REGION = 2,
-        IIIF_SIZE = 3,
-        IIIF_ROTATION = 4,
-        IIIF_QUALITY = 5,
-        IIIF_FORMAT = 6,
-        IIIF_OPTIONS = 7
+        IIIF_ROUTE = 0,
+        IIIF_PREFIX = 1,
+        IIIF_IDENTIFIER = 2,
+        IIIF_REGION = 3,
+        IIIF_SIZE = 4,
+        IIIF_ROTATION = 5,
+        IIIF_QUALITY = 6,
+        IIIF_FORMAT = 7,
+        IIIF_OPTIONS = 8
     };
 
     class IIIFHandler: public RequestHandler {

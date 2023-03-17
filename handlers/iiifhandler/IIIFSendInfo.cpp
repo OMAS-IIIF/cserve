@@ -44,20 +44,25 @@ namespace cserve {
         int pagenum = sid.get_page();
 
         std::string host = conn.header("host");
-        std::string id;
-        if (params.at(IIIF_PREFIX) == "") {
-            if (conn.secure()) {
-                id = std::string("https://") + host + "/" + params.at(IIIF_IDENTIFIER);
-            } else {
-                id = std::string("http://") + host + "/" + params.at(IIIF_IDENTIFIER);
+        std::stringstream ss;
+        ss << (conn.secure() ? "https://" : "http://");
+        ss << host << "/";
+        try {
+            if (!params.at(IIIF_ROUTE).empty()) {
+                ss << params.at(IIIF_ROUTE) + "/";
             }
-        } else {
-            if (conn.secure()) {
-                id = std::string("https://") + host + "/" + params.at(IIIF_PREFIX) + "/" + params.at(IIIF_IDENTIFIER);
-            } else {
-                id = std::string("http://") + host + "/" + params.at(IIIF_PREFIX) + "/" + params.at(IIIF_IDENTIFIER);
-            }
+        } catch(const std::out_of_range &err) {
+            // to nothing – no route....
         }
+        try {
+            if (!params.at(IIIF_PREFIX).empty()) {
+                ss << params.at(IIIF_PREFIX) + "/";
+            }
+        } catch(const std::out_of_range &err) {
+            // to nothing – no prefix....
+        }
+        ss << params.at(IIIF_IDENTIFIER);
+        std::string id{ss.str()};
         root_obj["id"] = id;
 
         if (is_image_file) {
