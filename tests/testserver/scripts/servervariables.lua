@@ -26,10 +26,10 @@ result = {
 
 local success, jsonresult = server.table_to_json(result)
 if not success then
-server.log("server.table_to_json failed: " .. errmsg, server.loglevel.LOG_ERR)
-server.sendStatus(500)
-print.print("server.table_to_json failed: " .. errmsg)
-return false
+    server.log("server.table_to_json failed: " .. errmsg, server.loglevel.LOG_ERR)
+    server.sendStatus(500)
+    print.print("server.table_to_json failed: " .. errmsg)
+    return false
 end
 server.sendHeader('Content-type', 'application/json')
 server.sendStatus(200)

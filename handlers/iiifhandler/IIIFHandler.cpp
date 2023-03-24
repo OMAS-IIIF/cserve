@@ -387,12 +387,19 @@ namespace cserve {
         lua_pushinteger(L, _max_num_chache_files);
         lua_rawset(L, -3); // table1
 
+        //
+        // we round the hysteresis value to 3 digits
+        //
         lua_pushstring(L, "cache_hysteresis");
         lua_pushnumber(L, _cache_hysteresis);
         lua_rawset(L, -3); // table1
 
-        lua_pushstring(L, "preflight_name");
+        lua_pushstring(L, "iiif_preflight_name");
         lua_pushstring(L, _iiif_preflight_funcname.c_str());
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "file_preflight_name");
+        lua_pushstring(L, _file_preflight_funcname.c_str());
         lua_rawset(L, -3); // table1
 
         lua_pushstring(L, "thumbsize");

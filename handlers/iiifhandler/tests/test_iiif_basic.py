@@ -11,19 +11,39 @@ class TestServer:
         """test if cserver is running...."""
         assert manager.cserver_ready
 
+    def test_iiif_handler_variables(self, manager):
+        """return the IIIF handler variables"""
+        expected_result = {
+            'iiifhandler': {
+                'cache_hysteresis': 0.15000000596046448,
+                'cachedir': './cache',
+                'cachesize': '2e+02MB',
+                'file_preflight_name': 'file_preflight',
+                'iiif_preflight_name': 'iiif_preflight',
+                'imgroot': './iiiftestserver/imgroot',
+                'max_num_cache_files': 200,
+                'max_tmp_age': 86400,
+                'prefix_as_path': True,
+                'thumbsize': '!128,128'
+            },
+            'status': 'OK'
+        }
+
+        result = manager.get_route_json("iiifhandlervariables")
+        assert result == expected_result
+
     def test_iiif_parsing(self, manager):
         """return 400 for invalid IIIF URL's"""
-        #assert manager.get_status_code("iiif//lena512.jp2") == 400  # TODO!!!!
-        #assert manager.get_status_code("iiif/lena512.jp2/max/0/default.jpg") == 400
-        #assert manager.get_status_code("iiif/lena512.jp2/full/max/default.jpg") == 400
-        #assert manager.get_status_code("iiif/lena512.jp2/full/max/!/default.jpg") == 400
+        assert manager.get_status_code("iiif//lena512.jp2") == 400  # TODO!!!!
+        assert manager.get_status_code("iiif/lena512.jp2/max/0/default.jpg") == 400
+        assert manager.get_status_code("iiif/lena512.jp2/full/max/default.jpg") == 400
+        assert manager.get_status_code("iiif/lena512.jp2/full/max/!/default.jpg") == 400
         # The following URL is valid IIIF V3 syntax:
         # "iiif": the route
         # "/lena512.jp2/full/max/0/": the prefixes
         # "/jpg": the ID
         # This URL will be redirected to "iiif/lena512.jp2/full/max/0/jpg/info.json"
-        #assert manager.get_status_code("iiif/lena512.jp2/full/max/0/jpg") == 500  # this is a valid URL, but of course no file
-        pass
+        assert manager.get_status_code("iiif/lena512.jp2/full/max/0/jpg") == 500  # this is a valid URL, but of course no file
 
     def test_get_iiif(self, manager):
         """get an image file using IIIF syntax"""
@@ -153,3 +173,148 @@ class TestServer:
 
     def test_upscaling(self, manager):
         assert manager.compare_iiif_images("astronomical_clock.jp2/full/^1000,/0/default.tif", "data/astronomical_clock_upscaled.tif")
+
+    def test_exif_gps(self, manager):
+        expected_result = {
+            'SubjectDistance': '--undefined--',
+            'RecommendedExposureIndex': '--undefined--',
+            'BrightnessValue': [117307, 10524],
+            'Flash': 16,
+            'OffsetTimeOriginal': '+01:00',
+            'GainControl': '--undefined--',
+            'SensitivityType': '--undefined--',
+            'Artist': '--undefined--',
+            'ExposureBiasValue': [0, 1],
+            'ModifyDate': '--undefined--',
+            'Contrast': '--undefined--',
+            'ApertureValue': [126503, 50079],
+            'Temperature': '--undefined--',
+            'TileLength': 512,
+            'CameraLabel': '--undefined--',
+            'MaxApertureValue': '--undefined--',
+            'ISOSpeedLatitudeyyy': '--undefined--',
+            'ImageHistory': '--undefined--',
+            'OffsetTimeDigitized': '+01:00',
+            'YResolution': [72, 1],
+            'SpectralSensitivity': '--undefined--',
+            'Orientation': 1,
+            'XResolution': [72, 1],
+            'PageName': '--undefined--',
+            'Acceleration': '--undefined--',
+            'TileWidth': 512,
+            'ISOSpeed': '--undefined--',
+            'LightSource': '--undefined--',
+            'LensMake': 'Apple',
+            'Model': 'iPhone 12 Pro',
+            'DateTime': '2022:12:11 13:02:51',
+            'ImageUniqueID': '--undefined--',
+            'ImageNumber': '--undefined--',
+            'FocalPlaneResolutionUnit': '--undefined--',
+            'FlashEnergy': '--undefined--',
+            'SubSecTime': '839',
+            'Software': '16.1.2',
+            'CameraSerialNumber': '--undefined--',
+            'WaterDepth': '--undefined--',
+            'Humidity': '--undefined--',
+            'DateTimeDigitized': '2022:12:11 13:02:51',
+            'LensSerialNumber': '--undefined--',
+            'ResolutionUnit': 2,
+            'DateTimeOriginal': '2022:12:11 13:02:51',
+            'LensModel': 'iPhone 12 Pro back triple camera 1.54mm f/2.4',
+            'FocalLength': [77, 50],
+            'OwnerName': '--undefined--',
+            'SubjectDistanceRange': '--undefined--',
+            'FNumber': [12, 5],
+            'DocumentName': '--undefined--',
+            'StandardOutputSensitivity': '--undefined--',
+            'ISOSpeedLatitudezzz': '--undefined--',
+            'ExposureProgram': 2,
+            'UniqueCameraModel': '--undefined--',
+            'SubSecTimeDigitized': '839',
+            'LensInfo': '--undefined--',
+            'ExposureTime': [1, 3984],
+            'Sharpness': '--undefined--',
+            'Saturation': '--undefined--',
+            'SceneCaptureType': 0,
+            'FocalPlaneXResolution': '--undefined--',
+            'FocalPlaneYResolution': '--undefined--',
+            'RelatedSoundFile': '--undefined--',
+            'Make': 'Apple',
+            'CameraElevationAngle': '--undefined--',
+            'Pressure': '--undefined--',
+            'PageNumber': '--undefined--',
+            'HostComputer': 'iPhone 12 Pro',
+            'SerialNumber': '--undefined--',
+            'SubSecTimeOriginal': '839',
+            'ImageDescription': '--undefined--',
+            'UserComment': '--undefined--',
+            'ISOSpeedRatings': 32,
+            'ShutterSpeedValue': [229477, 19187],
+            'MeteringMode': 5,
+            'Copyright': '--undefined--',
+            'BatteryLevel': '--undefined--',
+            'OffsetTime': '+01:00',
+            'ImageID': '--undefined--',
+            'XPosition': '--undefined--',
+            'YPosition': '--undefined--'}
+
+        response_json = manager.get_route_json("test_exif_gps")
+        assert response_json == expected_result
+
+    def test_iiif_auth_01(self, manager):
+        expected_response = {
+            '@context': 'http://iiif.io/api/image/3/context.json',
+            'extraFeatures': [
+                'baseUriRedirect',
+                'canonicalLinkHeader',
+                'cors',
+                'jsonldMediaType',
+                'mirroring',
+                'profileLinkHeader',
+                'regionByPct',
+                'regionByPx',
+                'regionSquare',
+                'rotationArbitrary',
+                'rotationBy90s',
+                'sizeByConfinedWh',
+                'sizeByH',
+                'sizeByPct',
+                'sizeByW',
+                'sizeByWh',
+                'sizeUpscaling'
+            ],
+            'extraFormats': ['tif', 'jp2'],
+            'extraQualities': ['color', 'gray', 'bitonal'],
+            'height': 800,
+            'id': 'http://localhost:8080/iiif/auth/test_01.tif',
+            'preferredFormats': ['jpg', 'tif', 'jp2', 'png'],
+            'profile': 'level2',
+            'protocol': 'http://iiif.io/api/image',
+            'service': {
+                '@context': 'http://iiif.io/api/auth/1/context.json',
+                '@id': 'https://localhost/iiif-cookie.html',
+                'confirmLabel': 'Login to OMAS IIIF',
+                'description': 'This Example requires a demo login!',
+                'failureDescription': '<a href="http://example.org/policy">Access Policy</a>',
+                'failureHeader': 'Authentication Failed',
+                'header': 'Please Log In',
+                'label': 'Login to OMAS IIIF',
+                'profile': 'http://iiif.io/api/auth/1/login',
+                'service': [
+                    {
+                        '@id': 'https://localhost/iiif-token.php',
+                        'profile': 'http://iiif.io/api/auth/1/token'
+                    }
+                ]
+            },
+            'sizes': [
+                {'height': 400, 'width': 600},
+                {'height': 200, 'width': 300}
+            ],
+            'type': 'ImageService3',
+            'width': 1200
+        }
+
+        response = manager.get_raw('auth/test_01.tif')
+        assert response.status_code == 401
+        assert expected_response == response.json()

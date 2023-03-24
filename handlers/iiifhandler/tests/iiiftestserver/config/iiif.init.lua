@@ -1,5 +1,20 @@
 
-function iiif_preflight(prefix,identifier,cookie)
+function iiif_preflight(prefix, identifier, cookie)
+    if prefix == 'auth' then
+        filepath = iiifhandler.imgroot .. "/" .. identifier
+        return {
+            type = 'login',
+            cookieUrl = 'https://localhost/iiif-cookie.html',
+            tokenUrl = 'https://localhost/iiif-token.php',
+            confirmLabel =  'Login to OMAS IIIF',
+            description = 'This Example requires a demo login!',
+            failureDescription = '<a href="http://example.org/policy">Access Policy</a>',
+            failureHeader = 'Authentication Failed',
+            header = 'Please Log In',
+            label = 'Login to OMAS IIIF',
+        }, filepath
+    end
+
     if config.prefix_as_path then
         filepath = iiifhandler.imgroot .. '/' .. prefix .. '/' .. identifier
     else

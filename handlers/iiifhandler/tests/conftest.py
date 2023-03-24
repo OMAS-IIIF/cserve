@@ -20,6 +20,8 @@ from PIL import Image, ImageChops
 
 from pprint import pprint
 
+from requests import Response
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -84,6 +86,8 @@ class CserverProcessManager:
             "PINGHANDLER_ECHO": "PINGPONG",
             "IIIFHANDLER_IMGROOT": self.iiif_imgroot,
             "IIIFHANDLER_ROUTES": "GET:/{}:/C++;"
+                                  "GET:/iiifhandlervariables:iiifhandlervariables.lua;"
+                                  "GET:/test_exif_gps:test_exif_gps.lua;"
                                   "POST:/upload:upload.lua;".format(self.iiif_route),
             "IIIFHANDLER_PREFIX_AS_PATH": "true"
         }
@@ -183,6 +187,13 @@ class CserverProcessManager:
         """
         return os.path.join(self.iiif_imgroot, relative_path)
 
+    def get_raw(self, *args, **kwargs) -> Response:
+        largs = list(args)
+        largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
+        nargs = tuple(largs)
+        response = requests.get(*nargs, **kwargs)
+        return response
+
     def get(self, *args, **kwargs):
         largs = list(args)
         largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
@@ -220,14 +231,6 @@ class CserverProcessManager:
             raise CserverTestError("GET request to {} failed: {}".format(nargs[0], response.json()["message"]))
         return response.json()
 
-    def get_status_code(self, *args, **kwargs) -> int:
-        largs = list(args)
-        largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
-        nargs = tuple(largs)
-
-        response = requests.get(*nargs, **kwargs)
-        return response.status_code
-
     def sget_json(self, *args, **kwargs):
         largs = list(args)
         largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
@@ -237,6 +240,28 @@ class CserverProcessManager:
             response.raise_for_status()
         except:
             raise CserverTestError("GET request to {} failed: {}".format(nargs[0], response.json()["message"]))
+        return response.json()
+
+    def get_status_code(self, *args, **kwargs) -> int:
+        largs = list(args)
+        largs[0] = "/".join([self.iiif_url, self.iiif_route, largs[0]])
+        nargs = tuple(largs)
+
+        response = requests.get(*nargs, **kwargs)
+        return response.status_code
+
+    def get_route(self,  route: str, headers: Dict[str,str] = None):
+        route = 'http://localhost:8080/' + route
+        response = requests.get(route, headers=headers)
+        return response.status_code
+
+    def get_route_json(self,  route: str, headers: Dict[str,str] = None):
+        route = 'http://localhost:8080/' + route
+        try:
+            response = requests.get(route, headers=headers)
+            response.raise_for_status()
+        except:
+            raise CserverTestError("GET request to {} failed: {}".format(route, response.json()["message"]))
         return response.json()
 
     def download_file(self, iiifpath: str, suffix: str = None, headers=None) -> str:
