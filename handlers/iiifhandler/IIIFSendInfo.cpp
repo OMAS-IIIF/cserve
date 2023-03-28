@@ -32,12 +32,11 @@ namespace cserve {
                               (actual_mimetype == "image/jpeg") ||
                               (actual_mimetype == "image/png") ||
                               (actual_mimetype == "image/jpx") ||
-                              (actual_mimetype == "image/jp2") ||
-                              (actual_mimetype == "application/pdf"));
+                              (actual_mimetype == "image/jp2"));
 
         nlohmann::json root_obj = {
                 {"@context",
-                 is_image_file ? "http://iiif.io/api/image/3/context.json" : "http://sipi.io/api/file/3/context.json"},
+                 is_image_file ? "http://iiif.io/api/image/3/context.json" : "http://omas.io/api/file/3/context.json"},
         };
 
         IIIFIdentifier sid = IIIFIdentifier(params.at(IIIF_IDENTIFIER));
@@ -206,7 +205,8 @@ namespace cserve {
                     scaleFactors.push_back(i);
                 }
                 nlohmann::json tileobj = {{"width", t_width}, {"height", t_height}, {"scaleFactors", scaleFactors}};
-                root_obj["tiles"] = { tileobj };
+                tiles.push_back(tileobj);
+                root_obj["tiles"] = tiles;
             }
             root_obj["extraFormats"] = {"tif", "jp2"};
             root_obj["extraQualities"] =  {"color", "gray", "bitonal"};
@@ -242,6 +242,9 @@ namespace cserve {
         }
 
         std::string json_str = root_obj.dump(3);
+        std::cerr << "&&**" << std::endl;
+        std::cerr << json_str << std::endl;
+        std::cerr << "&&!!" << std::endl;
         conn.sendAndFlush(json_str.c_str(), json_str.size());
    };
 }

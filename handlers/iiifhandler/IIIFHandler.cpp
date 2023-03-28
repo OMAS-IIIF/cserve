@@ -160,142 +160,170 @@ namespace cserve {
         if (pos != std::string::npos) {
             options_ok = true;
             iiif_str_params[IIIF_OPTIONS] = parts[partspos].substr(pos + 1, std::string::npos);
+            tmpstr = parts[partspos].substr(pos);
         }
         else {
+            iiif_str_params[IIIF_OPTIONS] = "";
             tmpstr = parts[partspos];
         }
-        if (tmpstr == "file") {
-            file_ok = true;
+        format_ok = quality_ok = std::regex_match(tmpstr, std::regex(qualform_ex));
+        if (format_ok && quality_ok) {
+            pos = tmpstr.rfind('.');
+            if (pos != std::string::npos) {
+                std::string filename_body(tmpstr.substr(0, pos));
+                iiif_str_params[IIIF_QUALITY] = tmpstr.substr(0, pos);
+                iiif_str_params[IIIF_FORMAT] = tmpstr.substr(pos + 1, std::string::npos);
+            }
+        }
+        partspos--;
+        if (partspos >= 0) {
+            std::string rotation_str = urldecode(parts[partspos]);
+            rotation_ok = std::regex_match(rotation_str, std::regex(rotation_ex));
+            iiif_str_params[IIIF_ROTATION] = rotation_ok ? rotation_str : "";
+        }
+        partspos--;
+        if (partspos >= 0) {
+            std::string size_str = urldecode(parts[partspos]);
+            size_ok = std::regex_match(size_str, std::regex(size_ex));
+            iiif_str_params[IIIF_SIZE] = size_ok ? size_str : "";
+        }
+        partspos--;
+        if (partspos >= 0) {
+            std::string region_str = urldecode(parts[partspos]);
+            region_ok = std::regex_match(region_str, std::regex(region_ex));
+            iiif_str_params[IIIF_REGION] = region_ok ? region_str : "";
+        }
+
+        if (format_ok && quality_ok && rotation_ok && size_ok && region_ok) {
+            // full valid IIIF URL:
+            // {scheme}://{server}{/pre/fix/...}/{identifier}/{region}/{size}/{rotation}/{quality}.{format}[?options]
+            // -> get ID and prefix and send file
             partspos--;
-            if (partspos < 0) {
-                send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts before '/file' are missing.");
-                return;
+            if (partspos >= 0) {
+                iiif_str_params[IIIF_IDENTIFIER] = urldecode(parts[partspos]);
+                if (iiif_str_params[IIIF_IDENTIFIER].empty()) {
+                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. IIIF URl syntax is screwed up.");
+                    return;
+                }
             }
+            if (partspos > 0) { // we have a prefix
+                std::stringstream prefix;
+                for (int i = 0; i < partspos; i++) {
+                    if (i > 0) prefix << "/";
+                    prefix << urldecode(parts[i]);
+                }
+                iiif_str_params[IIIF_PREFIX] = prefix.str(); // includes starting "/"!
+            } else {
+                iiif_str_params[IIIF_PREFIX] = "";
+            }
+            send_iiif_file(conn, lua, iiif_str_params);
+            return;
+        } else if (format_ok || quality_ok || rotation_ok || size_ok || region_ok) {
+            // at least one of the IIIF parts does have an error, at least one of the IIIF conforms to the IIIF syntax
+            // -> send error message with Connection::BAD_REQUEST
+            send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. IIIF URl syntax is screwed up.");
+            return;
         }
-        else {
-            format_ok = quality_ok = std::regex_match(tmpstr, std::regex(qualform_ex));
-            if (format_ok && quality_ok) {
-                pos = tmpstr.rfind('.');
-                if (pos != std::string::npos) {
-                    std::string filename_body(tmpstr.substr(0, pos));
-                    iiif_str_params[IIIF_QUALITY] = tmpstr.substr(0, pos);
-                    iiif_str_params[IIIF_FORMAT] = tmpstr.substr(pos + 1, std::string::npos);
-                }
-                partspos--;
-                if (partspos < 0) {
-                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts before 'quality.format' missing.");
-                    return;
-                }
-                std::string rotation_str = urldecode(parts[partspos]);
-                rotation_ok = std::regex_match(rotation_str, std::regex(rotation_ex));
-                if (!rotation_ok) {
-                    std::string errormsg = fmt::format("IIIF rotation parameter '{}' not valid.", parts[partspos]);
-                    send_error(conn, Connection::BAD_REQUEST, errormsg);
-                    return;
-                }
-                iiif_str_params[IIIF_ROTATION] = rotation_str;
-                partspos--;
-                if (partspos < 0) {
-                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts before 'rotation' missing.");
-                    return;
-                }
-                std::string size_str = urldecode(parts[partspos]);
-                size_ok = std::regex_match(size_str, std::regex(size_ex));
-                if (!size_ok) {
-                    std::string errormsg = fmt::format("IIIF size parameter '{}' not valid.", parts[partspos]);
-                    send_error(conn, Connection::BAD_REQUEST, errormsg);
-                    return;
-                }
-                iiif_str_params[IIIF_SIZE] = size_str;
-                partspos--;
-                if (partspos < 0) {
-                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts befire 'size' are missing.");
-                    return;
-                }
-                std::string region_str = urldecode(parts[partspos]);
-                region_ok = std::regex_match(region_str, std::regex(region_ex));
-                if (!region_ok) {
-                    std::string errormsg = fmt::format("IIIF region parameter '{}' not valid.", parts[partspos]);
-                    send_error(conn, Connection::BAD_REQUEST, errormsg);
-                    return;
-                }
-                iiif_str_params[IIIF_REGION] = region_str;
-                partspos--;
-                if (partspos < 0) {
-                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Identifier is missing.");
+
+
+        if (tmpstr == "info.json") {
+            // {scheme}://{server}/{pre/fix/...}/{identifier}/info.json
+            // ->get ID and prefix and send info.json
+            partspos = parts.size() - 2; // position before "info.json" which is last
+            if (partspos >= 0) {
+                iiif_str_params[IIIF_IDENTIFIER] = urldecode(parts[partspos]);
+                if (iiif_str_params[IIIF_IDENTIFIER].empty()) {
+                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. IIIF URl syntax is screwed up.");
                     return;
                 }
             }
-            else if (tmpstr == "info.json") {
-                info_ok = true;
-                partspos--;
-                if (partspos < 0) {
-                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Parts before '/info.json' are missing.");
+            if (partspos > 0) { // we have a prefix
+                std::stringstream prefix;
+                for (int i = 0; i < partspos; i++) {
+                    if (i > 0) prefix << "/";
+                    prefix << urldecode(parts[i]);
+                }
+                iiif_str_params[IIIF_PREFIX] = prefix.str(); // includes starting "/"!
+            } else {
+                iiif_str_params[IIIF_PREFIX] = "";
+            }
+            send_iiif_info(conn, lua, iiif_str_params);
+            return;
+        } else if (tmpstr == "file") {
+            // {scheme}://{server}/{pre/fix/...}/{identifier}/file" -> serve as blob
+            // -> get ID and prefix and send blob
+            partspos = parts.size() - 2; // position before "info.json" which is last
+            if (partspos >= 0) {
+                iiif_str_params[IIIF_IDENTIFIER] = urldecode(parts[partspos]);
+                if (iiif_str_params[IIIF_IDENTIFIER].empty()) {
+                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. IIIF URl syntax is screwed up.");
                     return;
                 }
             }
-        }
-        iiif_str_params[IIIF_IDENTIFIER] = urldecode(parts[partspos]);
-        if (!iiif_str_params[IIIF_IDENTIFIER].empty()) {
-            id_ok = true;
-        }
-        //
-        // now assemble the PREFIX path
-        //
-        if (partspos > 0) { // we have a prefix
-            std::stringstream prefix;
-            for (int i = 0; i < partspos; i++) {
-                if (i > 0) prefix << "/";
-                prefix << urldecode(parts[i]);
+            if (partspos > 0) { // we have a prefix
+                std::stringstream prefix;
+                for (int i = 0; i < partspos; i++) {
+                    if (i > 0) prefix << "/";
+                    prefix << urldecode(parts[i]);
+                }
+                iiif_str_params[IIIF_PREFIX] = prefix.str(); // includes starting "/"!
+            } else {
+                iiif_str_params[IIIF_PREFIX] = "";
             }
-            iiif_str_params[IIIF_PREFIX] = prefix.str(); // includes starting "/"!
+            send_iiif_blob(conn, lua, iiif_str_params);
+            return;
         } else {
-            iiif_str_params[IIIF_PREFIX] = "";
+            // {scheme}://{server}/{pre/fix/...}/{identifier}"
+            // -> redirect to {scheme}://{server}/{pre/fix}/{identifier}/info.json
+            partspos = parts.size() - 1; // position before "info.json" which is last
+            if (partspos >= 0) {
+                iiif_str_params[IIIF_IDENTIFIER] = urldecode(parts[partspos]);
+                if (iiif_str_params[IIIF_IDENTIFIER].empty()) {
+                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. IIIF URl syntax is screwed up.");
+                    return;
+                }
+            }
+            if (partspos > 0) { // we have a prefix
+                std::stringstream prefix;
+                for (int i = 0; i < partspos; i++) {
+                    if (i > 0) prefix << "/";
+                    prefix << urldecode(parts[i]);
+                }
+                iiif_str_params[IIIF_PREFIX] = prefix.str(); // includes starting "/"!
+            } else {
+                iiif_str_params[IIIF_PREFIX] = "";
+            }
+            conn.setBuffer();
+            conn.status(Connection::SEE_OTHER);
+
+            std::stringstream ss;
+            ss << (conn.secure() ? "https://" : "http://");
+            ss << conn.host() << "/";
+            if (!iiif_str_params[IIIF_ROUTE].empty()) {
+                ss << iiif_str_params[IIIF_ROUTE] << "/";
+            }
+            if (!iiif_str_params[IIIF_PREFIX].empty()) {
+                ss << iiif_str_params[IIIF_PREFIX] << "/";
+            }
+            ss << iiif_str_params[IIIF_IDENTIFIER] << "/info.json";
+            std::string redirect{ss.str()};
+
+            conn.header("Location", redirect);
+            conn.header("Content-Type", "text/plain");
+            conn << "Redirect to " << redirect;
+            Server::logger()->info("GET: redirect to {}", redirect);
+            conn.flush();
+            return;
         }
 
-        try {
-            if (file_ok && id_ok) {
-                send_iiif_blob(conn, lua, iiif_str_params);
-            }
-            else if (info_ok && id_ok) {
-                send_iiif_info(conn, lua, iiif_str_params);
-            }
-            else if (id_ok && format_ok && quality_ok && region_ok && size_ok && rotation_ok) {
-                send_iiif_file(conn, lua, iiif_str_params);
-            }
-            else if (id_ok) {
-                conn.setBuffer();
-                conn.status(Connection::SEE_OTHER);
 
-                std::stringstream ss;
-                ss << (conn.secure() ? "https://" : "http://");
-                ss << conn.host() << "/";
-                if (!iiif_str_params[IIIF_ROUTE].empty()) {
-                    ss << iiif_str_params[IIIF_ROUTE] << "/";
-                }
-                if (!iiif_str_params[IIIF_PREFIX].empty()) {
-                    ss << iiif_str_params[IIIF_PREFIX] << "/";
-                }
-                ss << iiif_str_params[IIIF_IDENTIFIER] << "/info.json";
-                std::string redirect{ss.str()};
-
-                conn.header("Location", redirect);
-                conn.header("Content-Type", "text/plain");
-                conn << "Redirect to " << redirect;
-                Server::logger()->info("GET: redirect to {}", redirect);
-                conn.flush();
-                return;
-            }
-            else {
-                send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. IIIF URl syntax is screwed up.");
-                return;
-            }
-            conn << Connection::flush_data;
+/*
         }
         catch (InputFailure &err) {
             Server::logger()->debug("conn write error: {}", err.what());
             return;
         }
+        */
     }
 
     void IIIFHandler::set_config_variables(CserverConf &conf) {

@@ -45,10 +45,13 @@ def manager(request):
 
 
 class CserverProcessManager:
+    iiif_port: str
+    iiif_ssl_port: str
     iiif_url: str
     iiif_surl: str
     iiif_imgroot: str
     iiif_route: str
+    iiif_validator_command: str
 
     def __init__(self, cserver_exe: str, cserver_handlerdir: str):
         """
@@ -57,16 +60,20 @@ class CserverProcessManager:
         :param cserver_exe: Path to the executable
         :param cserver_handlerdir: Path to the directory containing all the handler
         """
-        self.iiif_url = 'http://localhost:8080'
-        self.iiif_surl = 'https://localhost:8443'
+        self.iiif_port = "8080"
+        self.iiif_ssl_port = "8443"
+        self.iiif_url = 'http://localhost:{}'.format(self.iiif_port)
+        self.iiif_surl = 'https://localhost:{}'.format(self.iiif_ssl_port)
         self.iiif_imgroot = "./iiiftestserver/imgroot"
         self.iiif_route = "iiif"
+        self.iiif_validator_command = "iiif-validate.py -s localhost:{} -p {} -i 67352ccc-d1b0-11e1-89ae-279075081939.jp2 --version=3.0 -v".format(
+            self.iiif_port, self.iiif_route)
         self.cserver_logfile = os.path.abspath("cserver.log")
         self.cserver_exe = cserver_exe
         self.cserver_config = {
             "CSERVE_HANDLERDIR": cserver_handlerdir,
-            "CSERVE_PORT": "8080",
-            "CSERVE_SSLPORT": "8443",
+            "CSERVE_PORT": self.iiif_port,
+            "CSERVE_SSLPORT": self.iiif_ssl_port,
             "CSERVE_INITSCRIPT": "./iiiftestserver/config/iiif.init.lua",
             "CSERVE_SSLCERT": './iiiftestserver/certificate/certificate.pem',
             "CSERVE_SSLKEY": './iiiftestserver/certificate/key.pem',
@@ -339,6 +346,20 @@ class CserverProcessManager:
                                       stderr=subprocess.STDOUT,
                                       universal_newlines=True)
         return info_process.stdout
+
+    def run_iiif_validator(self):
+        """Runs the IIIF validator. If validation fails, writes IIFHandler's output to cserve.log and raises an exception."""
+
+        validator_process_args = shlex.split(self.iiif_validator_command)
+        validator_process = subprocess.run(validator_process_args,
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT,
+                                           universal_newlines=True)
+
+        if validator_process.returncode != 0:
+            raise CserverTestError(
+                "IIIF validation failed:\n{}".format(validator_process.stdout))
+
 
     def write_cserver_log(self) -> None:
         """Writes cserver output to a log file."""
