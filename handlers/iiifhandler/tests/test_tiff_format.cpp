@@ -120,6 +120,16 @@ TEST_CASE("Image tests", "TIFF") {
         REQUIRE(img2.getNc() == 3);
         REQUIRE(img2.getBps() == 8);
         REQUIRE(img2.getPhoto() == cserve::RGB);
+
+        cserve::IIIFImage img3 = tiffio.read("data/tiff_01_rgb_uncompressed.tif",
+                                             0,
+                                             region,
+                                             size,
+                                             false,
+                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+
+        compression[cserve::TIFF_PYRAMID] = "3";
+        REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_01_rgb_pyramid.tif", compression));
     }
 
     SECTION("Metadata") {

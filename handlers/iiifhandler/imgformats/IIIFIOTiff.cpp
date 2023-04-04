@@ -86,9 +86,12 @@ static tmsize_t memTiffWriteProc(thandle_t handle, tdata_t buf, tsize_t size) {
     auto *memtif = (MEMTIFF *) handle;
 
     if (((tsize_t) memtif->fptr + size) > memtif->size) {
-        if ((memtif->data = (unsigned char *) realloc(memtif->data, memtif->fptr + memtif->incsiz + size)) == nullptr) {
+        auto *tmpptr = (unsigned char *) realloc(memtif->data, memtif->fptr + memtif->incsiz + size);
+        if (tmpptr == nullptr) {
+            free (memtif->data);
             throw cserve::IIIFImageError(file_, __LINE__, "realloc failed", errno);
         }
+        memtif->data = tmpptr;
         memtif->size = memtif->fptr + memtif->incsiz + size;
     }
 
@@ -106,40 +109,40 @@ static toff_t memTiffSeekProc(thandle_t handle, toff_t off, int whence) {
     switch (whence) {
         case SEEK_SET: {
             if ((tsize_t) off > memtif->size) {
-                if ((memtif->data = (unsigned char *) realloc(memtif->data, memtif->size + memtif->incsiz + off)) ==
-                    nullptr) {
+                auto *tmpptr = (unsigned char *) realloc(memtif->data, memtif->size + memtif->incsiz + off);
+                if (tmpptr == nullptr) {
+                    free(memtif->data);
                     throw cserve::IIIFImageError(file_, __LINE__, "realloc failed", errno);
                 }
-
+                memtif->data = tmpptr;
                 memtif->size = memtif->size + memtif->incsiz + off;
             }
-
             memtif->fptr = off;
             break;
         }
         case SEEK_CUR: {
             if ((tsize_t) (memtif->fptr + off) > memtif->size) {
-                if ((memtif->data = (unsigned char *) realloc(memtif->data, memtif->fptr + memtif->incsiz + off)) ==
-                    nullptr) {
+                auto *tmpptr = (unsigned char *) realloc(memtif->data, memtif->fptr + memtif->incsiz + off);
+                if (tmpptr == nullptr) {
+                    free(memtif->data);
                     throw cserve::IIIFImageError(file_, __LINE__, "realloc failed", errno);
                 }
-
+                memtif->data = tmpptr;
                 memtif->size = memtif->fptr + memtif->incsiz + off;
             }
-
             memtif->fptr += off;
             break;
         }
         case SEEK_END: {
             if ((tsize_t) (memtif->size + off) > memtif->size) {
-                if ((memtif->data = (unsigned char *) realloc(memtif->data, memtif->size + memtif->incsiz + off)) ==
-                    nullptr) {
+                auto *tmpptr = (unsigned char *) realloc(memtif->data, memtif->size + memtif->incsiz + off);
+                if (tmpptr == nullptr) {
+                    free (memtif->data);
                     throw cserve::IIIFImageError(file_, __LINE__, "realloc failed", errno);
                 }
-
+                memtif->data = tmpptr;
                 memtif->size = memtif->size + memtif->incsiz + off;
             }
-
             memtif->fptr = memtif->size + off;
             break;
         }
@@ -1056,6 +1059,124 @@ namespace cserve {
         return info;
     }
 
+    void IIIFIOTiff::write_basic_tags(const IIIFImage &img,
+                                      TIFF *tif,
+                                      uint32_t nx, uint32_t ny,
+                                      bool its_1_bit,
+                                      const std::string &compression
+                                      ) {
+        TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, static_cast<uint32_t>(nx));
+        TIFFSetField(tif, TIFFTAG_IMAGELENGTH, static_cast<uint32_t>(ny));
+        TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+        TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        if (its_1_bit) {
+            TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, (uint16_t) 1);
+            TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_CCITTFAX4); // that's out default....
+        } else {
+            TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, static_cast<uint16_t>(img.bps));
+            if (compression == "COMPRESSION_LZW") {
+                TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
+            }
+            else if (compression == "COMPRESSION_DEFLATE") {
+                TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_DEFLATE);
+            }
+        }
+        TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, img.nc);
+        if (!img.es.empty()) {
+            TIFFSetField(tif, TIFFTAG_EXTRASAMPLES, img.es.size(), img.es.data());
+        }
+        TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, img.photo);
+    }
+
+    void IIIFIOTiff::write_subfile(const IIIFImage &img,
+                              TIFF *tif,
+                              uint32_t level,
+                              uint32_t tile_width,
+                              uint32_t tile_height,
+                              const std::string &compression) {
+        size_t nnx{img.nx >> level};
+        size_t nny{img.ny >> level};
+
+        if (level > 0) {
+            write_basic_tags(img, tif, nnx, nny, false, compression);
+            TIFFSetField(tif, TIFFTAG_SUBFILETYPE, FILETYPE_REDUCEDIMAGE);
+        }
+
+        if (tile_width == 0 || tile_height == 0) {
+            TIFFDefaultTileSize(tif, &tile_width, &tile_height);
+        }
+        TIFFSetField(tif, TIFFTAG_TILEWIDTH, tile_width);
+        TIFFSetField(tif, TIFFTAG_TILELENGTH, tile_height);
+
+        uint32_t ntiles_x = nnx / tile_width;
+        uint32_t last_nx = 0;
+        if ((nnx % tile_width) != 0) {
+            last_nx = nnx % tile_width;
+            ntiles_x += 1;
+        }
+
+        uint32_t ntiles_y = nny / tile_height;
+        uint32_t last_ny = 0;
+        if ((nny % tile_height) != 0) {
+            last_ny = nny % tile_height;
+            ntiles_y += 1;
+        }
+
+        tsize_t tilesize = TIFFTileSize(tif);
+
+        //
+        // reduce resolution of image by a factor of level. For a pyramid levels
+        // should be 0, 2, 4, 8, 16, 32, ...
+        //
+        uint32_t level2 = level*level;
+        if (img.bps == 8) {
+            auto nbuf = std::make_unique<uint8_t[]>(nnx * nny * img.nc);
+            auto *nbuf_raw = nbuf.get();
+            if (level == 0) {
+                memcpy(nbuf_raw, img.bpixels.get(), nnx * nny * img.nc);
+            }
+            else {
+                for (uint32_t y = 0; y < nny; ++y) {
+                    for (uint32_t x = 0; x < nnx; ++x) {
+                        for (uint32_t c = 0; c < img.nc; ++c) {
+                            for (uint32_t xx = 0; xx < level; ++xx) {
+                                for (uint32_t yy = 0; yy < level; ++yy) {
+                                    uint32_t tmp;
+                                    tmp = 0;
+                                    tmp += static_cast<uint32_t>(img.bpixels[img.nc*((level*y + yy)*img.nx + (level*x + xx)) + c]);
+                                    nbuf_raw[img.nc*(y*nnx + x) + c] = tmp / level2;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            auto tilebuf = std::make_unique<uint8_t[]>(tilesize);
+            auto tilebuf_raw = tilebuf.get();
+            for (uint32_t ty = 0; ty < ntiles_y; ++ty) {
+                for (uint32_t tx = 0; tx < ntiles_x; ++tx) {
+                    for (uint32_t y = 0; y < tile_height; ++y) {
+                        for (uint32_t x = 0; x < tile_width; ++x) {
+                            for (uint32_t c = 0; c < img.nc; ++c) {
+                                uint32_t xx = tx*tile_width + x;
+                                uint32_t yy = ty*tile_height + y;
+                                if ((xx < nnx) && (yy < nny)) {
+                                    tilebuf_raw[img.nc*(y*tile_width + x) + c] = nbuf_raw[img.nc*(yy*nnx + xx) + c];
+                                }
+                                else {
+                                    tilebuf_raw[img.nc*(y*tile_width + x) + c] = 0;
+                                }
+                            }
+                        }
+                    }
+                    TIFFWriteTile(tif, static_cast<void *>(tilebuf.get()), tx*tile_width, ty*tile_height, 0, 0);
+                }
+            }
+            TIFFWriteDirectory(tif);
+        }
+        else if (img.bps == 16) {
+        }
+    }
 
     void IIIFIOTiff::write(IIIFImage &img, const std::string &filepath, const IIIFCompressionParams &params) {
         TIFF *tif;
@@ -1079,12 +1200,6 @@ namespace cserve {
                 throw IIIFImageError(file_, __LINE__, msg);
             }
         }
-        TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, (int) img.nx);
-        TIFFSetField(tif, TIFFTAG_IMAGELENGTH, (int) img.ny);
-        TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
-        TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(tif, rowsperstrip));
-        TIFFSetField(tif, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
-        TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
         bool its_1_bit = false;
         if ((img.photo == PhotometricInterpretation::MINISWHITE) ||
             (img.photo == PhotometricInterpretation::MINISBLACK)) {
@@ -1092,34 +1207,36 @@ namespace cserve {
 
             if (img.bps == 8) {
                 for (size_t i = 0; i < img.nx * img.ny; i++) {
-                    if ((img.bpixels[i] != 0) && (img.bpixels[i] != 255)) {
+                    if ((img.bpixels[i] != 0) && (img.bpixels[i] != 0xFF)) {
                         its_1_bit = false;
                     }
                 }
             } else if (img.bps == 16) {
                 for (size_t i = 0; i < img.nx * img.ny; i++) {
-                    if ((img.wpixels[i] != 0) && (img.wpixels[i] != 65535)) {
+                    if ((img.wpixels[i] != 0) && (img.wpixels[i] != 0xFFFF)) {
                         its_1_bit = false;
                     }
                 }
             }
-
-            if (its_1_bit) {
-                TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, (uint16_t) 1);
-                TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_CCITTFAX4); // that's out default....
-            } else {
-                TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, (uint16_t) img.bps);
-            }
-        } else {
-            TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, (uint16_t) img.bps);
-            try {
-                std::string compression = params.at(TIFF_COMPRESSION);
-                if (compression == "COMPRESSION_LZW") {
-                    TIFFSetField(tif, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
-                }
-            }
-            catch (const std::out_of_range &err) { }
         }
+        std::string compression;
+        try {
+            compression = params.at(TIFF_COMPRESSION);
+        }
+        catch (const std::out_of_range &err) { }
+
+        uint32_t npyramid;
+        try {
+            std::string tmpstr = params.at(TIFF_PYRAMID);
+            npyramid = std::stoul(tmpstr);
+        }
+        catch (const std::invalid_argument &err) {
+            npyramid = 0;
+        }
+        catch (const std::out_of_range &err) {
+            npyramid = 0;
+        }
+
         if (img.photo == PhotometricInterpretation::CIELAB) {
             if (img.bps == 8) {
                 for (size_t y = 0; y < img.ny; y++) {
@@ -1154,13 +1271,8 @@ namespace cserve {
             //delete img->icc; we don't want to add the ICC profile in this case (doesn't make sense!)
             img.icc = nullptr;
         }
-        TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, img.nc);
 
-        if (!img.es.empty()) {
-            TIFFSetField(tif, TIFFTAG_EXTRASAMPLES, img.es.size(), img.es.data());
-        }
-
-        TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, img.photo);
+        write_basic_tags(img, tif, img.nx, img.ny, its_1_bit, compression);
 
         //
         // let's get the TIFF metadata if there is some. We stored the TIFF metadata in the exifData meber variable!
@@ -1171,55 +1283,46 @@ namespace cserve {
             if (img.exif->getValByKey("Exif.Image.ImageDescription", value)) {
                 TIFFSetField(tif, TIFFTAG_IMAGEDESCRIPTION, value.c_str());
             }
-
             if (img.exif->getValByKey("Exif.Image.Make", value)) {
                 TIFFSetField(tif, TIFFTAG_MAKE, value.c_str());
             }
-
             if (img.exif->getValByKey("Exif.Image.Model", value)) {
                 TIFFSetField(tif, TIFFTAG_MODEL, value.c_str());
             }
-
             if (img.exif->getValByKey("Exif.Image.Software", value)) {
                 TIFFSetField(tif, TIFFTAG_SOFTWARE, value.c_str());
             }
-
             if (img.exif->getValByKey("Exif.Image.DateTime", value)) {
                 TIFFSetField(tif, TIFFTAG_DATETIME, value.c_str());
             }
-
             if (img.exif->getValByKey("Exif.Image.Artist", value)) {
                 TIFFSetField(tif, TIFFTAG_ARTIST, value.c_str());
             }
-
             if (img.exif->getValByKey("Exif.Image.HostComputer", value)) {
                 TIFFSetField(tif, TIFFTAG_HOSTCOMPUTER, value.c_str());
             }
-
             if (img.exif->getValByKey("Exif.Image.Copyright", value)) {
                 TIFFSetField(tif, TIFFTAG_COPYRIGHT, value.c_str());
             }
-
             if (img.exif->getValByKey("Exif.Image.DocumentName", value)) {
                 TIFFSetField(tif, TIFFTAG_DOCUMENTNAME, value.c_str());
             }
-
             float f;
-
             if (img.exif->getValByKey("Exif.Image.XResolution", f)) {
                 TIFFSetField(tif, TIFFTAG_XRESOLUTION, f);
             }
-
             if (img.exif->getValByKey("Exif.Image.YResolution", f)) {
                 TIFFSetField(tif, TIFFTAG_XRESOLUTION, f);
             }
-
             short s;
-
             if (img.exif->getValByKey("Exif.Image.ResolutionUnit", s)) {
                 TIFFSetField(tif, TIFFTAG_RESOLUTIONUNIT, s);
             }
         }
+
+        //
+        // Write ICC profile if available...
+        //
         IIIFEssentials es = img.essential_metadata();
         if (((img.icc != nullptr) || es.use_icc()) & (!(img.skip_metadata & SKIP_ICC))) {
             std::vector<unsigned char> buf;
@@ -1279,23 +1382,32 @@ namespace cserve {
             for (size_t i = 0; i < img.ny; i++) {
                 TIFFWriteScanline(tif, raw_buf + i * sll, (int) i, 0);
             }
-
+            TIFFWriteDirectory(tif);
         } else if (img.bps == 8 ) {
-            uint8_t *rawdata = img.bpixels.get();
-            for (size_t i = 0; i < img.ny; i++) {
-                TIFFWriteScanline(tif, rawdata + i * img.nc * img.nx, (int) i, 0);
+            if (npyramid == 0) {
+                uint8_t *rawdata = img.bpixels.get();
+                for (size_t i = 0; i < img.ny; i++) {
+                    TIFFWriteScanline(tif, rawdata + i * img.nc * img.nx, (int) i, 0);
+                }
+                TIFFWriteDirectory(tif);
+            }
+            else {
+                for (uint32_t i = 0; i < npyramid; ++i) {
+                    write_subfile(img, tif, i, 0, 0, compression);
+                }
             }
         } else if (img.bps == 16) {
             auto *rawdata = (uint16_t *) img.wpixels.get();
             for (size_t i = 0; i < img.ny; i++) {
                 TIFFWriteScanline(tif, rawdata + i * img.nc * img.nx, (int) i, 0);
             }
+            TIFFWriteDirectory(tif);
         }
         //
         // write exif data
         //
         if (img.exif != nullptr) {
-            TIFFWriteDirectory(tif);
+            //TIFFWriteDirectory(tif);
             writeExif(img, tif);
         }
         TIFFClose(tif);

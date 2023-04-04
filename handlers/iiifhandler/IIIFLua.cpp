@@ -1581,6 +1581,10 @@ namespace cserve {
                         comp_params[J2K_rates] = value;
                     } else if (key == std::string("quality")) {
                         comp_params[JPEG_QUALITY] = value;
+                    } else if (key == std::string("compression")) {
+                        comp_params[TIFF_COMPRESSION] = value;
+                    } else if (key == std::string("pyramid")) {
+                        comp_params[TIFF_PYRAMID] = value;
                     } else {
                         lua_pop(L, lua_gettop(L));
                         lua_pushstring(L, "IIIFImage.write(): invalid compression parameter!");

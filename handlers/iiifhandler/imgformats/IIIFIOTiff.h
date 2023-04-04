@@ -44,7 +44,19 @@ namespace cserve {
          */
         static void writeExif(const IIIFImage &img, TIFF *tif);
 
+        void write_basic_tags(const IIIFImage &img,
+                              TIFF *tif,
+                              uint32_t nx, uint32_t ny,
+                              bool its_1_bit,
+                              const std::string &compression
+        );
 
+        void write_subfile(const IIIFImage &img,
+                      TIFF *tif,
+                      uint32_t level,
+                      uint32_t tile_width = 0,
+                      uint32_t tile_height = 0,
+                      const std::string &compression = "");
     public:
         ~IIIFIOTiff() override {};
 

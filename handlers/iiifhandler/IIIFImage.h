@@ -103,7 +103,8 @@ namespace cserve {
         J2K_Cuse_sop,
         J2K_Stiles,
         J2K_rates,
-        TIFF_COMPRESSION
+        TIFF_COMPRESSION,
+        TIFF_PYRAMID,
     } IIIFCompressionParamName;
 
     typedef std::unordered_map<int, std::string> IIIFCompressionParams;
