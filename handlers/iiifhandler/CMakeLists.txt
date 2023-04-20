@@ -42,6 +42,18 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
 endif()
 message(STATUS "Compiling for ${KDU_ARCH}")
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    find_library(COREFOUNDATION_FRAMEWORK "CoreFoundation")
+    if(NOT COREFOUNDATION_FRAMEWORK)
+        message(FATAL_ERROR "CoreFoundation framework not found")
+    endif()
+
+    find_library(SYSTEMCONFIGURATION_FRAMEWORK "SystemConfiguration")
+    if(NOT SYSTEMCONFIGURATION_FRAMEWORK)
+        message(FATAL_ERROR "SystemConfiguration framework not found")
+    endif()
+endif()
+
 add_compile_options(-fvisibility=default -DCMS_NO_REGISTER_KEYWORD=1)
 
 set(IIIF_HANDLER_LIBDIR "${CMAKE_CURRENT_SOURCE_DIR}")

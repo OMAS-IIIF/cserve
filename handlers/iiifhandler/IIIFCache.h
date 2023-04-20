@@ -16,11 +16,15 @@
 #include <ctime>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 #include <mutex>
 #include <string>
 #include <sys/time.h>
 #include <algorithm>
 
+#include "IIIFImage.h"
+
+#define MAX_NUM_CLEVELS 16
 
 namespace cserve {
 
@@ -45,9 +49,9 @@ namespace cserve {
          */
         typedef struct {
             size_t img_w, img_h;
-            size_t tile_w, tile_h;
             int clevels;
-            int numpages;
+            uint32_t nresolutions;
+            size_t resolutions[3 * MAX_NUM_CLEVELS];
             char canonical[256];
             char origpath[256];
             char cachepath[256];
@@ -65,11 +69,9 @@ namespace cserve {
          * the cached files are read from a file (being a serialization of FileCacheRecord). On
          * server shutdown, the in-memory representation is again ritten to a file.
          */
-        typedef struct _CacheRecord {
+        typedef struct CacheRecord_ {
             size_t img_w, img_h;
-            size_t tile_w, tile_h;
-            int clevels;
-            int numpages;
+            std::vector<SubImageInfo> resolutions;
             std::string origpath;
             std::string cachepath;
 #if defined(HAVE_ST_ATIMESPEC)
@@ -85,13 +87,10 @@ namespace cserve {
          * SizeRecord is used to create a map of the original filenames in the image
          * directory and the sizes of the full images.
          */
-        typedef struct {
+        typedef struct SizeRecord_ {
             size_t img_w;
             size_t img_h;
-            size_t tile_w;
-            size_t tile_h;
-            int clevels;
-            int numpages;
+            std::vector<SubImageInfo> resolutions;
 #if defined(HAVE_ST_ATIMESPEC)
             struct timespec mtime; //!< entry time into cache
 #else
@@ -153,10 +152,10 @@ namespace cserve {
          */
 #if defined(HAVE_ST_ATIMESPEC)
 
-        int tcompare(struct timespec &t1, struct timespec &t2);
+        static int tcompare(struct timespec &t1, struct timespec &t2);
 
 #else
-        int tcompare(time_t &t1, time_t &t2);
+        static int tcompare(time_t &t1, time_t &t2);
 #endif
 
         /*!
@@ -180,7 +179,7 @@ namespace cserve {
          */
         std::string check(const std::string &origpath_p, const std::string &canonical_p, bool block_file = false);
 
-        void deblock(std::string res);
+        void deblock(const std::string &res);
 
 
         /*!
@@ -203,10 +202,7 @@ namespace cserve {
                 const std::string &cachepath_p,
                 size_t img_w_p,
                 size_t img_h_p,
-                size_t tile_w_p = 0,
-                size_t tile_h_p = 0,
-                int clevels_p = 0,
-                int numpages_p = 0);
+                const std::vector<SubImageInfo> &resolutions);
 
         /*!
          * Remove one file from the cache
@@ -266,10 +262,7 @@ namespace cserve {
                 const std::string &origname_p,
                 size_t &img_w,
                 size_t &img_h,
-                size_t &tile_w,
-                size_t &tile_h,
-                int &clevels,
-                int &numpages);
+                std::vector<SubImageInfo> &resolutions);
     };
 }
 

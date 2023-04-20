@@ -1,8 +1,6 @@
 #include <string>
 #include <iostream>
-#include <filesystem>
 #include <cstring>
-#include <sys/stat.h>
 #include <Connection.h>
 #include <Parsing.h>
 
@@ -10,7 +8,6 @@
 #include "IIIFImage.h"
 #include "IIIFLua.h"
 #include "IIIFError.h"
-//#include "IIIFHandler.h"
 
 namespace cserve {
 
@@ -291,7 +288,6 @@ namespace cserve {
             return 2;
         }
 
-        int pagenum = 0;
         std::shared_ptr<IIIFRegion> region;
         std::shared_ptr<IIIFSize> size;
         std::string original;
@@ -337,16 +333,7 @@ namespace cserve {
                 if (lua_isstring(L, -2)) {
                     const char *param = lua_tostring(L, -2);
 
-                    if (strcmp(param, "pagenum") == 0) {
-                        if (lua_isnumber(L, -1)) {
-                            pagenum = lua_tointeger(L, -1);
-                        } else {
-                            lua_pop(L, lua_gettop(L));
-                            lua_pushboolean(L, false);
-                            lua_pushstring(L, "IIIFImage.new(): Error in pagenum parameter");
-                            return 2;
-                        }
-                    } else if (strcmp(param, "region") == 0) {
+                    if (strcmp(param, "region") == 0) {
                         if (lua_isstring(L, -1)) {
                             region = std::make_shared<IIIFRegion>(lua_tostring(L, -1));
                         } else {
@@ -366,7 +353,7 @@ namespace cserve {
                         }
                     } else if (strcmp(param, "reduce") == 0) {
                         if (lua_isnumber(L, -1)) {
-                            size = std::make_shared<IIIFSize>(static_cast<int>(lua_tointeger(L, -1)));
+                            size = std::make_shared<IIIFSize>(static_cast<uint32_t>(lua_tointeger(L, -1)));
                         } else {
                             lua_pop(L, lua_gettop(L));
                             lua_pushboolean(L, false);
@@ -430,9 +417,9 @@ namespace cserve {
 
         try {
             if (!original.empty()) {
-                *simg.image = cserve::IIIFImage::readOriginal(imgpath, pagenum, region, size, original, htype);
+                *simg.image = cserve::IIIFImage::readOriginal(imgpath, region, size, original, htype);
             } else {
-                *simg.image = cserve::IIIFImage::read(imgpath, pagenum, region, size);
+                *simg.image = cserve::IIIFImage::read(imgpath, region, size);
             }
         } catch (IIIFImageError &err) {
             delete img->image;
@@ -453,7 +440,7 @@ namespace cserve {
     //=========================================================================
 
     static int SImage_dims(lua_State *L) {
-        size_t nx, ny;
+        uint32_t nx, ny;
 
         if (lua_gettop(L) != 1) {
             lua_pop(L, lua_gettop(L));
@@ -969,8 +956,6 @@ namespace cserve {
                     break;
                 case EXIV2_RATIONAL:
                 case EXIV2_URATIONAL:
-                    get_exif_rational(L, exif, fulltag);
-                    break;
                 case EXIV2_RATIONALV:
                 case EXIV2_URATIONALV:
                     get_exif_rational(L, exif, fulltag);
@@ -1339,11 +1324,11 @@ namespace cserve {
 
         const char *sizestr = lua_tostring(L, 2);
         lua_pop(L, top);
-        size_t nx, ny;
+        uint32_t nx, ny;
 
         try {
             IIIFSize size(sizestr);
-            int r;
+            uint32_t r;
             bool ro;
             size.get_size(img->image->getNx(), img->image->getNy(), nx, ny, r, ro);
         } catch (IIIFError &err) {

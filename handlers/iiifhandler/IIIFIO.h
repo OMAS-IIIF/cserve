@@ -42,42 +42,35 @@ namespace cserve {
          * \param force_bps_8 Convert the file to 8 bits/sample on reading thus enforcing an 8 bit image
          */
         virtual IIIFImage read(const std::string &filepath,
-                               int pagenum, std::shared_ptr<IIIFRegion> region,
+                               std::shared_ptr<IIIFRegion> region,
                                std::shared_ptr<IIIFSize> size,
                                bool force_bps_8,
                                ScalingQuality scaling_quality) = 0;
 
         IIIFImage read(const std::string &filepath) {
-            return read(filepath, 0, nullptr, nullptr, false,
+            return read(filepath, nullptr, nullptr, false,
                         {HIGH, HIGH, HIGH, HIGH});
         }
 
-        IIIFImage read(const std::string &filepath,
-                       int pagenum) {
-            return read(filepath, pagenum, nullptr, nullptr, false,
-                        {HIGH, HIGH, HIGH, HIGH});
-        }
 
         IIIFImage read(const std::string &filepath,
-                       int pagenum,
                        std::shared_ptr<IIIFRegion> region) {
-            return read(filepath, pagenum, std::move(region), nullptr, false,
+            return read(filepath, std::move(region), nullptr, false,
                         {HIGH, HIGH, HIGH, HIGH});
         }
 
         IIIFImage read(const std::string &filepath,
-                       int pagenum,
                        std::shared_ptr<IIIFRegion> region,
                        std::shared_ptr<IIIFSize> size) {
-            return read(filepath, pagenum, std::move(region), std::move(size), false,
+            return read(filepath, std::move(region), std::move(size), false,
                         {HIGH, HIGH, HIGH, HIGH});
         }
 
         IIIFImage read(const std::string &filepath,
-                       int pagenum, std::shared_ptr<IIIFRegion> region,
+                       std::shared_ptr<IIIFRegion> region,
                        std::shared_ptr<IIIFSize> size,
                        bool force_bps_8) {
-            return read(filepath, pagenum, std::move(region), std::move(size), force_bps_8,
+            return read(filepath, std::move(region), std::move(size), force_bps_8,
                  {HIGH, HIGH, HIGH, HIGH});
         }
 
@@ -88,11 +81,8 @@ namespace cserve {
          * \param[out] width Width of the image in pixels
          * \param[out] height Height of the image in pixels
          */
-        virtual IIIFImgInfo getDim(const std::string &filepath, int pagenum) = 0;
+        virtual IIIFImgInfo getDim(const std::string &filepath) = 0;
 
-        IIIFImgInfo getDim(const std::string &filepath) {
-            return getDim(filepath, 0);
-        }
 
         /*!
          * Write an image for a file using the given file format implemented by the subclass

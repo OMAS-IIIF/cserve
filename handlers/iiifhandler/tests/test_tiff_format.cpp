@@ -62,7 +62,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_01_rgb_uncompressed.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -73,7 +72,7 @@ TEST_CASE("Image tests", "TIFF") {
         REQUIRE(img.getBps() == 8);
         REQUIRE(img.getPhoto() == cserve::RGB);
 
-        cserve::IIIFImgInfo info = tiffio.getDim("data/tiff_01_rgb_uncompressed.tif", 0);
+        cserve::IIIFImgInfo info = tiffio.getDim("data/tiff_01_rgb_uncompressed.tif");
         REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
         REQUIRE(info.width == 1200);
         REQUIRE(info.height == 900);
@@ -96,7 +95,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region1 = std::make_shared<cserve::IIIFRegion>("100,100,300,300");
         auto size1 = std::make_shared<cserve::IIIFSize>("100,100");
         cserve::IIIFImage img1 = tiffio.read("data/tiff_01_rgb_uncompressed.tif",
-                                             0,
                                              region1,
                                              size1,
                                              false,
@@ -110,7 +108,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region2 = std::make_shared<cserve::IIIFRegion>("100,100,300,300");
         auto size2 = std::make_shared<cserve::IIIFSize>("^400,400");
         cserve::IIIFImage img2 = tiffio.read("data/tiff_01_rgb_uncompressed.tif",
-                                             0,
                                              region2,
                                              size2,
                                              false,
@@ -122,21 +119,22 @@ TEST_CASE("Image tests", "TIFF") {
         REQUIRE(img2.getPhoto() == cserve::RGB);
 
         cserve::IIIFImage img3 = tiffio.read("data/tiff_01_rgb_uncompressed.tif",
-                                             0,
                                              region,
                                              size,
                                              false,
                                              {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
 
-        compression[cserve::TIFF_PYRAMID] = "3";
+        compression[cserve::TIFF_PYRAMID] = "1:512 2:256 4:128 8:64";
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_01_rgb_pyramid.tif", compression));
+
+        size_t w, h;
+        cserve::IIIFImage::getDim("scratch/tiff_01_rgb_pyramid.tif");
     }
 
     SECTION("Metadata") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/IMG_8207.tiff",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -167,7 +165,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_01_rgb_essential.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -185,7 +182,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_rgba.tif",
-                                             0,
                                              region,
                                              size,
                                              false,
@@ -208,7 +204,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_01_rgb_lzw.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -224,7 +219,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("100,150,400,300");
         auto size = std::make_shared<cserve::IIIFSize>("!250,250");
         cserve::IIIFImage img = tiffio.read("data/tiff_01_rgb_lzw.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -240,7 +234,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_01_rgb_jpg.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -256,7 +249,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_01_rgb_rrrgggbbb.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -272,7 +264,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_02_rgb_uncompressed_16bps.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -295,7 +286,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_02_rgb_uncompressed_16bps.tif",
-                                            0,
                                             region,
                                             size,
                                             true,
@@ -311,7 +301,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/palette.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -327,7 +316,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/smalltiff_group4.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -350,7 +338,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/cmyk.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -373,7 +360,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/cielab.tif",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -394,7 +380,6 @@ TEST_CASE("Image tests", "TIFF") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/CIELab16.tif",
-                                            0,
                                             region,
                                             size,
                                             false,

@@ -37,7 +37,6 @@ namespace cserve {
          * If the value is 1, only half the resolution is returned. If it is 2, only one forth etc.
          */
         IIIFImage read(const std::string &filepath,
-                       int pagenum,
                        std::shared_ptr<IIIFRegion> region,
                        std::shared_ptr<IIIFSize> size,
                        bool force_bps_8,
@@ -50,7 +49,7 @@ namespace cserve {
          * \param[out] width Width of the image in pixels
          * \param[out] height Height of the image in pixels
          */
-        IIIFImgInfo getDim(const std::string &filepath, int pagenum) override;
+        IIIFImgInfo getDim(const std::string &filepath) override;
 
 
         /*!

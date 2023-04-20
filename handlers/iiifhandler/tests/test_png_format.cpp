@@ -65,7 +65,6 @@ TEST_CASE("Image tests", "PNG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = pngio.read("data/IMG_8207.png",
-                                           0,
                                            region,
                                            size,
                                            false,
@@ -102,7 +101,6 @@ TEST_CASE("Image tests", "PNG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = pngio.read("data/png_rgb8.png",
-                                           0,
                                            region,
                                            size,
                                            false,
@@ -113,7 +111,7 @@ TEST_CASE("Image tests", "PNG") {
         REQUIRE(img.getBps() == 8);
         REQUIRE(img.getPhoto() == cserve::RGB);
 
-        auto info = pngio.getDim("data/png_rgb8.png", 0);
+        auto info = pngio.getDim("data/png_rgb8.png");
         REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
         REQUIRE(info.width == 1200);
         REQUIRE(info.height == 900);
@@ -130,7 +128,6 @@ TEST_CASE("Image tests", "PNG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = pngio.read("data/png_rgb8_alpha.png",
-                                           0,
                                            region,
                                            size,
                                            false,
@@ -141,7 +138,7 @@ TEST_CASE("Image tests", "PNG") {
         REQUIRE(img.getBps() == 8);
         REQUIRE(img.getPhoto() == cserve::RGB);
 
-        auto info = pngio.getDim("data/png_rgb8_alpha.png", 0);
+        auto info = pngio.getDim("data/png_rgb8_alpha.png");
         REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
         REQUIRE(info.width == 1200);
         REQUIRE(info.height == 900);
@@ -158,7 +155,6 @@ TEST_CASE("Image tests", "PNG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = pngio.read("data/png_rgb16.png",
-                                           0,
                                            region,
                                            size,
                                            false,
@@ -169,7 +165,7 @@ TEST_CASE("Image tests", "PNG") {
         REQUIRE(img.getBps() == 16);
         REQUIRE(img.getPhoto() == cserve::RGB);
 
-        auto info = pngio.getDim("data/png_rgb16.png", 0);
+        auto info = pngio.getDim("data/png_rgb16.png");
         REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
         REQUIRE(info.width == 600);
         REQUIRE(info.height == 600);
@@ -186,7 +182,6 @@ TEST_CASE("Image tests", "PNG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = pngio.read("data/png_rgb16_alpha.png",
-                                           0,
                                            region,
                                            size,
                                            false,
@@ -197,7 +192,7 @@ TEST_CASE("Image tests", "PNG") {
         REQUIRE(img.getBps() == 16);
         REQUIRE(img.getPhoto() == cserve::RGB);
 
-        auto info = pngio.getDim("data/png_rgb16_alpha.png", 0);
+        auto info = pngio.getDim("data/png_rgb16_alpha.png");
         REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
         REQUIRE(info.width == 600);
         REQUIRE(info.height == 600);
@@ -214,7 +209,6 @@ TEST_CASE("Image tests", "PNG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = pngio.read("data/png_palette8.png",
-                                           0,
                                            region,
                                            size,
                                            false,
@@ -225,7 +219,7 @@ TEST_CASE("Image tests", "PNG") {
         REQUIRE(img.getBps() == 8);
         REQUIRE(img.getPhoto() == cserve::MINISBLACK);
 
-        auto info = pngio.getDim("data/png_palette8.png", 0);
+        auto info = pngio.getDim("data/png_palette8.png");
         REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
         REQUIRE(info.width == 150);
         REQUIRE(info.height == 200);
@@ -242,7 +236,6 @@ TEST_CASE("Image tests", "PNG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = pngio.read("data/png_rgb8_icc_es.png",
-                                           0,
                                            region,
                                            size,
                                            false,
@@ -260,7 +253,7 @@ TEST_CASE("Image tests", "PNG") {
         REQUIRE(img.essential_metadata().data_chksum() == "011c7a3835c50c56cb45ee80ba3097e171a94e71f57362d2a252d8e5bb8e5aa3");
         REQUIRE_FALSE(img.essential_metadata().use_icc());
 
-        auto info = pngio.getDim("data/png_rgb8_icc_es.png", 0);
+        auto info = pngio.getDim("data/png_rgb8_icc_es.png");
         REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
         REQUIRE(info.width == 1200);
         REQUIRE(info.height == 900);
@@ -277,7 +270,6 @@ TEST_CASE("Image tests", "PNG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = pngio.read("data/mario.png",
-                                           0,
                                            region,
                                            size,
                                            false,

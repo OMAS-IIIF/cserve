@@ -63,7 +63,6 @@ TEST_CASE("Image tests", "J2K") {
         auto size = std::make_shared<cserve::IIIFSize>("max");
 
         cserve::IIIFImage im = cserve::IIIFImage::readOriginal("data/IMG_8207.tiff",
-                                                               0,
                                                                region,
                                                                size,
                                                                "IMG_8207.tiff",
@@ -77,7 +76,6 @@ TEST_CASE("Image tests", "J2K") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = j2kio.read("data/IMG_8207.jpx",
-                                           0,
                                            region,
                                            size,
                                            false,

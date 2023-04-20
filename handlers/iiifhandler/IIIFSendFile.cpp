@@ -122,19 +122,19 @@ namespace cserve {
         // get cache info
         //
         size_t img_w = 0, img_h = 0;
-        size_t tile_w = 0, tile_h = 0;
-        int clevels = 0;
-        int numpages = 0;
-        int pagenum = sid.get_page();
+        //size_t tile_w = 0, tile_h = 0;
+        //int clevels = 0;
+        //int numpages = 0;
+        std::vector<SubImageInfo> resolutions;
 
         //
         // get image dimensions, needed for get_canonical...
         //
-        if ((_cache == nullptr) || !_cache->getSize(infile, img_w, img_h, tile_w, tile_h, clevels, numpages)) {
+        if ((_cache == nullptr) || !_cache->getSize(infile, img_w, img_h, resolutions)) {
             IIIFImage tmpimg;
             IIIFImgInfo info;
             try {
-                info = tmpimg.getDim(infile, pagenum);
+                info = tmpimg.getDim(infile);
             }
             catch (IIIFImageError &err) {
                 send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
@@ -146,14 +146,11 @@ namespace cserve {
             }
             img_w = info.width;
             img_h = info.height;
-            tile_w = info.tile_width;
-            tile_h = info.tile_height;
-            clevels = info.clevels;
-            numpages = info.numpages;
+            resolutions = info.resolutions;
         }
 
-        size_t tmp_r_w{0L}, tmp_r_h{0L};
-        int tmp_red{0};
+        uint32_t tmp_r_w{0L}, tmp_r_h{0L};
+        uint32_t tmp_red{0};
         bool tmp_ro{false};
         try {
             size->get_size(img_w, img_h, tmp_r_w, tmp_r_h, tmp_red, tmp_ro);
@@ -183,8 +180,7 @@ namespace cserve {
         std::pair<std::string, std::string> tmppair;
         try {
             tmppair = get_canonical_url(img_w, img_h, conn.host(), params.at(IIIF_PREFIX),
-                                              sid.get_identifier(), region, size, rotation, quality_format,
-                                              sid.get_page());
+                                              sid.get_identifier(), region, size, rotation, quality_format);
         }
         catch (IIIFError &err) {
             send_error(conn, Connection::BAD_REQUEST, err);
@@ -198,7 +194,7 @@ namespace cserve {
         //
         if ((region->getType() == IIIFRegion::FULL) && (size->get_type() == IIIFSize::FULL) && (angle == 0.0) &&
             (!mirror) && watermark.empty() && (quality_format.format() == in_format) &&
-            (quality_format.quality() == IIIFQualityFormat::DEFAULT) && (sid.get_page() < 1)) {
+            (quality_format.quality() == IIIFQualityFormat::DEFAULT)) {
 
             conn.status(Connection::OK);
             conn.header("Cache-Control", "must-revalidate, post-check=0, pre-check=0");
@@ -297,7 +293,7 @@ namespace cserve {
 
         IIIFImage img;
         try {
-            img = IIIFImage::read(infile, sid.get_page(), region, size, quality_format.format() == IIIFQualityFormat::JPG,_scaling_quality);
+            img = IIIFImage::read(infile, region, size, quality_format.format() == IIIFQualityFormat::JPG, _scaling_quality);
         }
         catch (const IIIFImageError &err) {
             send_error(conn, Connection::INTERNAL_SERVER_ERROR, err);
@@ -435,7 +431,7 @@ namespace cserve {
                 //!>
                 //!> ATTENTION!!! Here we change the list of available cache files
                 //!>
-                _cache->add(infile, canonical, cachefile, img_w, img_h, tile_w, tile_h, clevels, numpages);
+                _cache->add(infile, canonical, cachefile, img_w, img_h, resolutions);
             }
         }
         catch (const IIIFError &err) {

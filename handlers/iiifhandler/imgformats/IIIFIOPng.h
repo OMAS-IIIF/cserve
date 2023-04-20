@@ -31,7 +31,7 @@ namespace cserve {
          * \param reduce Reducing factor. Not used reading TIFF files
          */
         IIIFImage read(const std::string &filepath,
-                       int pagenum, std::shared_ptr<IIIFRegion> region,
+                       std::shared_ptr<IIIFRegion> region,
                        std::shared_ptr<IIIFSize> size,
                        bool force_bps_8,
                        ScalingQuality scaling_quality) override;
@@ -43,7 +43,7 @@ namespace cserve {
          * \param[out] width Width of the image in pixels
          * \param[out] height Height of the image in pixels
          */
-        IIIFImgInfo getDim(const std::string &filepath, int pagenum) override;
+        IIIFImgInfo getDim(const std::string &filepath) override;
 
 
         /*!

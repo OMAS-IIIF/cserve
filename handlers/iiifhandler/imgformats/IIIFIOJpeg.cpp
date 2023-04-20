@@ -20,6 +20,7 @@
 #include <cstdio>
 
 #include "../IIIFError.h"
+#include "../iiifparser/IIIFSize.h"
 #include "IIIFIOJpeg.h"
 #include "Connection.h"
 #include "Cserve.h"
@@ -282,7 +283,7 @@ namespace cserve {
     static boolean empty_html_buffer(j_compress_ptr cinfo) {
         auto *html_buffer = (HtmlBuffer *) cinfo->client_data;
         try {
-            html_buffer->conobj->sendAndFlush(html_buffer->buffer, html_buffer->buflen);
+            html_buffer->conobj->sendAndFlush(html_buffer->buffer, static_cast<std::streamsize>(html_buffer->buflen));
         } catch (int i) { // an error occurred (possibly a broken pipe)
             throw JpegError("Couldn't write to HTTP socket");
         }
@@ -301,7 +302,7 @@ namespace cserve {
         auto *html_buffer = (HtmlBuffer *) cinfo->client_data;
         size_t nbytes = cinfo->dest->next_output_byte - html_buffer->buffer;
         try {
-            html_buffer->conobj->sendAndFlush(html_buffer->buffer, nbytes);
+            html_buffer->conobj->sendAndFlush(html_buffer->buffer, static_cast<std::streamsize>(nbytes));
         } catch (int i) { // an error occured in sending the data (broken pipe?)
             throw JpegError("Couldn't write to HTTP socket");
         }
@@ -377,7 +378,7 @@ namespace cserve {
 
             //
             // name processing (Pascal string)
-            slen = *ptr;
+            slen = (uint8_t) (*ptr);
             for (i = 0; (i < slen) && (i < 256); i++) name[i] = *(ptr + i + 1);
             name[i] = '\0';
             slen++; // add length byte
@@ -449,7 +450,6 @@ namespace cserve {
 
 
     IIIFImage IIIFIOJpeg::read(const std::string &filepath,
-                               int pagenum,
                                std::shared_ptr<IIIFRegion> region,
                                std::shared_ptr<IIIFSize> size,
                                bool force_bps_8,
@@ -526,7 +526,7 @@ namespace cserve {
         if (region == nullptr) no_cropping = true;
         if ((region != nullptr) && (region->getType()) == IIIFRegion::FULL) no_cropping = true;
 
-        size_t nnx, nny;
+        uint32_t nnx, nny;
         IIIFSize::SizeType rtype = IIIFSize::FULL;
         if (size != nullptr) {
             rtype = size->get_type();
@@ -536,19 +536,17 @@ namespace cserve {
             //
             // here we prepare tha scaling/reduce stuff...
             //
-            int reduce = 3; // maximal reduce factor is 3: 1/1, 1/2, 1/4 and 1/8
+            uint32_t reduce = 0;
             bool redonly = true; // we assume that only a reduce is necessary
             if ((size != nullptr) && (rtype != IIIFSize::FULL)) {
                 size->get_size(cinfo.image_width, cinfo.image_height, nnx, nny, reduce, redonly);
             }
             else {
-                reduce = 0;
+                reduce = 1;
             }
 
-            if (reduce < 0) reduce = 0;
             cinfo.scale_num = 1;
-            cinfo.scale_denom = 1;
-            for (int i = 0; i < reduce; i++) cinfo.scale_denom *= 2;
+            cinfo.scale_denom = reduce;
         }
         cinfo.do_fancy_upsampling = false;
 
@@ -637,7 +635,7 @@ namespace cserve {
                         while (*pos != '>') {
                             pos++;
                         }
-                        pos++;
+                        //pos++;
 
                         size_t xmp_len = end_xmp - start_xmp;
 
@@ -657,9 +655,16 @@ namespace cserve {
                 auto *pos = (unsigned char *) memmem(marker->data, marker->data_length, "ICC_PROFILE\0", 12);
                 if (pos != nullptr) {
                     auto len = marker->data_length - (pos - (unsigned char *) marker->data) - 14;
-                    icc_buffer = (unsigned char *) realloc(icc_buffer, icc_buffer_len + len);
+                    auto *tmpptr = (unsigned char *) realloc(icc_buffer, icc_buffer_len + len);
+                    if (tmpptr == nullptr) { // cleanup
+                        free (icc_buffer);
+                        jpeg_destroy_decompress(&cinfo);
+                        close(infile);
+                        throw IIIFImageError(file_, __LINE__, fmt::format("Error reading JPEG file '{}'. realloc failed!", filepath));
+                    }
+                    icc_buffer = tmpptr;
                     unaligned_memcpy(icc_buffer + icc_buffer_len, pos + 14, (size_t) len);
-                    icc_buffer_len += len;
+                    icc_buffer_len += static_cast<int>(len);
                 }
             } else if (marker->marker == ESSENTIAL_METADATA_MARKER) {
                 if (strncmp("SIPI", (char *) marker->data, 4) == 0) {
@@ -724,10 +729,10 @@ namespace cserve {
                 throw IIIFImageError(file_, __LINE__, "Unsupported JPEG colorspace!");
             }
         }
-        int sll = cinfo.output_components * cinfo.output_width * sizeof(uint8_t);
+        uint32_t sll = cinfo.output_components * cinfo.output_width * sizeof(uint8_t);
 
-        img.bpixels = std::make_unique<byte[]>(img.ny * sll);
-        byte *rawbuf = img.bpixels.get();
+        img.bpixels = std::vector<uint8_t>(img.ny * sll);
+        byte *rawbuf = img.bpixels.data();
         try {
             linbuf = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo, JPOOL_IMAGE, sll, 1);
             for (size_t i = 0; i < img.ny; i++) {
@@ -766,9 +771,10 @@ namespace cserve {
             //
             // no we scale the region to the desired size
             //
-            int reduce = -1;
+            uint32_t reduce = 0;
             bool redonly;
-            (void) size->get_size(img.nx, img.ny, nnx, nny, reduce, redonly);
+            (void) size->get_size(img.nx, img.ny,
+                                  nnx, nny, reduce, redonly);
         }
 
         //
@@ -793,7 +799,7 @@ namespace cserve {
     //============================================================================
 
 
-    IIIFImgInfo IIIFIOJpeg::getDim(const std::string &filepath, int pagenum) {
+    IIIFImgInfo IIIFIOJpeg::getDim(const std::string &filepath) {
         // portions derived from IJG code */
 
         int infile;
@@ -942,7 +948,7 @@ namespace cserve {
                         while (*pos != '>') {
                             pos++;
                         }
-                        pos++;
+                        //pos++;
 
                         size_t xmp_len = end_xmp - start_xmp;
 
@@ -979,6 +985,16 @@ namespace cserve {
             if (img.exif->getValByKey("Exif.Image.Orientation", ori)) {
                 info.orientation = Orientation(ori);
             }
+        }
+        uint32_t reduce = 2;
+        uint32_t tmp_nnx = IIIFSize::epsilon_ceil_division(static_cast<float>(info.width), static_cast<float>(reduce));
+        uint32_t tmp_nny = IIIFSize::epsilon_ceil_division(static_cast<float>(info.height), static_cast<float>(reduce));
+        while ((tmp_nnx > 128) && (tmp_nny > 128)) {
+            tmp_nnx = IIIFSize::epsilon_ceil_division(static_cast<float>(info.width), static_cast<float>(reduce));
+            tmp_nny = IIIFSize::epsilon_ceil_division(static_cast<float>(info.height), static_cast<float>(reduce));
+            SubImageInfo sub{reduce, tmp_nnx, tmp_nny, 0, 0};
+            info.resolutions.push_back(sub);
+            reduce *= 2;
         }
         info.success = IIIFImgInfo::DIMS;
         jpeg_destroy_decompress(&cinfo);
@@ -1023,7 +1039,7 @@ namespace cserve {
 
         int outfile = -1;        /* target file */
         JSAMPROW row_pointer[1];    /* pointer to JSAMPLE row[s] */
-        int row_stride;        /* physical row width in image buffer */
+        uint32_t row_stride;        /* physical row width in image buffer */
 
         try {
             jpeg_create_compress(&cinfo);
@@ -1289,7 +1305,7 @@ namespace cserve {
 
         row_stride = img.nx * img.nc;    /* JSAMPLEs per row in image_buffer */
 
-        byte *rawbuf = img.bpixels.get();
+        byte *rawbuf = img.bpixels.data();
         try {
             while (cinfo.next_scanline < cinfo.image_height) {
                 // jpeg_write_scanlines expects an array of pointers to scanlines.

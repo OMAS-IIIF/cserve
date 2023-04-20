@@ -180,7 +180,7 @@ namespace cserve {
 //=============================================================================
 
 
-    IIIFImage IIIFIOJ2k::read(const std::string &filepath, int pagenum, std::shared_ptr<IIIFRegion> region,
+    IIIFImage IIIFIOJ2k::read(const std::string &filepath, std::shared_ptr<IIIFRegion> region,
                               std::shared_ptr<IIIFSize> size, bool force_bps_8,
                               ScalingQuality scaling_quality) {
         if (!is_jpx(filepath.c_str())) {
@@ -258,7 +258,7 @@ namespace cserve {
         kdu_core::kdu_codestream codestream;
         codestream.create(input);
         codestream.set_fast(); // No errors expected in input
-        int maximal_reduce = codestream.get_min_dwt_levels();
+        size_t maximal_reduce = codestream.get_min_dwt_levels();
 
         kdu_codestream_comment comment = codestream.get_comment();
         while (comment.exists()) {
@@ -286,7 +286,7 @@ namespace cserve {
         bool do_roi = false;
         if ((region != nullptr) && (region->getType()) != IIIFRegion::FULL) {
             try {
-                size_t sx, sy;
+                uint32_t sx, sy;
                 region->crop_coords(nx_, ny_, roi.pos.x, roi.pos.y, sx, sy);
                 roi.size.x = static_cast<int>(sx);
                 roi.size.y = static_cast<int>(sy);
@@ -302,22 +302,30 @@ namespace cserve {
         //
         // here we prepare tha scaling/reduce stuff...
         //
-        int reduce = maximal_reduce;
-        size_t nnx, nny;
+        uint32_t reduce = maximal_reduce;
+        uint32_t nnx, nny;
         bool redonly = true; // we assume that only a reduce is necessary
         if ((size != nullptr) && (size->get_type() != IIIFSize::FULL)) {
             if (do_roi) {
-                size->get_size(roi.size.x, roi.size.y, nnx, nny, reduce, redonly);
+                size->get_size(roi.size.x, roi.size.y, nnx, nny, reduce, redonly, true);
             } else {
-                size->get_size(nx_, ny_, nnx, nny, reduce, redonly);
+                size->get_size(nx_, ny_, nnx, nny, reduce, redonly, true);
             }
         } else {
-            reduce = 0;
+            reduce = 1;
         }
 
-        if (reduce < 0) reduce = 0;
+        //
+        // calculate dwtLevel for JPEG2000.
+        // "reduce" will be 1, 2, 4, 8, 16, since we indicate is_jsk: true in get_size's last parameter
+        //
+        uint32_t level;
+        uint32_t itmp;
+        for (itmp = 1, level = 0; itmp < reduce; ++level) {
+            itmp *= 2;
+        }
 
-        codestream.apply_input_restrictions(0, 0, reduce, 0, do_roi ? &roi : nullptr);
+        codestream.apply_input_restrictions(0, 0, static_cast<int>(level), 0, do_roi ? &roi : nullptr);
 
         // Determine number of components to decompress
         kdu_core::kdu_dims dims;
@@ -331,9 +339,9 @@ namespace cserve {
         //
         // The following definitions we need in case we get a palette color image!
         //
-        std::unique_ptr<byte[]> rlut = nullptr;
-        std::unique_ptr<byte[]> glut = nullptr;
-        std::unique_ptr<byte[]> blut = nullptr;
+        std::vector<uint8_t> rlut;
+        std::vector<uint8_t> glut;
+        std::vector<uint8_t> blut;
         //
         // get ICC-Profile if available
         //
@@ -347,22 +355,22 @@ namespace cserve {
             int nluts = palette.get_num_luts();
             if (nluts == 3) {
                 int nentries = palette.get_num_entries();
-                rlut = std::make_unique<byte[]>(nentries);
-                glut = std::make_unique<byte[]>(nentries);
-                blut = std::make_unique<byte[]>(nentries);
-                auto tmplut = std::make_unique<float[]>(nentries);
+                rlut = std::vector<uint8_t>(nentries);
+                glut = std::vector<uint8_t>(nentries);
+                blut = std::vector<uint8_t>(nentries);
+                auto tmplut = std::vector<float>(nentries);
 
-                palette.get_lut(0, tmplut.get());
+                palette.get_lut(0, tmplut.data());
                 for (int i = 0; i < nentries; i++) {
                     rlut[i] = lroundf((tmplut[i] + 0.5f) * 255.0f);
                 }
 
-                palette.get_lut(1, tmplut.get());
+                palette.get_lut(1, tmplut.data());
                 for (int i = 0; i < nentries; i++) {
                     glut[i] = lroundf((tmplut[i] + 0.5f) * 255.0f);
                 }
 
-                palette.get_lut(2, tmplut.get());
+                palette.get_lut(2, tmplut.data());
                 for (int i = 0; i < nentries; i++) {
                     blut[i] = lroundf((tmplut[i] + 0.5f) * 255.0f);
                 }
@@ -485,16 +493,16 @@ namespace cserve {
         if (force_bps_8) img.bps = 8; // forces kakadu to convert to 8 bit!
         switch (img.bps) {
             case 8: {
-                auto buffer8 = std::make_unique<byte[]>(dims.area() * img.nc);
-                kdu_core::kdu_byte *raw_buffer8 = buffer8.get();
+                auto buffer8 = std::vector<uint8_t>(dims.area() * img.nc);
+                kdu_core::kdu_byte *raw_buffer8 = buffer8.data();
                 decompressor.pull_stripe(raw_buffer8, stripe_heights);
                 img.bpixels = std::move(buffer8);
                 break;
             }
             case 12: {
                 std::vector<char> get_signed(img.nc, 0); // vector<bool> does not work -> special treatment in C++
-                auto buffer16 = std::make_unique<word[]>(dims.area() * img.nc);
-                auto raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.get();
+                auto buffer16 = std::vector<uint16_t>(dims.area() * img.nc);
+                auto raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.data();
                 decompressor.pull_stripe(raw_buffer16,
                                          stripe_heights,
                                          nullptr,
@@ -508,8 +516,8 @@ namespace cserve {
             }
             case 16: {
                 std::vector<char> get_signed(img.nc, 0); // vector<bool> does not work -> special treatment in C++
-                auto buffer16 = std::make_unique<word[]>(dims.area() * img.nc);
-                auto raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.get();
+                auto buffer16 = std::vector<uint16_t>(dims.area() * img.nc);
+                auto raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.data();
                 decompressor.pull_stripe(raw_buffer16,
                                          stripe_heights,
                                          nullptr,
@@ -525,7 +533,7 @@ namespace cserve {
                 codestream.destroy();
                 input->close();
                 jpx_in.close(); // Not really necessary here.
-                syslog(LOG_ERR, "Unsupported number of bits/sample: %ld !", img.bps);
+                syslog(LOG_ERR, "Unsupported number of bits/sample: %u !", img.bps);
                 throw IIIFImageError(file_, __LINE__, "Unsupported number of bits/sample!");
             }
         }
@@ -534,11 +542,11 @@ namespace cserve {
         input->close();
         jpx_in.close(); // Not really necessary here.
 
-        if (rlut != nullptr) {
+        if (!rlut.empty()) {
             //
             // we have a palette color image...
             //
-            auto tmpbuf = std::make_unique<byte[]>(img.nx * img.ny * numcol);
+            auto tmpbuf = std::vector<uint8_t>(img.nx * img.ny * numcol);
             for (int y = 0; y < img.ny; ++y) {
                 for (int x = 0; x < img.nx; ++x) {
                     tmpbuf[3 * (y * img.nx + x) + 0] = rlut[img.bpixels[y * img.nx + x]];
@@ -548,9 +556,6 @@ namespace cserve {
             }
             img.bpixels = std::move(tmpbuf);
             img.nc = numcol;
-            rlut.release();
-            glut.release();
-            blut.release();
         }
         if (img.photo == YCBCR) {
             img.convertYCC2RGB();
@@ -575,7 +580,7 @@ namespace cserve {
 //=============================================================================
 
 
-    IIIFImgInfo IIIFIOJ2k::getDim(const std::string &filepath, int pagenum) {
+    IIIFImgInfo IIIFIOJ2k::getDim(const std::string &filepath) {
         IIIFImgInfo info;
         if (!is_jpx(filepath.c_str())) {
             info.success = IIIFImgInfo::FAILURE;
@@ -623,9 +628,20 @@ namespace cserve {
         int tnx_, tny_;
         siz->get(Stiles, 0, 0, tny_);
         siz->get(Stiles, 0, 1, tnx_);
-        info.tile_width = tnx_;
-        info.tile_height = tny_;
-        info.clevels = codestream.get_min_dwt_levels();
+        uint32_t clevels = codestream.get_min_dwt_levels();
+        uint32_t level = 1;
+        for (uint32_t i = 0; i < clevels; ++i) {
+            codestream.apply_input_restrictions(0, 0, static_cast<int>(i), 0, nullptr);
+            kdu_core::kdu_dims dims;
+            codestream.get_dims(0, dims);
+            SubImageInfo subim{level,
+                               static_cast<uint32_t>(dims.size.x),
+                               static_cast<uint32_t>(dims.size.y),
+                               static_cast<uint32_t>(tnx_),
+                               static_cast<uint32_t>(tny_)};
+            info.resolutions.push_back(subim);
+            level *= 2;
+        }
 
         kdu_codestream_comment comment = codestream.get_comment();
         while (comment.exists()) {
@@ -715,7 +731,7 @@ namespace cserve {
             siz.set(Ssigned, 0, 0, false); // Image samples are originally unsigned
 
             //
-            // tiling has to be done here. Tile size must be adapted to image dimesions!
+            // tiling has to be done here. Tile size must be adapted to image dimensions!
             //
             int tw = 0, th = 0;
             const auto mindim = img.ny < img.nx ? img.ny : img.nx;
@@ -732,10 +748,14 @@ namespace cserve {
                     }
                 }
             } else {
-                if (mindim >= 4096) {
-                    tw = th = 1536;
-                } else if (mindim >= 2048) {
+                if (mindim >= 16384) {
+                    tw = th = 4096;
+                } else if (mindim >= 8192) {
+                    tw = th = 2048;
+                } else if (mindim >= 4096) {
                     tw = th = 1024;
+                } else if (mindim >= 2048) {
+                    tw = th = 512;
                 } else if (mindim >= 1024) {
                     tw = th = 256;
                 } else {
@@ -823,7 +843,17 @@ namespace cserve {
                     ss << "Clevels=" << params.at(J2K_Clevels);
                     codestream.access_siz()->parse_string(ss.str().c_str());
                 } else {
-                    codestream.access_siz()->parse_string("Clevels=8"); // resolution levels
+                    if (mindim > 16384) { // default tile size: 4096
+                        codestream.access_siz()->parse_string("Clevels=7"); // resolution levels ***
+                    } else if (mindim > 8192) { // default tile size: 2048
+                        codestream.access_siz()->parse_string("Clevels=6"); // resolution levels ***
+                    } else if (mindim > 4096) { // default tile size: 1024
+                        codestream.access_siz()->parse_string("Clevels=5"); // resolution levels ***
+                    } else if (mindim > 2048) { // default tile size: 512
+                        codestream.access_siz()->parse_string("Clevels=4"); // resolution levels ***
+                    } else {// default tile size: 256 or 0
+                        codestream.access_siz()->parse_string("Clevels=3"); // resolution levels ***
+                    }
                 }
 
                 if (params.find(J2K_Corder) != params.end()) {
@@ -868,14 +898,15 @@ namespace cserve {
                 }
             } else {
                 codestream.access_siz()->parse_string("Sprofile=PART2");
-                if (mindim > 4096) {
-                    codestream.access_siz()->parse_string("Clayers=8");
-                    codestream.access_siz()->parse_string("Clevels=8"); // resolution levels ***
-                } else if (mindim > 2048) {
-                    codestream.access_siz()->parse_string("Clayers=5");
+                if (mindim > 16384) { // default tile size: 4096
+                    codestream.access_siz()->parse_string("Clevels=7"); // resolution levels ***
+                } else if (mindim > 8192) { // default tile size: 2048
+                    codestream.access_siz()->parse_string("Clevels=6"); // resolution levels ***
+                } else if (mindim > 4096) { // default tile size: 1024
                     codestream.access_siz()->parse_string("Clevels=5"); // resolution levels ***
-                } else if (mindim > 1024) {
-                    codestream.access_siz()->parse_string("Clayers=3");
+                } else if (mindim > 2048) { // default tile size: 512
+                    codestream.access_siz()->parse_string("Clevels=4"); // resolution levels ***
+                } else {// default tile size: 256 or 0
                     codestream.access_siz()->parse_string("Clevels=3"); // resolution levels ***
                 }
                 codestream.access_siz()->parse_string("Corder=RPCL");
@@ -989,7 +1020,7 @@ namespace cserve {
                                 jp2_family_colour.init(JP2_CIELab_SPACE, 100, 0, 16, 255, 32767, 16, 255, 32767, 16);
                             }
                             break;
-                        };
+                        }
                         default: {
                             unsigned int icc_len;
                             auto *icc_bytes = (kdu_byte *) img.icc->iccBytes(icc_len).get();
@@ -1106,7 +1137,7 @@ namespace cserve {
 
             int stripe_heights[5];
             if (img.bps == 16) {
-                auto *buf = (kdu_int16 *) img.wpixels.get();
+                auto *buf = (kdu_int16 *) img.wpixels.data();
                 auto precisions = std::make_unique<int[]>(img.nc);
                 auto is_signed = std::make_unique<bool[]>(img.nc);
                 for (size_t i = 0; i < img.nc; i++) {
@@ -1121,7 +1152,7 @@ namespace cserve {
                 if (th == 0) th = static_cast<int>(img.ny);
                 size_t stripe_start = 0;
                 do {
-                    kdu_byte *buf = (kdu_byte *) img.bpixels.get() + stripe_start * img.nc * img.nx;
+                    kdu_byte *buf = (kdu_byte *) img.bpixels.data() + stripe_start * img.nc * img.nx;
                     for (size_t i = 0; i < img.nc; i++) {
                         stripe_heights[i] = th;
                     }
@@ -1129,7 +1160,7 @@ namespace cserve {
                     stripe_start += th;
                 } while ((img.ny - stripe_start) >= th);
                 if ((img.ny - stripe_start) > 0) {
-                    kdu_byte *buf = (kdu_byte *) img.bpixels.get() + stripe_start * img.nc * img.nx;
+                    kdu_byte *buf = (kdu_byte *) img.bpixels.data() + stripe_start * img.nc * img.nx;
                     for (size_t i = 0; i < img.nc; i++) {
                         stripe_heights[i] = static_cast<int>(img.ny) - static_cast<int>(stripe_start);
                     }
