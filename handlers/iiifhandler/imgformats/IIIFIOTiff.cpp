@@ -404,6 +404,314 @@ namespace cserve {
         }
     }
 
+    template<typename T>
+    static std::vector<T> read_standard_data(TIFF *tif,
+                                             int32_t roi_x, int32_t roi_y,
+                                             uint32_t roi_w, uint32_t roi_h) {
+        uint16_t planar;
+        TIFF_GET_FIELD (tif, TIFFTAG_PLANARCONFIG, &planar, PLANARCONFIG_CONTIG)
+        uint16_t compression;
+        TIFF_GET_FIELD(tif, TIFFTAG_COMPRESSION, &compression, COMPRESSION_NONE);
+        auto sll = static_cast<uint32_t>(TIFFScanlineSize(tif));
+
+        uint32_t nx, ny, nc, bps;
+        TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &nx);
+        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &ny);
+        uint16_t stmp;
+        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &stmp, 1)
+        nc = static_cast<uint32_t>(stmp);
+
+        TIFF_GET_FIELD (tif, TIFFTAG_BITSPERSAMPLE, &stmp, 8);
+        bps = static_cast<uint32_t>(stmp);
+
+        TIFF_GET_FIELD(tif, TIFFTAG_PHOTOMETRIC, &stmp, MINISBLACK);
+        auto photo = (PhotometricInterpretation) stmp;
+
+        uint8_t black, white;
+        if (photo == MINISBLACK) {
+            black = 0x00;  // 0b0 -> 0x00
+            white = 0xff;  // 0b1 -> 0xff
+        } else if (photo == MINISWHITE){
+            black = 0xff;  // 0b0 -> 0xff
+            white = 0x00;  // 0b1 -> 0x00
+        }
+
+        uint32_t psiz;
+        if (bps <= 8) { // 1, 4, 8 bit -> 8 bit
+            psiz = sizeof(uint8_t);
+        }
+        else { // 12, 16 bit -> 16 bit
+            psiz = sizeof(uint16_t);
+        }
+
+        std::vector<T> inbuf(roi_h * roi_w * nc);
+        auto scanline = std::make_unique<uint8_t[]>(sll);
+        std::unique_ptr<T[]> line;
+        if (compression == COMPRESSION_NONE) {
+            if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGB...
+                line = std::make_unique<T[]>(nx*nc);
+                for (uint32_t i = roi_y; i < roi_h; ++i) {
+                    if (TIFFReadScanline(tif, scanline.get(), i, 0) != 1) {
+                        TIFFClose(tif);
+                        throw IIIFImageError(file_, __LINE__,
+                                             fmt::format("TIFFReadScanline failed on scanline {}", i));
+                    }
+                    switch (bps) {
+                        case 1:
+                            one2eight<T>(scanline.get(), line.get(), nc*nx, black, white);
+                            std::memcpy(inbuf.data() + nc*i*roi_w, line.get() + nc*roi_x, nc*roi_w);
+                            break;
+                        case 4:
+                            four2eight<T>(scanline.get(), line.get(), nc*nx, photo == PALETTE);
+                            std::memcpy(inbuf.data() + nc*i*roi_w, line.get() + nc*roi_x, nc*roi_w);
+                            break;
+                        case 8:
+                            std::memcpy(inbuf.data() + nc*i*roi_w, scanline.get() + nc*roi_x, nc*roi_w);
+                            break;
+                        case 12:
+                            twelve2sixteen<T>(scanline.get(), line.get(), nc*nx, photo == PALETTE);
+                            std::memcpy(inbuf.data() + nc*i*roi_w, line.get() + nc*roi_x, nc*roi_w*psiz);
+                            break;
+                        case 16:
+                            std::memcpy(inbuf.data() + nc*i*roi_w, scanline.get() + nc*roi_x*psiz, nc*roi_w*psiz);
+                            break;
+                        default: ;
+                    }
+                }
+            }
+            else if (planar == PLANARCONFIG_SEPARATE) { // RRRRR…RRR GGGGG…GGGG BBBBB…BBB
+                line = std::make_unique<T[]>(nx);
+                for (uint32_t c = 0; c < nc; ++c) {
+                    for (uint32_t i = roi_y; i < roi_h; ++i) {
+                        if (TIFFReadScanline(tif, scanline.get(), i, c) == -1) {
+                            TIFFClose(tif);
+                            throw IIIFImageError(file_, __LINE__,
+                                                 fmt::format("TIFFReadScanline failed on scanline {}", i));
+                        }
+                        switch (bps) {
+                            case 1:
+                                one2eight<T>(scanline.get(), line.get(), nx, black, white);
+                                std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, line.get() + roi_x, roi_w);
+                                break;
+                            case 4:
+                                four2eight<T>(scanline.get(), line.get(), nx, photo == PALETTE);
+                                std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, line.get() + roi_x, roi_w);
+                                break;
+                            case 8:
+                                std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, scanline.get() + roi_x, roi_w);
+                                break;
+                            case 12:
+                                twelve2sixteen<T>(scanline.get(), line.get(), nx, photo == PALETTE);
+                                std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, line.get() + roi_x, roi_w*psiz);
+                                break;
+                            case 16:
+                                std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, scanline.get() + roi_x*psiz, roi_w*psiz);
+                                break;
+                            default: ;
+                        }
+                    }
+                }
+                inbuf = separateToContig<T>(std::move(inbuf), roi_w, roi_h, nc, roi_w);
+            }
+        }
+        else { // we do have compression....
+            if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGB...
+                line = std::make_unique<T[]>(nx*nc);
+                int res;
+                for (uint32_t i = 0; i < ny; ++i) {
+                    if (TIFFReadScanline(tif, scanline.get(), i, 0) != 1) {
+                        TIFFClose(tif);
+                        throw IIIFImageError(file_, __LINE__,
+                                             fmt::format("TIFFReadScanline failed on scanline {}", i));
+                    }
+                    if (( i >= roi_y) && (i < (roi_y + roi_h))) {
+                        switch (bps) {
+                            case 1:
+                                one2eight<T>(scanline.get(), line.get(), nc*nx, black, white);
+                                std::memcpy(inbuf.data() + nc*i*roi_w, line.get() + nc*roi_x, nc*roi_w);
+                                break;
+                            case 4:
+                                four2eight<T>(scanline.get(), line.get(), nc*nx, photo == PALETTE);
+                                std::memcpy(inbuf.data() + nc*i*roi_w, line.get() + nc*roi_x, nc*roi_w);
+                                break;
+                            case 8:
+                                std::memcpy(inbuf.data() + nc*(i - roi_y)*roi_w, scanline.get() + nc*roi_x, nc*roi_w);
+                                break;
+                            case 12:
+                                twelve2sixteen<T>(scanline.get(), line.get(), nc*nx, photo == PALETTE);
+                                std::memcpy(inbuf.data() + nc*i*roi_w, line.get() + nc*roi_x*psiz, nc*roi_w*psiz);
+                                break;
+                            case 16:
+                                std::memcpy(inbuf.data() + nc*i*roi_w, scanline.get() + nc*roi_x*psiz, nc*roi_w*psiz);
+                                break;
+                            default: ;
+                        }
+                    }
+                }
+            }
+            else if (planar == PLANARCONFIG_SEPARATE) { // RRRRR…RRR GGGGG…GGGG BBBBB…BBB
+                line = std::make_unique<T[]>(nx);
+                for (uint32_t c = 0; c < nc; ++c) {
+                    for (uint32_t i = 0; i < ny; ++i) {
+                        if (TIFFReadScanline(tif, scanline.get(), i, c) == -1) {
+                            TIFFClose(tif);
+                            throw IIIFImageError(file_, __LINE__,
+                                                 fmt::format("TIFFReadScanline failed on scanline {}", i));
+                        }
+                        if ((i >= roi_y) && (i < (roi_y + roi_h))) {
+                            switch (bps) {
+                                case 1:
+                                    one2eight<T>(scanline.get(), line.get(), nx, black, white);
+                                    std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, line.get() + roi_x, roi_w);
+                                    break;
+                                case 4:
+                                    four2eight<T>(scanline.get(), line.get(), nx, photo == PALETTE);
+                                    std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, line.get() + roi_x, roi_w);
+                                    break;
+                                case 8:
+                                    std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, scanline.get() + roi_x, roi_w);
+                                    break;
+                                case 12:
+                                    twelve2sixteen<T>(scanline.get(), line.get(), nx, photo == PALETTE);
+                                    std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, line.get() + roi_x*psiz, roi_w*psiz);
+                                    break;
+                                case 16:
+                                    std::memcpy(inbuf.data() + nc*roi_w+roi_h + i*roi_w, scanline.get() + roi_x*psiz, roi_w*psiz);
+                                    break;
+                                default: ;
+                            }
+
+                        }
+                    }
+                }
+                inbuf = separateToContig<T>(std::move(inbuf), roi_w, roi_h, nc, roi_w);
+            }
+        }
+        return inbuf;
+    }
+
+
+    static std::unique_ptr<uint8_t[]> read_tiled_data(TIFF *tif, const IIIFImage &img,
+                                                      int32_t roi_x, int32_t roi_y,
+                                                      uint32_t roi_w, uint32_t roi_h) {
+        uint16_t planar;
+        TIFF_GET_FIELD (tif, TIFFTAG_PLANARCONFIG, &planar, PLANARCONFIG_CONTIG)
+        uint32_t tile_width;
+        uint32_t tile_length;
+        TIFF_GET_FIELD (tif, TIFFTAG_TILEWIDTH, &tile_width, 0);
+        TIFF_GET_FIELD (tif, TIFFTAG_TILELENGTH, &tile_length, 0);
+        if ((tile_width == 0) ||(tile_length == 0)) {
+            throw IIIFImageError(file_, __LINE__, "Expected tiled image, but no tile dimension given!");
+        }
+
+        uint32_t nx, ny, nc, bps;
+        TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &nx);
+        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &ny);
+        uint32_t ntiles_x = IIIFSize::epsilon_ceil_division(static_cast<float>(nx), static_cast<float>(tile_width));
+        uint32_t ntiles_y = IIIFSize::epsilon_ceil_division(static_cast<float>(ny), static_cast<float>(tile_length));
+        uint32_t ntiles = TIFFNumberOfTiles(tif);
+        if (ntiles != (ntiles_x*ntiles_y)) {
+            throw IIIFImageError(file_, __LINE__, "Number of tiles no consistent!");
+        }
+        uint32_t starttile_x = IIIFSize::epsilon_floor_division(static_cast<float>(roi_x), static_cast<float>(tile_width));
+        uint32_t starttile_y = IIIFSize::epsilon_floor_division(static_cast<float>(roi_y), static_cast<float>(tile_length));
+        uint32_t endtile_x = IIIFSize::epsilon_floor_division(static_cast<float>(roi_x + roi_w), static_cast<float>(tile_width));
+        uint32_t endtile_y = IIIFSize::epsilon_floor_division(static_cast<float>(roi_y + roi_h), static_cast<float>(tile_length));
+
+        uint16_t stmp;
+        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &stmp, 1);
+        nc = static_cast<uint32_t>(stmp);
+
+        TIFF_GET_FIELD(tif, TIFFTAG_SAMPLESPERPIXEL, &stmp, 8);
+        bps = static_cast<uint32_t>(stmp);
+
+        uint32_t psiz;
+        if (bps == 8) {
+            psiz = 1;
+        }
+        else if (bps == 16) {
+            psiz = 2;
+        }
+        else {
+            throw IIIFImageError(file_, __LINE__, fmt::format("{} bits per samples not supported for tiled tiffs!", bps));
+        }
+
+        uint32_t tile_size = TIFFTileSize(tif);
+        auto tilebuf = std::make_unique<uint8_t[]>(tile_size);
+        auto inbuf = std::make_unique<uint8_t[]>(roi_w * roi_h * nc * psiz);
+        if (bps == 8) {
+            auto *tilebuf8_raw = tilebuf.get();
+            auto *inbuf8_raw = inbuf.get();
+            for (uint32_t ty = starttile_y; ty < endtile_y; ++ty) {
+                for (uint32_t tx = starttile_x; tx < endtile_x; ++tx) {
+                    uint32_t t = ty * ntiles_x + tx;
+                    TIFFReadTile(tif, tilebuf.get(), roi_x + tx * tile_width, roi_y + ty * tile_length, 0, 0);
+                    uint32_t start_in_y = (ty == starttile_y) ? roi_y % tile_length : 0;
+                    uint32_t start_in_x = (tx == starttile_x) ? roi_x & tile_width : 0;
+                    uint32_t end_in_y = (ty == (endtile_y - 1)) ? ((roi_y + roi_h) % tile_length) : tile_length;
+                    uint32_t end_in_x = (tx == (endtile_x - 1)) ? ((roi_x + roi_w) % tile_width) : tile_width;
+                    if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGB...
+                        for (uint32_t y = start_in_y; y < end_in_y; ++y) {
+                            for (uint32_t x = start_in_x; x < end_in_x; ++x) {
+                                for (uint32_t c = 0; c < nc; ++c) {
+                                    inbuf8_raw[nc * ((ty * tile_length + y) * tile_width + (tx * tile_width + x)) + c] =
+                                            tilebuf8_raw[nc * (y * tile_width + x) + c];
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        for (uint32_t y = start_in_y; y < end_in_y; ++y) {
+                            for (uint32_t x = start_in_x; x < end_in_x; ++x) {
+                                for (uint32_t c = 0; c < nc; ++c) {
+                                    inbuf8_raw[nc * ((ty * tile_length + y) * tile_width + (tx * tile_width + x)) + c] =
+                                            tilebuf8_raw[c*tile_width*tile_length + nc * (y * tile_width + x)];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else if (bps == 16) {
+            auto *tilebuf16_raw = (uint16_t *) tilebuf.get();
+            auto *inbuf16_raw = (uint16_t *) inbuf.get();
+            for (uint32_t ty = starttile_y; ty < endtile_y; ++ty) {
+                for (uint32_t tx = starttile_x; tx < endtile_x; ++tx) {
+                    uint32_t t = ty * ntiles_x + tx;
+                    TIFFReadTile(tif, tilebuf.get(), roi_x + tx * tile_width, roi_y + ty * tile_length, 0, 0);
+                    uint32_t start_in_y = (ty == starttile_y) ? roi_y % tile_length : 0;
+                    uint32_t start_in_x = (tx == starttile_x) ? roi_x & tile_width : 0;
+                    uint32_t end_in_y = (ty == (endtile_y - 1)) ? ((roi_y + roi_h) % tile_length) : tile_length;
+                    uint32_t end_in_x = (tx == (endtile_x - 1)) ? ((roi_x + roi_w) % tile_width) : tile_width;
+                    if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGB...
+                        for (uint32_t y = start_in_y; y < end_in_y; ++y) {
+                            for (uint32_t x = start_in_x; x < end_in_x; ++x) {
+                                for (uint32_t c = 0; c < nc; ++c) {
+                                    inbuf16_raw[nc * ((ty * tile_length + y) * tile_width + (tx * tile_width + x)) + c] =
+                                            tilebuf16_raw[nc * (y * tile_width + x) + c];
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        for (uint32_t y = start_in_y; y < end_in_y; ++y) {
+                            for (uint32_t x = start_in_x; x < end_in_x; ++x) {
+                                for (uint32_t c = 0; c < nc; ++c) {
+                                    inbuf16_raw[nc * ((ty * tile_length + y) * tile_width + (tx * tile_width + x)) + c] =
+                                            tilebuf16_raw[c*tile_width*tile_length + nc * (y * tile_width + x)];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return inbuf;
+    }
+
+
+
     IIIFImage IIIFIOTiff::read(const std::string &filepath,
                                std::shared_ptr<IIIFRegion> region,
                                std::shared_ptr<IIIFSize> size,
@@ -418,7 +726,7 @@ namespace cserve {
         TIFFSetErrorHandler(tiffError);
         TIFFSetWarningHandler(tiffWarning);
 
-        uint16_t safo, ori, planar, stmp;
+        uint16_t ori, stmp;
 
         (void) TIFFSetWarningHandler(nullptr);
 
@@ -436,7 +744,7 @@ namespace cserve {
 
         auto sll = static_cast<uint32_t>(TIFFScanlineSize(tif));
         TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &stmp, 1)
-        img.nc = static_cast<int>(stmp);
+        img.nc = static_cast<uint32_t>(stmp);
 
         TIFF_GET_FIELD (tif, TIFFTAG_BITSPERSAMPLE, &stmp, 1)
         img.bps = stmp;
@@ -450,6 +758,9 @@ namespace cserve {
         }
 
 
+        //
+        // read the colomap if given...
+        //
         std::vector<uint16_t> rcm;
         std::vector<uint16_t> gcm;
         std::vector<uint16_t> bcm;
@@ -486,8 +797,7 @@ namespace cserve {
             }
         }
 
-        TIFF_GET_FIELD (tif, TIFFTAG_PLANARCONFIG, &planar, PLANARCONFIG_CONTIG)
-        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLEFORMAT, &safo, SAMPLEFORMAT_UINT)
+        // TIFF_GET_FIELD (tif, TIFFTAG_SAMPLEFORMAT, &safo, SAMPLEFORMAT_UINT)
 
         uint16_t *es;
         int eslen = 0;
@@ -691,336 +1001,131 @@ namespace cserve {
             img.essential_metadata(se);
         }
 
-        short compression{COMPRESSION_NONE};
-        TIFFGetField(tif, TIFFTAG_COMPRESSION, &compression);
+        uint32_t dircnt = 0;
+        std::vector<SubImageInfo> resolutions;
+        do {
+            uint32_t tmp_width;
+            uint32_t tmp_height;
+            uint32_t tile_width;
+            uint32_t tile_length;
+            TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &tmp_width);
+            TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &tmp_height);
+            if (TIFFGetField(tif, TIFFTAG_TILEWIDTH, &tile_width) != 1) {
+                tile_width = 0;
+            }
+            if (TIFFGetField(tif, TIFFTAG_TILELENGTH, &tile_length) != 1) {
+                tile_length = 0;
+            };
+            uint32_t reduce_w = std::lroundf(static_cast<float>(img.nx) / static_cast<float>(tmp_width));
+            uint32_t reduce_h = std::lroundf(static_cast<float>(img.ny) / static_cast<float>(tmp_height));
+            uint32_t reduce = reduce_w ;
+            resolutions.push_back({reduce, tmp_width, tmp_height, tile_width, tile_length});
+        } while (TIFFReadDirectory(tif));
 
+        if (resolutions.size() > 1) { // we have a resolution pyramid
+            int32_t x, y;
+            uint32_t w, h;
+            region->crop_coords(img.nx, img.ny, x, y, w, h);
+            uint32_t out_w, out_h;
+            uint32_t reduce;
+            bool redonly;
+            size->get_size(w, h, out_w, out_h, reduce, redonly);
+            uint32_t level = 0;
+            for (const auto &res: resolutions) {
+                if (res.reduce > reduce) break;
+                ++level;
+            }
+            TIFFSetDirectory(tif, level);
+            //
+            // let's reread the dimensions
+            //
+            if (TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &(img.nx)) == 0) {
+                TIFFClose(tif);
+                std::string msg = "TIFFGetField of TIFFTAG_IMAGEWIDTH failed: " + filepath;
+                throw IIIFImageError(file_, __LINE__, msg);
+            }
 
-        /*==========================*/
+            if (TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &(img.ny)) == 0) {
+                TIFFClose(tif);
+                std::string msg = "TIFFGetField of TIFFTAG_IMAGELENGTH failed: " + filepath;
+                throw IIIFImageError(file_, __LINE__, msg);
+            }
+            sll = static_cast<uint32_t>(TIFFScanlineSize(tif));
+        }
+        else {
+            TIFFSetDirectory(tif, 0);
+        }
+
         int32_t roi_x;
         int32_t roi_y;
         uint32_t roi_w;
         uint32_t roi_h;
-        bool needs_cropping;
         if ((region == nullptr) || (region->getType() == IIIFRegion::FULL)) {
             roi_x = 0;
             roi_y = 0;
             roi_w = img.nx;
             roi_h = img.ny;
-            needs_cropping = false;
         }
         else {
             region->crop_coords(img.nx, img.ny, roi_x, roi_y, roi_w, roi_h);
-            needs_cropping = true;
-        }
-        std::unique_ptr<uint8_t[]> inbuf;
-        if (compression == COMPRESSION_NONE) {
-            if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGB...
-                inbuf = std::make_unique<uint8_t[]>(roi_h*sll);
-                for (uint32_t i = roi_y; i < roi_h; ++i) {
-                    if (TIFFReadScanline(tif, inbuf.get() + i * sll, i, 0) == -1) {
-                        TIFFClose(tif);
-                        throw IIIFImageError(file_, __LINE__,
-                                             fmt::format("TIFFReadScanline failed on scanline {} in file '{}'", i, filepath));
-                    }
-                }
-            }
-            else if (planar == PLANARCONFIG_SEPARATE) { // RRRRR…RRR GGGGG…GGGG BBBBB…BBB
-                inbuf = std::make_unique<uint8_t[]>(img.nc*roi_h*sll);
-                for (uint32_t c = 0; c < img.nc; ++c) {
-                    for (uint32_t i = roi_y; i < roi_h; ++i) {
-                        if (TIFFReadScanline(tif, inbuf.get() + i * sll, i, c) == -1) {
-                            TIFFClose(tif);
-                            throw IIIFImageError(file_, __LINE__,
-                                                 fmt::format("TIFFReadScanline failed on scanline {} in file '{}'", i, filepath));
-                        }
-                    }
-                }
-                inbuf = separateToContig<uint8_t[]>(std::move(inbuf), img.nx, roi_h, img.nc, sll);
-            }
-        }
-        else { // we do have compression....
-            if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGB...
-                inbuf = std::make_unique<uint8_t[]>(roi_h*sll);
-                auto dummy = std::make_unique<uint8_t[]>(sll);
-                int res;
-                for (uint32_t i = 0; i < img.ny; ++i) {
-                    if ((i < roi_y) || (i >= (roi_y + roi_h))) {
-                        res = TIFFReadScanline(tif, dummy.get(), i, 0);
-                    }
-                    else {
-                        res = TIFFReadScanline(tif, inbuf.get() + (i - roi_y) * sll, i, 0);
-                    }
-                    if (res == -1) {
-                        TIFFClose(tif);
-                        throw IIIFImageError(file_, __LINE__,
-                                             fmt::format("TIFFReadScanline failed on scanline {} in file '{}'", i, filepath));
-                    }
-                }
-            }
-            else if (planar == PLANARCONFIG_SEPARATE) { // RRRRR…RRR GGGGG…GGGG BBBBB…BBB
-                inbuf = std::make_unique<uint8_t[]>(img.nc*img.ny*sll);
-                auto dummy = std::make_unique<uint8_t[]>(sll);
-                int res;
-                for (uint32_t c = 0; c < img.nc; ++c) {
-                    for (uint32_t i = 0; i < img.ny; ++i) {
-                        if ((i < roi_y) || (i >= (roi_y + roi_h))) {
-                            res = TIFFReadScanline(tif, dummy.get(), i, c);
-                        } else {
-                            res = TIFFReadScanline(tif, inbuf.get() + (i - roi_y) * sll, i, c);
-                        }
-                        if (res == -1) {
-                            TIFFClose(tif);
-                            throw IIIFImageError(file_, __LINE__,
-                                                 fmt::format("TIFFReadScanline failed on scanline {} in file '{}'", i, filepath));
-                        }
-                    }
-                }
-                inbuf = separateToContig<uint8_t[]>(std::move(inbuf), img.nx, roi_h, img.nc, sll);
-            }
         }
 
-        switch (img.bps) {
-            case 1:
-                break;
-            case 4:
-                inbuf = cvrt4BitTo8Bit(std::move(inbuf), img.nx, roi_w, sll);
-                break;
-        }
-        if (img.bps == 1) {
-            uint8_t black, white;
-            if (img.photo == MINISBLACK) {
-                black = 0x00;  // 0b0 -> 0x00
-                white = 0xff;  // 0b1 -> 0xff
-            } else if (img.photo == MINISWHITE){
-                black = 0xff;  // 0b0 -> 0xff
-                white = 0x00;  // 0b1 -> 0x00
-            }
-            else {
-                TIFFClose(tif);
-                throw IIIFImageError(file_, __LINE__,
-                                     fmt::format("Invalid PHOTOMETRIC for 1-Bit data in file '{}'", filepath));
-            }
-            inbuf = cvrt1BitTo8Bit(std::move(inbuf), img.nx, roi_w, sll, black, white);
-            img.bps = 8;
-        } else if (img.bps == 4) {
-            inbuf = cvrt4BitTo8Bit(std::move(inbuf), img.nx, roi_w, sll);
+        if (img.bps <= 8) {
+            img.bpixels = read_standard_data<uint8_t>(tif, roi_x, roi_y, roi_w, roi_h);
             img.bps = 8;
         }
-        if (needs_cropping) {
-            if (img.bps == 8) {
-                auto outbuf = std::make_unique<uint8_t[]>(roi_w*roi_h*img.nc);
-                for (uint32_t yy = 0; yy < roi_h; ++yy) {
-                    for (uint32_t xx = 0; xx < roi_h; ++xx) {
-                        for (uint32_t c = 0; c < img.nc; ++c) {
-                            outbuf[img.nc*(roi_w*yy + xx) + c] = inbuf[img.nc*(img.nx*(roi_y + yy) + (roi_x + xx)) + c];
-                        }
-                    }
-                }
-                inbuf = std::move(outbuf);
-            }
-            else if (img.bps == 16) {
-                auto *btmptmp = inbuf.release();
-                std::unique_ptr<uint16_t[]> inbuf_tmp((uint16_t*) btmptmp);
-                auto outbuf_tmp = std::make_unique<uint16_t[]>(roi_w*roi_h*img.nc);
-                for (uint32_t yy = 0; yy < roi_h; ++yy) {
-                    for (uint32_t xx = 0; xx < roi_h; ++xx) {
-                        for (uint32_t c = 0; c < img.nc; ++c) {
-                            outbuf_tmp[img.nc*(roi_w*yy + xx) + c] = inbuf_tmp[img.nc*(img.nx*(roi_y + yy) + (roi_x + xx)) + c];
-                        }
-                    }
-                }
-                auto *stmptmp = outbuf_tmp.release();
-                std::unique_ptr<uint8_t[]> outbuf((uint8_t *) stmptmp);
-                inbuf = std::move(outbuf);
-            }
-            img.nx = roi_w;
-            img.ny = roi_h;
+        else if (img.bps <= 16) {
+            img.wpixels = read_standard_data<uint16_t>(tif, roi_x, roi_y, roi_w, roi_h);
+            img.bps = 16;
         }
+
         TIFFClose(tif);
-
-        /*
-
-        std::unique_ptr<uint8_t[]> bytebuf;
-        if ((region == nullptr) || (region->getType() == IIIFRegion::FULL) || (compression != COMPRESSION_NONE)) {
-            if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGB...
-                uint32_t i;
-                bytebuf = std::make_unique<uint8_t[]>(img.ny * sll);
-                for (i = 0; i < img.ny; i++) {
-                    if (TIFFReadScanline(tif, bytebuf.get() + i * sll, i, 0) == -1) {
-                        TIFFClose(tif);
-                        throw IIIFImageError(file_, __LINE__,
-                                             fmt::format("TIFFReadScanline failed on scanline {} in file '{}'", i, filepath));
-                    }
-                }
-            } else if (planar == PLANARCONFIG_SEPARATE) { // RRRRR…RRR GGGGG…GGGG BBBBB…BBB
-                bytebuf = std::make_unique<uint8_t[]>(img.nc * img.ny * sll);
-                for (uint32_t j = 0; j < img.nc; j++) {
-                    for (uint32_t i = 0; i < img.ny; i++) {
-                        if (TIFFReadScanline(tif, bytebuf.get() + j * img.ny * sll + i * sll, i, j) == -1) {
-                            TIFFClose(tif);
-                            throw IIIFImageError(file_, __LINE__,
-                                                 fmt::format("TIFFReadScanline failed on scanline {} in file '{}'", i, filepath));
-                        }
-                    }
-                }
-                //
-                // rearrange the data to RGBRGBRGB…RGB
-                //
-                inbuf = separateToContig(std::move(inbuf), img.nx, img.ny, img.nc, sll);
-            }
-
-            if ((region != nullptr) && (region->getType() != IIIFRegion::FULL)) {
-                inbuf = doCrop<uint8_t>(std::move(inbuf), img.nx, img.ny, img.nc, region);
-            }
-        } else {
-            int roi_x, roi_y;
-            size_t roi_w, roi_h;
-            region->crop_coords(img.nx, img.ny, roi_x, roi_y, roi_w, roi_h);
-
-            int ps; // pixel size in bytes
-
-            switch (img.bps) {
-                case 1: {
-                    std::string msg = "Images with 1 bit/sample not supported in file " + filepath;
-                    throw IIIFImageError(file_, __LINE__, msg);
-                }
-                case 8: {
-                    ps = 1;
-                    break;
-                }
-                case 16: {
-                    ps = 2;
-                    break;
-                }
-            }
-
-            inbuf = std::vector<uint8_t>(ps * roi_w * roi_h * img.nc);
-            auto *raw_inbuf = inbuf.data();
-            auto dataptr = std::make_unique<uint8_t[]>(ps * roi_w * roi_h * img.nc);
-            auto *raw_dataptr = dataptr.get();
-
-            if (planar == PLANARCONFIG_CONTIG) { // RGBRGBRGBRGBRGBRGBRGBRGB
-                for (uint32_t i = 0; i < roi_h; i++) {
-                    if (TIFFReadScanline(tif, raw_dataptr, roi_y + i, 0) == -1) {
-                        TIFFClose(tif);
-                        std::string msg =
-                                "TIFFReadScanline failed on scanline " + std::to_string(i) + " in file " + filepath;
-                        throw IIIFImageError(file_, __LINE__, msg);
-                    }
-
-                    memcpy(raw_inbuf + ps * i * roi_w * img.nc, raw_dataptr + ps * roi_x * img.nc, ps * roi_w * img.nc);
-                }
-                img.nx = roi_w;
-                img.ny = roi_h;
-            } else if (planar == PLANARCONFIG_SEPARATE) { // RRRRR…RRR GGGGG…GGGG BBBBB…BBB
-                for (uint32_t j = 0; j < img.nc; j++) {
-                    for (uint32_t i = 0; i < roi_h; i++) {
-                        if (TIFFReadScanline(tif, raw_dataptr, roi_y + i, j) == -1) {
-                            TIFFClose(tif);
-                            std::string msg =
-                                    "TIFFReadScanline failed on scanline " + std::to_string(i) + " in file " +
-                                    filepath;
-                            throw IIIFImageError(file_, __LINE__, msg);
-                        }
-
-                        memcpy(raw_inbuf + ps * roi_w * (j * roi_h + i), raw_dataptr + ps * roi_x, ps * roi_w);
-                    }
-                }
-                img.nx = roi_w;
-                img.ny = roi_h;
-                //
-                // rearrange the data to RGBRGBRGB…RGB
-                //
-                if (img.bps <= 8) {
-                    inbuf = separateToContig(std::move(inbuf), img.nx, img.ny, img.nc, roi_w * ps); // convert to RGBRGBRGB...
-                } else {
-                    auto *raw_inbuf16 = (uint16_t *) inbuf.release();
-                    std::unique_ptr<uint16_t[]> inbuf16(raw_inbuf16);
-                    inbuf16 = separateToContig(std::move(inbuf16), img.nx, img.ny, img.nc, roi_w * ps); // convert to RGBRGBRGB...
-                    auto *raw_tmpptr8 = (uint8_t *) inbuf16.release();
-                    std::unique_ptr<uint8_t[]> tmpptr8(raw_tmpptr8);
-                    inbuf = std::move(tmpptr8);
-                }
-            }
-        }
-        TIFFClose(tif);
-        */
 
         if (img.photo == PALETTE) {
             //
             // ok, we have a palette color image we have to convert to RGB...
             //
-            uint16_t cm_max = 0;
-            for (int i = 0; i < colmap_len; i++) {
-                if (rcm[i] > cm_max) cm_max = rcm[i];
-                if (gcm[i] > cm_max) cm_max = gcm[i];
-                if (bcm[i] > cm_max) cm_max = bcm[i];
-            }
             if (colmap_len <= 256) { // we have bps <= 8
-                if (cm_max < 256) { // the range of the colormap values is 0-255
-                    auto dataptr = std::make_unique<uint8_t[]>(3 * img.nx * img.ny);
-                    for (size_t i = 0; i < img.nx * img.ny; i++) {
-                        dataptr[3 * i] = (uint8_t) rcm[inbuf[i]];
-                        dataptr[3 * i + 1] = (uint8_t) gcm[inbuf[i]];
-                        dataptr[3 * i + 2] = (uint8_t) bcm[inbuf[i]];
-                    }
-                    inbuf = std::move(dataptr);
-                    img.bps = 8;
+                if (img.bps != 8) {
+                    throw IIIFImageError(file_, __LINE__,
+                                         fmt::format("Invalid palette format: bps={} colmap_length={}", img.bps,
+                                                     colmap_len));
                 }
-                else { // the range of the colormap values greater than 0-255, e.g. 0-65535
-                    auto dataptr = std::make_unique<uint16_t[]>(3 * img.nx * img.ny);
-                    for (size_t i = 0; i < img.nx * img.ny; i++) {
-                        dataptr[3 * i] = rcm[inbuf[i]];
-                        dataptr[3 * i + 1] = gcm[inbuf[i]];
-                        dataptr[3 * i + 2] = bcm[inbuf[i]];
+                auto dataptr = std::vector<uint8_t>((img.nc + 2) * img.nx * img.ny);
+                for (uint32_t i = 0; i < img.nx * img.ny; i++) {
+                    dataptr[(img.nc + 2) * i] = static_cast<uint8_t>(rcm[img.bpixels[i * img.nc]]);
+                    dataptr[(img.nc + 2) * i + 1] = static_cast<uint8_t>(gcm[img.bpixels[i * img.nc]]);
+                    dataptr[(img.nc + 2) * i + 2] = static_cast<uint8_t>(bcm[img.bpixels[i * img.nc]]);
+                    if (img.nc > 1) {
+                        for (uint32_t k = 1; k < img.nc; k++) {
+                            dataptr[(img.nc + 2) * i + 2 + k] = img.bpixels[i * img.nc + k];
+                        }
                     }
-                    auto *raw_tmpptr = (uint8_t *) dataptr.release();
-                    std::unique_ptr<uint8_t[]> tmpptr(raw_tmpptr);
-                    inbuf = std::move(tmpptr);
-                    img.bps = 16;
                 }
+                img.bpixels = std::move(dataptr);
+            } else { // we have between 9 and 16 bps
+                if (img.bps != 16) {
+                    throw IIIFImageError(file_, __LINE__,
+                                         fmt::format("Invalid palette format: bps={} colmap_length={}", img.bps,
+                                                     colmap_len));
+                }
+                auto dataptr = std::vector<uint16_t>((img.nc + 2) * img.nx * img.ny);
+                for (size_t i = 0; i < img.nx * img.ny; i++) {
+                    dataptr[(img.nc + 2) * i] = rcm[img.wpixels[i*img.nc]];
+                    dataptr[(img.nc + 2) * i + 1] = gcm[img.wpixels[i*img.nc]];
+                    dataptr[(img.nc + 2) * i + 2] = bcm[img.wpixels[i*img.nc]];
+                    if (img.nc > 1) {
+                        for (uint32_t k = 1; k < img.nc; k++) {
+                            dataptr[(img.nc + 2) * i + 2 + k] = img.wpixels[i * img.nc + k];
+                        }
+                    }
+                }
+                img.wpixels = std::move(dataptr);
             }
-            else { // we have between 9 and 16 bps
-                auto *raw_inbuf = (uint16_t *) inbuf.release();
-                std::unique_ptr<uint16_t[]> inbuf16(raw_inbuf);
-                if (cm_max < 256) { // the range of the colormap values is 0-255
-                    auto dataptr = std::make_unique<uint8_t[]>(3 * img.nx * img.ny);
-                    for (size_t i = 0; i < img.nx * img.ny; i++) {
-                        dataptr[3 * i] = (uint8_t) rcm[inbuf16[i]];
-                        dataptr[3 * i + 1] = (uint8_t) gcm[inbuf16[i]];
-                        dataptr[3 * i + 2] = (uint8_t) bcm[inbuf16[i]];
-                    }
-                    inbuf = std::move(dataptr);
-                    img.bps = 8;
-                }
-                else { // the range of the colormap values greater than 0-255, e.g. 0-65535
-                    auto dataptr = std::make_unique<uint16_t[]>(3 * img.nx * img.ny);
-                    for (size_t i = 0; i < img.nx * img.ny; i++) {
-                        dataptr[3 * i] = rcm[inbuf16[i]];
-                        dataptr[3 * i + 1] = gcm[inbuf16[i]];
-                        dataptr[3 * i + 2] = bcm[inbuf16[i]];
-                    }
-                    auto *raw_tmpptr = (uint8_t *) dataptr.release();
-                    std::unique_ptr<uint8_t[]> tmpptr(raw_tmpptr);
-                    inbuf = std::move(tmpptr);
-                    img.bps = 16;
-                }
-            }
+            img.nc += 2; // expanding the palette adds 2 new channels, from 1 -> 3
             img.photo = RGB;
-            img.nc = 3;
         }
 
-        if (img.bps == 8) {
-            std::vector<uint8_t> tmpv(inbuf.get(), inbuf.get() + img.nc*img.nx*img.ny);
-            inbuf.reset(nullptr);
-            img.bpixels = std::move(tmpv);
-        } else {
-            auto *raw_tmpptr = (uint16_t *) inbuf.release();
-            std::unique_ptr<uint16_t[]> inbuf16(raw_tmpptr);
-            std::vector<uint16_t> tmpv(inbuf16.get(), inbuf16.get() + img.nc*img.nx*img.ny);
-            inbuf16.reset(nullptr);
-            img.wpixels = std::move(tmpv);
-        }
 
         if (img.icc == nullptr) {
             switch (img.photo) {
@@ -1201,7 +1306,7 @@ namespace cserve {
                     info.resolutions.push_back(ti);
                 }
                 ++dirnum;
-            } while (TIFFReadDirectory(tif));
+            } while(TIFFReadDirectory(tif));
 
             TIFFClose(tif);
         }

@@ -10,6 +10,14 @@ static const char file_[] = __FILE__;
 
 namespace cserve {
 
+
+
+
+    template<typename T>
+    void separate2contig(T *buf, uint32_t nx, uint32_t ny, uint32_t nc) {
+        auto tmp = std::make_unique<T[]>(nx*nc);
+    }
+
     std::unique_ptr<uint8_t[]> cvrt1BitTo8Bit(std::unique_ptr<uint8_t[]> &&inbuf,
                                               uint32_t nx, uint32_t ny, uint32_t sll,
                                               uint8_t black, uint8_t white) {

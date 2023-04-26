@@ -12,6 +12,67 @@
 
 namespace cserve {
 
+    template<typename T>
+    void one2eight(const uint8_t *in, T *out, uint32_t len, uint8_t black, uint8_t white) {
+        static uint8_t mask[8] = {0b10000000,
+                                  0b01000000,
+                                  0b00100000,
+                                  0b00010000,
+                                  0b00001000,
+                                  0b00000100,
+                                  0b00000010,
+                                  0b00000001};
+
+        for (uint32_t i = 0; i < len; i += 8) {
+            for (uint32_t k = 0; (k < 8) && ((k + i) < len); ++k) {
+                out[i + k] = mask[k] & in[i] ? white : black;
+            }
+        }
+    }
+
+    template<typename T>
+    void four2eight(const uint8_t *in, T *out, uint32_t len, bool is_palette = false) {
+        static uint8_t mask[2] = { 0b11110000, 0b00001111 };
+
+        if (is_palette) {
+            for (uint32_t i = 0; i < len; i += 2) {
+                out[i] = mask[0] & in[i] >> 4;
+                if ((i + 1) < len) {
+                    out[i + 1] = mask[1] & in[i];
+                }
+            }
+        }
+        else {
+            for (uint32_t i = 0; i < len; i += 2) {
+                out[i] = mask[0] & in[i] >> 4;
+                if ((i + 1) < len) {
+                    out[i + 1] = (mask[1] & in[i]) << 4;
+                }
+            }
+        }
+    }
+
+    template<typename T>
+    void twelve2sixteen(const uint8_t *in, T *out, uint32_t len, bool is_palette = false) {
+        static uint8_t mask[2] = { 0b11110000, 0b00001111 };
+        if (is_palette) {
+            for (uint32_t i = 0; i < len; i += 3) {
+                out[i] = (in[i] << 4) | ((in[i + 1] & mask[0]) >> 4);
+                if ((i + 1) < len) {
+                    out[i + 1] = ((in[i + 1] & mask[1]) << 8) | in[i + 2];
+                }
+            }
+        }
+        else {
+            for (uint32_t i = 0; i < len; i += 3) {
+                out[i] = (in[i] << 4) | ((in[i + 1] & mask[0]) >> 4);
+                if ((i + 1) < len) {
+                    out[i + 1] = (((in[i + 1] & mask[1]) << 8) | in[i + 2]) << 4;
+                }
+            }
+        }
+    }
+
     std::unique_ptr<uint8_t[]> cvrt1BitTo8Bit(std::unique_ptr<uint8_t[]> &&inbuf,
                                               uint32_t nx, uint32_t ny, uint32_t sll,
                                               uint8_t black, uint8_t white);

@@ -169,7 +169,6 @@ TEST_CASE("Image tests", "TIFF") {
                                             size,
                                             false,
                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
-        std::cerr << img.essential_metadata() << std::endl;
         REQUIRE(img.essential_metadata().is_set());
         REQUIRE(img.essential_metadata().origname() == "tiff_01_rgb_uncompressed.tif");
         REQUIRE(img.essential_metadata().mimetype() == "image/tiff");
