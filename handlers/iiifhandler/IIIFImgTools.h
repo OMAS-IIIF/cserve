@@ -22,11 +22,12 @@ namespace cserve {
                                   0b00000100,
                                   0b00000010,
                                   0b00000001};
-
+        uint32_t ii = 0;
         for (uint32_t i = 0; i < len; i += 8) {
             for (uint32_t k = 0; (k < 8) && ((k + i) < len); ++k) {
-                out[i + k] = mask[k] & in[i] ? white : black;
+                out[i + k] = mask[k] & in[ii] ? white : black;
             }
+            ++ii;
         }
     }
 
@@ -35,18 +36,20 @@ namespace cserve {
         static uint8_t mask[2] = { 0b11110000, 0b00001111 };
 
         if (is_palette) {
-            for (uint32_t i = 0; i < len; i += 2) {
-                out[i] = mask[0] & in[i] >> 4;
+            uint32_t ii = 0;
+            for (uint32_t i = 0; i < len; i += 2, ++ii) {
+                out[i] = (mask[0] & in[ii]) >> 4;
                 if ((i + 1) < len) {
-                    out[i + 1] = mask[1] & in[i];
+                    out[i + 1] = mask[1] & in[ii];
                 }
             }
         }
         else {
-            for (uint32_t i = 0; i < len; i += 2) {
-                out[i] = mask[0] & in[i] >> 4;
+            uint32_t ii = 0;
+            for (uint32_t i = 0; i < len; i += 2, ++ii) {
+                out[i] = mask[0] & in[ii];
                 if ((i + 1) < len) {
-                    out[i + 1] = (mask[1] & in[i]) << 4;
+                    out[i + 1] = (mask[1] & in[ii]) << 4;
                 }
             }
         }
@@ -56,18 +59,20 @@ namespace cserve {
     void twelve2sixteen(const uint8_t *in, T *out, uint32_t len, bool is_palette = false) {
         static uint8_t mask[2] = { 0b11110000, 0b00001111 };
         if (is_palette) {
-            for (uint32_t i = 0; i < len; i += 3) {
-                out[i] = (in[i] << 4) | ((in[i + 1] & mask[0]) >> 4);
+            uint32_t ii = 0;
+            for (uint32_t i = 0; i < len; i += 2, ii += 3) {
+                out[i] = (in[ii] << 4) | ((in[ii + 1] & mask[0]) >> 4);
                 if ((i + 1) < len) {
-                    out[i + 1] = ((in[i + 1] & mask[1]) << 8) | in[i + 2];
+                    out[i + 1] = ((in[ii + 1] & mask[1]) << 8) | in[ii + 2];
                 }
             }
         }
         else {
-            for (uint32_t i = 0; i < len; i += 3) {
-                out[i] = (in[i] << 4) | ((in[i + 1] & mask[0]) >> 4);
+            uint32_t ii = 0;
+            for (uint32_t i = 0; i < len; i += 2, ii += 3) {
+                out[i] = (in[ii] << 8) | (in[ii + 1] & mask[0]);
                 if ((i + 1) < len) {
-                    out[i + 1] = (((in[i + 1] & mask[1]) << 8) | in[i + 2]) << 4;
+                    out[i + 1] = ((in[ii + 1] & mask[1]) << 12) | (in[ii + 2] << 4);
                 }
             }
         }

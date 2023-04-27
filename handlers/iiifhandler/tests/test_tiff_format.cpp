@@ -311,6 +311,38 @@ TEST_CASE("Image tests", "TIFF") {
         REQUIRE(img.getPhoto() == cserve::RGB);
     }
 
+    SECTION("TIFF 4-BIT") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = tiffio.read("data/money-4bit.tif",
+                                            region,
+                                            size,
+                                            false,
+                                            {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(tiffio.write(img, "scratch/money-4bit.tif", compression));
+        auto res = Command::exec("compare -quiet -metric mae data/money-4bit-reference.tif scratch/money-4bit.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/money-4bit.tif");
+        std::filesystem::remove("scratch/out.png");
+    }
+
+    SECTION("TIFF 12-BIT") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = tiffio.read("data/tiff_12bit_1chan.tif",
+                                            region,
+                                            size,
+                                            false,
+                                            {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_12bit_1chan.tif", compression));
+        auto res = Command::exec("compare -quiet -metric mae data/tiff_12bit_1chan_reference.tif scratch/tiff_12bit_1chan.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/money-4bit.tif");
+        std::filesystem::remove("scratch/out.png");
+    }
+
     SECTION("TIFF RGB CCITT4") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
