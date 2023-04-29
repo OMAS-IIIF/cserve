@@ -426,5 +426,18 @@ TEST_CASE("Image tests", "TIFF") {
         std::filesystem::remove("scratch/CIELab16.tif");
         std::filesystem::remove("scratch/out.png");
     }
+
+    SECTION("TIFF Pyramid with tiles") {
+        auto region = std::make_shared<cserve::IIIFRegion>("full");
+        auto size = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                            region,
+                                            size,
+                                            false,
+                                            {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+
+        cserve::IIIFCompressionParams compression;
+        REQUIRE_NOTHROW(tiffio.write(img, "scratch/gaga.jpg", compression));
+    }
 }
 
