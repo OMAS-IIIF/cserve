@@ -428,6 +428,7 @@ TEST_CASE("Image tests", "TIFF") {
     }
 
     SECTION("TIFF Pyramid with tiles") {
+        /*
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_01_rgb_pyramid.tif",
@@ -438,6 +439,29 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/gaga.jpg", compression));
+
+        auto region2 = std::make_shared<cserve::IIIFRegion>("full");
+        auto size2 = std::make_shared<cserve::IIIFSize>("600,450");
+        cserve::IIIFImage img2 = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                            region2,
+                                            size2,
+                                            false,
+                                            {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+
+        cserve::IIIFCompressionParams compression2;
+        REQUIRE_NOTHROW(tiffio.write(img2, "scratch/gaga2.jpg", compression2));
+*/
+        auto region3 = std::make_shared<cserve::IIIFRegion>("350,300,600,400");
+        auto size3 = std::make_shared<cserve::IIIFSize>("max");
+        cserve::IIIFImage img3 = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                             region3,
+                                             size3,
+                                             false,
+                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+
+        cserve::IIIFCompressionParams compression3;
+        REQUIRE_NOTHROW(tiffio.write(img3, "scratch/gaga3.jpg", compression3));
+
     }
 }
 

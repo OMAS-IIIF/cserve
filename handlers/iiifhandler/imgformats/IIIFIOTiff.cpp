@@ -643,18 +643,22 @@ namespace cserve {
         for (uint32_t ty = starttile_y; ty < endtile_y; ++ty) {
             uint32_t offs = 0;
             for (uint32_t tx = starttile_x; tx < endtile_x; ++tx) {
-                std::cerr << "&&... tx: " << tx << " ty: " << ty << std::endl;
-                if (TIFFReadTile(tif, tilebuf.get(), tx * tile_width, ty * tile_length, 0, 0) < 0) {
+                std::cerr << "&&... line: " << __LINE__ << " tx: " << tx << " ty: " << ty << std::endl;
+                std::cerr << "&&@@@ line: " << __LINE__ << " X=" <<  tx*tile_width << " Y=" << ty*tile_length << std::endl;
+                if (TIFFReadTile(tif, tilebuf.get(), tx*tile_width, ty*tile_length, 0, 0) < 0) {
+                    std::cerr << "&&@@@ line: " << __LINE__ << " X=" <<  tx*tile_width << " Y=" << ty*tile_length << std::endl;
                     TIFFClose(tif);
                     throw IIIFImageError(file_, __LINE__,
                                          fmt::format("TIFFReadTile failed on tile ({}, {})", tx, ty));
                 }
+                std::cerr << "&&@@@ line: " << __LINE__ << std::endl;
                 if (planar == PLANARCONFIG_SEPARATE) {
                     tilebuf = separateToContig(std::move(tilebuf), tile_width, tile_length, nc, tile_width);
                 }
                 uint32_t start_in_x = (tx == starttile_x) ? roi_x : 0;
                 uint32_t start_in_y = (ty == starttile_y) ? roi_y : 0;
                 uint32_t len_x;
+                std::cerr << "&&@@@ line: " << __LINE__ << std::endl;
                 if (tx == starttile_x) {
                     len_x = tile_width - roi_x;
                 }
@@ -664,6 +668,7 @@ namespace cserve {
                 else {
                     len_x = tile_width;
                 }
+                std::cerr << "&&@@@ line: " << __LINE__ << std::endl;
                 uint32_t len_y;
                 if (ty == starttile_y) {
                     len_y = tile_length - roi_y;
@@ -674,9 +679,13 @@ namespace cserve {
                 else {
                     len_y = tile_length;
                 }
+                uint32_t start_out_x = (tx == starttile_x) ? 0 : (tx - starttile_x)*tile_width - roi_x;
+                uint32_t start_out_y = (ty == starttile_y) ? 0 : (ty - starttile_y)*tile_length - roi_y;
+                std::cerr << "&&@@@ line: " << __LINE__ << std::endl;
                 std::cerr << "&&... start_in_x: " << start_in_x << " start_in_y: " << start_in_y << " len_x: " << len_x << " len_y: " << len_y << std::endl;
+                std::cerr << "&&... start_out_x: " << start_out_x << " start_out_y: " << start_out_y << std::endl;
                 for (uint32_t y = start_in_y; y < (start_in_y + len_y); ++y) {
-                    std::memcpy(inbuf.data() + nc*ty*tile_length*roi_w + nc*(y - start_in_y)*roi_w +nc*offs,
+                    std::memcpy(inbuf.data() + nc*((start_out_y + (y - start_in_y))*roi_w + start_out_x),
                                 tilebuf.get() + nc*(y*tile_width + start_in_x),
                                 nc*len_x*sizeof(T));
                 }
@@ -685,7 +694,6 @@ namespace cserve {
         }
         return inbuf;
     }
-
 
     IIIFImage IIIFIOTiff::read(const std::string &filepath,
                                std::shared_ptr<IIIFRegion> region,
@@ -1068,6 +1076,8 @@ namespace cserve {
             }
             img.bps = 16;
         }
+        img.nx = roi_w;
+        img.ny = roi_h;
         TIFFClose(tif);
 
         if (img.photo == PALETTE) {
