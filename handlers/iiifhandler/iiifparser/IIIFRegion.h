@@ -20,15 +20,16 @@ namespace cserve {
         int32_t x, y;
         uint32_t w, h;
         bool canonical_ok;
+        float reduce;
 
     public:
-        inline IIIFRegion() : x(0), y(0), w(0), h(0) {
+        inline IIIFRegion() : x(0), y(0), w(0), h(0), reduce(1.0F) {
             coord_type = FULL;
             rx = ry = rw = rh = 0.F;
             canonical_ok = false;
         }
 
-        inline IIIFRegion(int32_t x, int32_t y, uint32_t w, uint32_t h) : x(0), y(0), w(0), h(0) {
+        inline IIIFRegion(int32_t x, int32_t y, uint32_t w, uint32_t h) : x(0), y(0), w(0), h(0), reduce(1.0F) {
             coord_type = COORDS;
             rx = (float) x;
             ry = (float) y;
@@ -38,6 +39,8 @@ namespace cserve {
         };
 
         explicit IIIFRegion(std::string str);
+
+        inline void set_reduce(float reduce_p) { reduce = reduce_p; }
 
         [[nodiscard]]
         inline CoordType getType() const { return coord_type; };

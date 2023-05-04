@@ -411,7 +411,7 @@ namespace cserve {
         uint16_t planar;
         TIFF_GET_FIELD (tif, TIFFTAG_PLANARCONFIG, &planar, PLANARCONFIG_CONTIG)
         uint16_t compression;
-        TIFF_GET_FIELD(tif, TIFFTAG_COMPRESSION, &compression, COMPRESSION_NONE);
+        TIFF_GET_FIELD(tif, TIFFTAG_COMPRESSION, &compression, COMPRESSION_NONE)
         auto sll = static_cast<uint32_t>(TIFFScanlineSize(tif));
 
         uint32_t nx, ny, nc, bps;
@@ -421,10 +421,10 @@ namespace cserve {
         TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &stmp, 1)
         nc = static_cast<uint32_t>(stmp);
 
-        TIFF_GET_FIELD (tif, TIFFTAG_BITSPERSAMPLE, &stmp, 8);
+        TIFF_GET_FIELD (tif, TIFFTAG_BITSPERSAMPLE, &stmp, 8)
         bps = static_cast<uint32_t>(stmp);
 
-        TIFF_GET_FIELD(tif, TIFFTAG_PHOTOMETRIC, &stmp, MINISBLACK);
+        TIFF_GET_FIELD(tif, TIFFTAG_PHOTOMETRIC, &stmp, MINISBLACK)
         auto photo = (PhotometricInterpretation) stmp;
 
         uint8_t black, white;
@@ -595,17 +595,15 @@ namespace cserve {
     static std::vector<T> read_tiled_data(TIFF *tif,
                                           int32_t roi_x, int32_t roi_y,
                                           uint32_t roi_w, uint32_t roi_h) {
-        std::cerr << "&&== roi_x: " << roi_x << " roi_y: " << roi_y << " roi_w: " << roi_w << " roi_h: " << roi_h << std::endl;
         uint16_t planar;
         TIFF_GET_FIELD (tif, TIFFTAG_PLANARCONFIG, &planar, PLANARCONFIG_CONTIG)
         uint32_t tile_width;
         uint32_t tile_length;
-        TIFF_GET_FIELD (tif, TIFFTAG_TILEWIDTH, &tile_width, 0);
-        TIFF_GET_FIELD (tif, TIFFTAG_TILELENGTH, &tile_length, 0);
+        TIFF_GET_FIELD (tif, TIFFTAG_TILEWIDTH, &tile_width, 0)
+        TIFF_GET_FIELD (tif, TIFFTAG_TILELENGTH, &tile_length, 0)
         if ((tile_width == 0) ||(tile_length == 0)) {
             throw IIIFImageError(file_, __LINE__, "Expected tiled image, but no tile dimension given!");
         }
-        std::cerr << "&&== tile_width: " << tile_width << " tile_length: " << tile_length << std::endl;
 
         uint32_t nx, ny, nc, bps;
         TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &nx);
@@ -621,12 +619,11 @@ namespace cserve {
         uint32_t endtile_x = IIIFSize::epsilon_ceil_division(static_cast<float>(roi_x + roi_w), static_cast<float>(tile_width));
         uint32_t endtile_y = IIIFSize::epsilon_ceil_division(static_cast<float>(roi_y + roi_h), static_cast<float>(tile_length));
 
-        std::cerr << "%%== starttile_x: " << starttile_x << " starttile_y: " << starttile_y << " endtile_x:" << endtile_x << " endtile_y: " << endtile_y << std::endl;
         uint16_t stmp;
-        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &stmp, 1);
+        TIFF_GET_FIELD (tif, TIFFTAG_SAMPLESPERPIXEL, &stmp, 1)
         nc = static_cast<uint32_t>(stmp);
 
-        TIFF_GET_FIELD(tif, TIFFTAG_BITSPERSAMPLE, &stmp, 8);
+        TIFF_GET_FIELD(tif, TIFFTAG_BITSPERSAMPLE, &stmp, 8)
         bps = static_cast<uint32_t>(stmp);
 
         if ((bps != 8) && (bps != 16)){
@@ -643,22 +640,17 @@ namespace cserve {
         for (uint32_t ty = starttile_y; ty < endtile_y; ++ty) {
             uint32_t offs = 0;
             for (uint32_t tx = starttile_x; tx < endtile_x; ++tx) {
-                std::cerr << "&&... line: " << __LINE__ << " tx: " << tx << " ty: " << ty << std::endl;
-                std::cerr << "&&@@@ line: " << __LINE__ << " X=" <<  tx*tile_width << " Y=" << ty*tile_length << std::endl;
                 if (TIFFReadTile(tif, tilebuf.get(), tx*tile_width, ty*tile_length, 0, 0) < 0) {
-                    std::cerr << "&&@@@ line: " << __LINE__ << " X=" <<  tx*tile_width << " Y=" << ty*tile_length << std::endl;
                     TIFFClose(tif);
                     throw IIIFImageError(file_, __LINE__,
                                          fmt::format("TIFFReadTile failed on tile ({}, {})", tx, ty));
                 }
-                std::cerr << "&&@@@ line: " << __LINE__ << std::endl;
                 if (planar == PLANARCONFIG_SEPARATE) {
                     tilebuf = separateToContig(std::move(tilebuf), tile_width, tile_length, nc, tile_width);
                 }
                 uint32_t start_in_x = (tx == starttile_x) ? roi_x : 0;
                 uint32_t start_in_y = (ty == starttile_y) ? roi_y : 0;
                 uint32_t len_x;
-                std::cerr << "&&@@@ line: " << __LINE__ << std::endl;
                 if (tx == starttile_x) {
                     len_x = tile_width - roi_x;
                 }
@@ -668,7 +660,6 @@ namespace cserve {
                 else {
                     len_x = tile_width;
                 }
-                std::cerr << "&&@@@ line: " << __LINE__ << std::endl;
                 uint32_t len_y;
                 if (ty == starttile_y) {
                     len_y = tile_length - roi_y;
@@ -681,9 +672,6 @@ namespace cserve {
                 }
                 uint32_t start_out_x = (tx == starttile_x) ? 0 : (tx - starttile_x)*tile_width - roi_x;
                 uint32_t start_out_y = (ty == starttile_y) ? 0 : (ty - starttile_y)*tile_length - roi_y;
-                std::cerr << "&&@@@ line: " << __LINE__ << std::endl;
-                std::cerr << "&&... start_in_x: " << start_in_x << " start_in_y: " << start_in_y << " len_x: " << len_x << " len_y: " << len_y << std::endl;
-                std::cerr << "&&... start_out_x: " << start_out_x << " start_out_y: " << start_out_y << std::endl;
                 for (uint32_t y = start_in_y; y < (start_in_y + len_y); ++y) {
                     std::memcpy(inbuf.data() + nc*((start_out_y + (y - start_in_y))*roi_w + start_out_x),
                                 tilebuf.get() + nc*(y*tile_width + start_in_x),
@@ -1000,7 +988,7 @@ namespace cserve {
             }
             if (TIFFGetField(tif, TIFFTAG_TILELENGTH, &tile_length) != 1) {
                 tile_length = 0;
-            };
+            }
             uint32_t reduce_w = std::lroundf(static_cast<float>(img.nx) / static_cast<float>(tmp_width));
             uint32_t reduce_h = std::lroundf(static_cast<float>(img.ny) / static_cast<float>(tmp_height));
             uint32_t reduce = reduce_w ;
@@ -1011,12 +999,20 @@ namespace cserve {
         // select the right resolution
         //
         bool is_tiled;
+        uint32_t reduce = 1;
         if (resolutions.size() > 1) { // we have a resolution pyramid
             int32_t x, y;
             uint32_t w, h;
-            region->crop_coords(img.nx, img.ny, x, y, w, h);
+            if (region == nullptr) {
+                x = 0;
+                y = 0;
+                w = img.nx;
+                h = img.ny;
+            }
+            else {
+                region->crop_coords(img.nx, img.ny, x, y, w, h);
+            };
             uint32_t out_w, out_h;
-            uint32_t reduce;
             bool redonly;
             size->get_size(w, h, out_w, out_h, reduce, redonly);
             uint32_t level = 0;
@@ -1032,17 +1028,16 @@ namespace cserve {
             //
             img.nx = resolutions[level].width;
             img.ny = resolutions[level].height;
+            if (region != nullptr) {
+                region->set_reduce(static_cast<float>(reduce));
+            }
             is_tiled = (resolutions[level].tile_width != 0) && (resolutions[level].tile_height != 0);
             sll = static_cast<uint32_t>(TIFFScanlineSize(tif));
-            std::cerr << "&&== level = " << level << std::endl;
         }
         else {
             TIFFSetDirectory(tif, 0);
-            std::cerr << "&&== no levels!!" << std::endl;
             is_tiled = (resolutions[0].tile_width != 0) && (resolutions[0].tile_height != 0);
         }
-
-        std::cerr << "&&== is_tiled = " << is_tiled << std::endl;
 
         int32_t roi_x;
         int32_t roi_y;

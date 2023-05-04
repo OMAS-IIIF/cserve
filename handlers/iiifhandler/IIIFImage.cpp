@@ -667,6 +667,9 @@ namespace cserve {
     }
 
     bool IIIFImage::scaleFast(uint32_t nnx, uint32_t nny) {
+        if ((nx == nnx) && (ny == nny)) {
+            return true;
+        }
         if (bps == 8) {
             bpixels = doScaleFast<uint8_t>(std::move(bpixels), nx, ny, nc, nnx, nny);
         }
@@ -681,6 +684,9 @@ namespace cserve {
     }
 
     bool IIIFImage::scaleMedium(uint32_t nnx, uint32_t nny) {
+        if ((nx == nnx) && (ny == nny)) {
+            return true;
+        }
         if (bps == 8) {
             bpixels = doScaleMedium<uint8_t>(std::move(bpixels), nx, ny, nc, nnx, nny);
         }
@@ -712,6 +718,9 @@ namespace cserve {
     }
 
     bool IIIFImage::scale(uint32_t nnx, uint32_t nny) {
+        if ((nx == nnx) && (ny == nny)) {
+            return true;
+        }
         if (bps == 8) {
             bpixels = doScale<uint8_t>(std::move(bpixels), nx, ny, nc, nnx, nny);
         }

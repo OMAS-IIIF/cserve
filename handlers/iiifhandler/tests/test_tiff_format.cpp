@@ -428,7 +428,6 @@ TEST_CASE("Image tests", "TIFF") {
     }
 
     SECTION("TIFF Pyramid with tiles") {
-        /*
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = tiffio.read("data/tiff_01_rgb_pyramid.tif",
@@ -450,9 +449,9 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression2;
         REQUIRE_NOTHROW(tiffio.write(img2, "scratch/gaga2.jpg", compression2));
-*/
+
         auto region3 = std::make_shared<cserve::IIIFRegion>("350,300,600,400");
-        auto size3 = std::make_shared<cserve::IIIFSize>("max");
+        auto size3 = std::make_shared<cserve::IIIFSize>("300,200");
         cserve::IIIFImage img3 = tiffio.read("data/tiff_01_rgb_pyramid.tif",
                                              region3,
                                              size3,
