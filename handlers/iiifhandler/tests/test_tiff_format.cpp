@@ -437,7 +437,12 @@ TEST_CASE("Image tests", "TIFF") {
                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
 
         cserve::IIIFCompressionParams compression;
-        REQUIRE_NOTHROW(tiffio.write(img, "scratch/gaga.jpg", compression));
+        REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_01_rgb_pyramid_res01.tif", compression));
+        auto res = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res01.tif scratch/tiff_01_rgb_pyramid_res01.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res01.tif");
+        std::filesystem::remove("scratch/out.png");
+
 
         auto region2 = std::make_shared<cserve::IIIFRegion>("full");
         auto size2 = std::make_shared<cserve::IIIFSize>("600,450");
@@ -448,7 +453,11 @@ TEST_CASE("Image tests", "TIFF") {
                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
 
         cserve::IIIFCompressionParams compression2;
-        REQUIRE_NOTHROW(tiffio.write(img2, "scratch/gaga2.jpg", compression2));
+        REQUIRE_NOTHROW(tiffio.write(img2, "scratch/tiff_01_rgb_pyramid_res02.tif", compression2));
+        auto res2 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res02.tif scratch/tiff_01_rgb_pyramid_res02.tif scratch/out.png 2>&1");
+        REQUIRE(res2 == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res02.tif");
+        std::filesystem::remove("scratch/out.png");
 
         auto region3 = std::make_shared<cserve::IIIFRegion>("350,300,600,400");
         auto size3 = std::make_shared<cserve::IIIFSize>("300,200");
@@ -459,7 +468,26 @@ TEST_CASE("Image tests", "TIFF") {
                                              {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
 
         cserve::IIIFCompressionParams compression3;
-        REQUIRE_NOTHROW(tiffio.write(img3, "scratch/gaga3.jpg", compression3));
+        REQUIRE_NOTHROW(tiffio.write(img3, "scratch/tiff_01_rgb_pyramid_res03.tif", compression3));
+        auto res3 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res03.tif scratch/tiff_01_rgb_pyramid_res03.tif scratch/out.png 2>&1");
+        REQUIRE(res3 == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res03.tif");
+        std::filesystem::remove("scratch/out.png");
+
+        auto region4 = std::make_shared<cserve::IIIFRegion>("0,0,512,512");
+        auto size4 = std::make_shared<cserve::IIIFSize>("256,256");
+        cserve::IIIFImage img4 = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                             region4,
+                                             size4,
+                                             false,
+                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+
+        cserve::IIIFCompressionParams compression4;
+        REQUIRE_NOTHROW(tiffio.write(img4, "scratch/tiff_01_rgb_pyramid_res04.tif", compression4));
+        auto res4 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res04.tif scratch/tiff_01_rgb_pyramid_res04.tif scratch/out.png 2>&1");
+        REQUIRE(res4 == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res04.tif");
+        std::filesystem::remove("scratch/out.png");
 
     }
 }

@@ -1222,6 +1222,7 @@ namespace cserve {
             uint32_t reduce = -1;
             bool redonly;
             IIIFSize::SizeType rtype = size->get_size(img.nx, img.ny, nnx, nny, reduce, redonly);
+            std::cerr << "&&== nx=" << img.nx << " ny=" << img.ny << " nnx=" << nnx << " nny=" << nny << std::endl;
             if (rtype != IIIFSize::FULL) {
                 switch (scaling_quality.jpeg) {
                     case HIGH:
