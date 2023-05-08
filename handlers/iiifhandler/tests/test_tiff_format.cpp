@@ -489,6 +489,97 @@ TEST_CASE("Image tests", "TIFF") {
         std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res04.tif");
         std::filesystem::remove("scratch/out.png");
 
+        auto region5 = std::make_shared<cserve::IIIFRegion>("1024,0,176,512");
+        auto size5 = std::make_shared<cserve::IIIFSize>("88,256");
+        cserve::IIIFImage img5 = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                             region5,
+                                             size5,
+                                             false,
+                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression5;
+        REQUIRE_NOTHROW(tiffio.write(img5, "scratch/tiff_01_rgb_pyramid_res05.tif", compression5));
+        auto res5 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res05.tif scratch/tiff_01_rgb_pyramid_res05.tif scratch/out.png 2>&1");
+        REQUIRE(res5 == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res05.tif");
+        std::filesystem::remove("scratch/out.png");
+
+        //
+        // Get all tiles in a reduced size, compose the tiles to a complete image
+        // and compare to reference image...
+        //
+        auto region5a = std::make_shared<cserve::IIIFRegion>("0,0,512,512");
+        auto size5a = std::make_shared<cserve::IIIFSize>("256,256");
+        cserve::IIIFImage img5a = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                             region5a,
+                                             size5a,
+                                             false,
+                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression5a;
+        REQUIRE_NOTHROW(tiffio.write(img5a, "scratch/res_a.tif", compression5a));
+
+        auto region5b = std::make_shared<cserve::IIIFRegion>("512,0,512,512");
+        auto size5b = std::make_shared<cserve::IIIFSize>("256,256");
+        cserve::IIIFImage img5b = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                              region5b,
+                                              size5b,
+                                              false,
+                                              {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression5b;
+        REQUIRE_NOTHROW(tiffio.write(img5b, "scratch/res_b.tif", compression5b));
+
+        auto region5c = std::make_shared<cserve::IIIFRegion>("1024,0,176,512");
+        auto size5c = std::make_shared<cserve::IIIFSize>("88,256");
+        cserve::IIIFImage img5c = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                              region5c,
+                                              size5c,
+                                              false,
+                                              {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression5c;
+        REQUIRE_NOTHROW(tiffio.write(img5c, "scratch/res_c.tif", compression5c));
+
+        auto region5d = std::make_shared<cserve::IIIFRegion>("0,512,512,388");
+        auto size5d = std::make_shared<cserve::IIIFSize>("256,194");
+        cserve::IIIFImage img5d = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                              region5d,
+                                              size5d,
+                                              false,
+                                              {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression5d;
+        REQUIRE_NOTHROW(tiffio.write(img5d, "scratch/res_d.tif", compression5d));
+
+        auto region5e = std::make_shared<cserve::IIIFRegion>("512,512,512,388");
+        auto size5e = std::make_shared<cserve::IIIFSize>("256,194");
+        cserve::IIIFImage img5e = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                              region5e,
+                                              size5e,
+                                              false,
+                                              {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression5e;
+        REQUIRE_NOTHROW(tiffio.write(img5e, "scratch/res_e.tif", compression5e));
+
+        auto region5f = std::make_shared<cserve::IIIFRegion>("1024,512,176,388");
+        auto size5f = std::make_shared<cserve::IIIFSize>("88,194");
+        cserve::IIIFImage img5f = tiffio.read("data/tiff_01_rgb_pyramid.tif",
+                                              region5f,
+                                              size5f,
+                                              false,
+                                              {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
+        cserve::IIIFCompressionParams compression5f;
+        REQUIRE_NOTHROW(tiffio.write(img5f, "scratch/res_f.tif", compression5f));
+
+        auto res6 = Command::exec(R"(convert \( scratch/res_a.tif scratch/res_b.tif scratch/res_c.tif +append \) \( scratch/res_d.tif scratch/res_e.tif scratch/res_f.tif +append \) -append scratch/res_comp.tif)");
+
+        auto res7 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_halfsize.tif scratch/res_comp.tif scratch/out.png 2>&1");
+        REQUIRE(res5 == CommandResult{"0 (0)", 0});
+        std::filesystem::remove("scratch/res_a.tif");
+        std::filesystem::remove("scratch/res_b.tif");
+        std::filesystem::remove("scratch/res_c.tif");
+        std::filesystem::remove("scratch/res_d.tif");
+        std::filesystem::remove("scratch/res_e.tif");
+        std::filesystem::remove("scratch/res_f.tif");
+        std::filesystem::remove("scratch/res_comp.tif");
+        std::filesystem::remove("scratch/out.png");
+
     }
 }
 

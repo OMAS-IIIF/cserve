@@ -638,7 +638,6 @@ namespace cserve {
         auto tilebuf = std::make_unique<T[]>(bps == 8 ? tile_size : (tile_size >> 1));
         auto inbuf = std::vector<T>(roi_w * roi_h * nc);
         for (uint32_t ty = starttile_y; ty < endtile_y; ++ty) {
-            uint32_t offs = 0;
             for (uint32_t tx = starttile_x; tx < endtile_x; ++tx) {
                 if (TIFFReadTile(tif, tilebuf.get(), tx*tile_width, ty*tile_length, 0, 0) < 0) {
                     TIFFClose(tif);
@@ -648,36 +647,38 @@ namespace cserve {
                 if (planar == PLANARCONFIG_SEPARATE) {
                     tilebuf = separateToContig(std::move(tilebuf), tile_width, tile_length, nc, tile_width);
                 }
-                uint32_t start_in_x = (tx == starttile_x) ? roi_x : 0;
-                uint32_t start_in_y = (ty == starttile_y) ? roi_y : 0;
-                uint32_t len_x;
-                if (tx == starttile_x) {
-                    len_x = tile_width - roi_x;
-                }
-                else if (tx == (endtile_x - 1)) {
-                    len_x = (roi_x + roi_w) % tile_width;
+                uint32_t start_in_x = (tx == starttile_x) ? (roi_x % tile_width) : 0;
+                uint32_t start_in_y = (ty == starttile_y) ? (roi_y % tile_length) : 0;
+                uint32_t ex;
+                if (tx == (endtile_x - 1)) {
+                    ex = (roi_x + roi_w) % tile_width;
+                    if (ex == 0) ex = tile_width;
                 }
                 else {
-                    len_x = tile_width;
+                    ex = tile_width;
                 }
-                uint32_t len_y;
-                if (ty == starttile_y) {
-                    len_y = tile_length - roi_y;
-                }
-                else if (ty == (endtile_y - 1)) {
-                    len_y = (roi_y + roi_h) % tile_length;
+                uint32_t len_x = ex - start_in_x;
+
+                uint32_t ey;
+                if (ty == (endtile_y - 1)) {
+                    ey = (roi_y + roi_h) % tile_length;
+                    if (ey == 0) ey = tile_length;
                 }
                 else {
-                    len_y = tile_length;
+                    ey = tile_length;
                 }
+                uint32_t len_y = ey - start_in_y;
+
                 uint32_t start_out_x = (tx == starttile_x) ? 0 : (tx - starttile_x)*tile_width - roi_x;
                 uint32_t start_out_y = (ty == starttile_y) ? 0 : (ty - starttile_y)*tile_length - roi_y;
+                std::cerr << "&&** start_in_x = " << start_in_x << " start_in_y = " << start_in_y << std::endl;
+                std::cerr << "&&** start_out_x = " << start_out_x << " start_out_y = " << start_out_y << std::endl;
+                std::cerr << "&&** len_x = " << len_x << " len_y = " << len_y << std::endl;
                 for (uint32_t y = start_in_y; y < (start_in_y + len_y); ++y) {
                     std::memcpy(inbuf.data() + nc*((start_out_y + (y - start_in_y))*roi_w + start_out_x),
                                 tilebuf.get() + nc*(y*tile_width + start_in_x),
                                 nc*len_x*sizeof(T));
                 }
-                offs += len_x;
             }
         }
         return inbuf;
