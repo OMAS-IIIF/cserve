@@ -671,9 +671,6 @@ namespace cserve {
 
                 uint32_t start_out_x = (tx == starttile_x) ? 0 : (tx - starttile_x)*tile_width - roi_x;
                 uint32_t start_out_y = (ty == starttile_y) ? 0 : (ty - starttile_y)*tile_length - roi_y;
-                std::cerr << "&&** start_in_x = " << start_in_x << " start_in_y = " << start_in_y << std::endl;
-                std::cerr << "&&** start_out_x = " << start_out_x << " start_out_y = " << start_out_y << std::endl;
-                std::cerr << "&&** len_x = " << len_x << " len_y = " << len_y << std::endl;
                 for (uint32_t y = start_in_y; y < (start_in_y + len_y); ++y) {
                     std::memcpy(inbuf.data() + nc*((start_out_y + (y - start_in_y))*roi_w + start_out_x),
                                 tilebuf.get() + nc*(y*tile_width + start_in_x),
@@ -1223,7 +1220,6 @@ namespace cserve {
             uint32_t reduce = -1;
             bool redonly;
             IIIFSize::SizeType rtype = size->get_size(img.nx, img.ny, nnx, nny, reduce, redonly);
-            std::cerr << "&&== nx=" << img.nx << " ny=" << img.ny << " nnx=" << nnx << " nny=" << nny << std::endl;
             if (rtype != IIIFSize::FULL) {
                 switch (scaling_quality.jpeg) {
                     case HIGH:
