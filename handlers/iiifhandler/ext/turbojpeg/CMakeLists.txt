@@ -13,7 +13,7 @@ endif()
 
 ExternalProject_Add(project_turbojpeg
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/2.0.7-esr.tar.gz
+        URL https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/2.1.91.tar.gz
         ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/libjpeg-turbo
         CMAKE_ARGS -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}

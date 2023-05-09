@@ -19,17 +19,18 @@ endif()
 ExternalProject_Add(project_png
         DEPENDS zlib
         DEPENDS xz
+        DEPENDS zstd
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://sourceforge.net/projects/libpng/files/libpng16/1.6.37/libpng-1.6.37.tar.gz/download
+        URL https://sourceforge.net/projects/libpng/files/libpng16/1.6.39/libpng-1.6.39.tar.gz/download
         ${timestamp_policy}
-        SOURCE_DIR ${COMMON_SRCS}/libpng-1.6.37
+        SOURCE_DIR ${COMMON_SRCS}/libpng-1.6.39
         CMAKE_ARGS  ${SHARED_OPTION}
                     -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
                     -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
                     -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}
                     -DPNG_ARM_NEON:BOOL=on
                     -DPNG_TESTS:BOOL=OFF
-                    -DPNG_BUILD_ZLIB:BOOL=ON
+                    -DPNG_BUILD_ZLIB:BOOL=OFF
                     -DZLIB_INCLUDE_DIR=${CONFIGURE_INCDIR}
                     -DZLIB_LIBRARY=${CONFIGURE_LIBDIR}/libz${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
