@@ -25,10 +25,10 @@
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #else
-#include <stdlib.h>
+#include <cstdlib>
 #endif
 
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -41,20 +41,20 @@ static const char file_[] = __FILE__;
 
 namespace cserve {
 
-    typedef struct _AListEle {
+    typedef struct AListEle_ {
         std::string canonical;
         time_t access_time;
         off_t fsize;
 
-        bool operator<(const _AListEle &str) const {
+        bool operator<(const AListEle_ &str) const {
             return (difftime(access_time, str.access_time) < 0.);
         }
 
-        bool operator>(const _AListEle &str) const {
+        bool operator>(const AListEle_ &str) const {
             return (difftime(access_time, str.access_time) < 0.);
         }
 
-        bool operator==(const _AListEle &str) const {
+        bool operator==(const AListEle_ &str) const {
             return (difftime(access_time, str.access_time) == 0.);
         }
     } AListEle;
@@ -101,10 +101,16 @@ namespace cserve {
                 CacheRecord cr;
                 cr.img_w = fr.img_w;
                 cr.img_h = fr.img_h;
-                cr.tile_w = fr.img_w;
-                cr.tile_h = fr.tile_h;
-                cr.clevels = fr.clevels;
-                cr.numpages = fr.numpages;
+
+                SubImageInfo ti;
+                for (int i = 0; i < fr.nresolutions; ++i) {
+                    ti.reduce = fr.resolutions[sizeof(SubImageInfo)*i];
+                    ti.width = fr.resolutions[sizeof(SubImageInfo)*i + 1];
+                    ti.height = fr.resolutions[sizeof(SubImageInfo)*i + 2];
+                    ti.tile_width = fr.resolutions[sizeof(SubImageInfo)*i + 3];
+                    ti.tile_height = fr.resolutions[sizeof(SubImageInfo)*i + 4];
+                    cr.resolutions.push_back(ti);
+                }
                 cr.origpath = fr.origpath;
                 cr.cachepath = fr.cachepath;
                 cr.mtime = fr.mtime;
@@ -121,7 +127,6 @@ namespace cserve {
         // now we looking for files that are not in the list of cached files
         // and we delete them
         //
-
         int n = scandir(_cachedir.c_str(), &namelist, nullptr, alphasort);
 
         if (n < 0) {
@@ -152,7 +157,7 @@ namespace cserve {
             try {
                 (void) sizetable.at(ele.second.origpath);
             } catch (const std::out_of_range &oor) {
-                IIIFCache::SizeRecord tmp_cr = {ele.second.img_w, ele.second.img_h, ele.second.tile_w, ele.second.tile_h, ele.second.clevels,  ele.second.numpages, ele.second.mtime};
+                IIIFCache::SizeRecord tmp_cr = {ele.second.img_w, ele.second.img_h, ele.second.resolutions, ele.second.mtime};
                 sizetable[ele.second.origpath] = tmp_cr;
             }
         }
@@ -169,10 +174,14 @@ namespace cserve {
                 IIIFCache::FileCacheRecord fr;
                 fr.img_w = ele.second.img_w;
                 fr.img_h = ele.second.img_h;
-                fr.tile_w = ele.second.tile_w;
-                fr.tile_h = ele.second.tile_h;
-                fr.clevels = ele.second.clevels;
-                fr.numpages = ele.second.numpages;
+                fr.nresolutions = ele.second.resolutions.size();
+                for (int i = 0; i < fr.nresolutions; ++i) {
+                    fr.resolutions[sizeof(SubImageInfo)*i] = ele.second.resolutions[i].reduce;
+                    fr.resolutions[3*i + 1] = ele.second.resolutions[i].width;
+                    fr.resolutions[3*i + 2] = ele.second.resolutions[i].height;
+                    fr.resolutions[3*i + 3] = ele.second.resolutions[i].tile_width;
+                    fr.resolutions[3*i + 4] = ele.second.resolutions[i].tile_height;
+                }
                 (void) snprintf(fr.canonical, 256, "%s", ele.first.c_str());
                 (void) snprintf(fr.origpath, 256, "%s", ele.second.origpath.c_str());
                 (void) snprintf(fr.cachepath, 256, "%s", ele.second.cachepath.c_str());
@@ -183,7 +192,6 @@ namespace cserve {
                 Server::logger()->debug("Writing \"{}\" to cache file...", ele.second.cachepath);
             }
         }
-
         cachefile.close();
     }
     //============================================================================
@@ -223,7 +231,7 @@ namespace cserve {
         }
 
 #endif
-        return 0; // should never reached – just for the compiler to suppress a warning...
+        return 0; // should never been reached – just for the compiler to suppress a warning...
     }
     //============================================================================
 
@@ -323,7 +331,7 @@ namespace cserve {
         if (tcompare(mtime, fr.mtime) > 0) { // original file is newer than cache, we have to replace it...
             return res; // return empty string, means "replace the file in the cache!"
         } else {
-            std::string res = _cachedir + "/" + fr.cachepath;
+            res = _cachedir + "/" + fr.cachepath;
             if (block_file) {
                 blocked_files[res]++;
             }
@@ -332,7 +340,7 @@ namespace cserve {
     }
     //============================================================================
 
-    void IIIFCache::deblock(std::string res) {
+    void IIIFCache::deblock(const std::string &res) {
         std::lock_guard<std::mutex> locking_mutex_guard(locking);
         blocked_files[res]--;
         if (blocked_files[res] < 1) {
@@ -365,10 +373,7 @@ namespace cserve {
             const std::string &cachepath_p,
             size_t img_w_p,
             size_t img_h_p,
-            size_t tile_w_p,
-            size_t tile_h_p,
-            int clevels_p,
-            int numpages_p) {
+            const std::vector<SubImageInfo> &resolutions) {
         size_t pos = cachepath_p.rfind('/');
         std::string cachepath;
 
@@ -378,16 +383,14 @@ namespace cserve {
             cachepath = cachepath_p;
         }
 
-        struct stat fileinfo;
+        struct stat fileinfo{};
         IIIFCache::CacheRecord fr;
         IIIFCache::SizeRecord sr;
 
         fr.img_w = sr.img_w = img_w_p;
         fr.img_h = sr.img_h = img_h_p;
-        fr.tile_w = sr.tile_w = tile_w_p;
-        fr.tile_h = sr.tile_h = tile_h_p;
-        fr.clevels = sr.clevels = clevels_p;
-        fr.numpages = sr.numpages = numpages_p;
+        fr.resolutions = resolutions;
+        sr.resolutions = resolutions;
         fr.origpath = origpath_p;
         fr.cachepath = cachepath;
 
@@ -428,7 +431,7 @@ namespace cserve {
         cachetable[canonical_p] = fr;
         cachesize += fr.fsize;
 
-        IIIFCache::SizeRecord tmp_cr = {img_w_p, img_h_p, tile_w_p, tile_h_p, clevels_p, numpages_p};
+        IIIFCache::SizeRecord tmp_cr = {img_w_p, img_h_p, resolutions};
         sizetable[origpath_p] = tmp_cr;
 
         ++nfiles;
@@ -438,13 +441,6 @@ namespace cserve {
     bool IIIFCache::remove(const std::string &canonical_p) {
         IIIFCache::CacheRecord fr;
         std::lock_guard<std::mutex> locking_mutex_guard(locking);
-
-        try {
-            fr = cachetable.at(canonical_p);
-        } catch (const std::out_of_range &oor) {
-            Server::logger()->warn("Couldn't remove cache for \"{}\": not existing!", canonical_p);
-            return false; // return empty string, because we didn't find the file in cache
-        }
 
         std::string delpath = _cachedir + "/" + cachetable[canonical_p].cachepath;
         try {
@@ -507,11 +503,8 @@ namespace cserve {
             const std::string &origname_p,
             size_t &img_w,
             size_t &img_h,
-            size_t &tile_w,
-            size_t &tile_h,
-            int &clevels,
-            int &numpages) {
-        struct stat fileinfo;
+            std::vector<SubImageInfo> &resolutions) {
+        struct stat fileinfo{};
         if (stat(origname_p.c_str(), &fileinfo) != 0) {
             throw IIIFError(file_, __LINE__, "Couldn't stat file \"" + origname_p + "\"!", errno);
         }
@@ -532,10 +525,7 @@ namespace cserve {
 
             img_w = sr.img_w;
             img_h = sr.img_h;
-            tile_w = sr.tile_w;
-            tile_h = sr.tile_h;
-            clevels = sr.clevels;
-            numpages = sr.numpages;
+            resolutions = sr.resolutions;
         } catch (const std::out_of_range &oor) {
             return false;
         }

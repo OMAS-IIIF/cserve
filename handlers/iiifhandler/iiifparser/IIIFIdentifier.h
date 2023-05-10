@@ -12,10 +12,9 @@ namespace cserve {
     class IIIFIdentifier {
     private:
         std::string identifier;
-        int page;
         void parse(const std::string &str);
     public:
-        inline IIIFIdentifier() : identifier(), page(0) { }
+        inline IIIFIdentifier() : identifier() { }
 
         explicit IIIFIdentifier(const std::string &str);
 
@@ -32,10 +31,6 @@ namespace cserve {
 
         IIIFIdentifier &operator=(IIIFIdentifier &&other);
 
-        [[nodiscard]]
-        int get_page() const {
-            return page;
-        }
     };
 }
 #endif //IIIF_SIPIIDENTIFIER_H

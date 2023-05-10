@@ -40,7 +40,6 @@ namespace cserve {
         };
 
         IIIFIdentifier sid = IIIFIdentifier(params.at(IIIF_IDENTIFIER));
-        int pagenum = sid.get_page();
 
         std::string host = conn.header("host");
         std::stringstream ss;
@@ -132,8 +131,7 @@ namespace cserve {
                                     {"profile", "http://iiif.io/api/auth/1/token"}
                             }
                     };
-                }
-                else {
+                } else {
                     service["service"] = {
                             {
                                     {"@id", tokenUrl},
@@ -156,23 +154,20 @@ namespace cserve {
 
         if (is_image_file) {
             size_t width, height;
-            size_t t_width, t_height;
-            int clevels;
-            int numpages = 0;
+            std::vector<SubImageInfo> resolutions;
+            //size_t t_width, t_height;
+            //int clevels;
+            //int numpages = 0;
 
-            if (!_cache || !_cache->getSize(access["infile"], width, height, t_width, t_height, clevels, pagenum)) {
+            if (!_cache || !_cache->getSize(access["infile"], width, height, resolutions)) {
                 try {
-                    auto info = IIIFImage::getDim(access["infile"], pagenum);
+                    auto info = IIIFImage::getDim(access["infile"]);
                     if (info.success == IIIFImgInfo::FAILURE) {
                         send_error(conn, Connection::INTERNAL_SERVER_ERROR, "Error getting image dimensions!");
                         return;
                     }
                     width = info.width;
                     height = info.height;
-                    t_width = info.tile_width;
-                    t_height = info.tile_height;
-                    clevels = info.clevels;
-                    numpages = info.numpages;
                 }
                 catch (const IIIFImageError &err) {
                     send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
@@ -181,33 +176,43 @@ namespace cserve {
             }
             root_obj["width"] = width;
             root_obj["height"] = height;
-            if (numpages > 0) {
-                root_obj["numpages"] = numpages;
-            }
 
-            nlohmann::json sizes = nlohmann::json::array();
-            const int cnt = clevels > 0 ? clevels : 5;
-            for (int i = 1; i < cnt; i++) {
-                IIIFSize size(i);
-                size_t w, h;
-                int r;
-                bool ro;
-                size.get_size(width, height, w, h, r, ro);
-                if ((w < 128) || (h < 128)) break;
-                sizes.push_back({{"width", w}, {"height", h}});
-            }
-            root_obj["sizes"] = sizes;
-
-            if (t_width > 0 && t_height > 0) {
-                nlohmann::json tiles = nlohmann::json::array();
-                nlohmann::json scaleFactors = nlohmann::json::array();
-                for (int i = 1; i < cnt; i++) {
-                    scaleFactors.push_back(i);
+            if (!resolutions.empty()) {
+                nlohmann::json sizes = nlohmann::json::array();
+                for (const auto &resolution: resolutions) {
+                    if ((width == resolution.width) && (height == resolution.height)) continue;
+                    sizes.push_back({{"width", resolution.width}, {"height", resolution.height}});
                 }
-                nlohmann::json tileobj = {{"width", t_width}, {"height", t_height}, {"scaleFactors", scaleFactors}};
-                tiles.push_back(tileobj);
-                root_obj["tiles"] = tiles;
+                if (!sizes.empty()) {
+                    root_obj["sizes"] = sizes;
+                }
+
+                nlohmann::json tiles = nlohmann::json::array();
+                uint32_t tw = 0;
+                uint32_t th = 0;
+                std::vector<uint32_t> scale_factor;
+                for (const auto &resolution: resolutions) {
+                    if ((resolution.tile_width == 0) || (resolution.tile_height == 0)) continue;
+                    if ((tw == resolution.tile_width) && (th == resolution.tile_height)) {
+                        scale_factor.push_back(resolution.reduce);
+                    }
+                    else {
+                        nlohmann::json scaleFactor(scale_factor);
+                        tiles.push_back({{"width", tw}, {"height", th}, {"scaleFactors", scaleFactor}});
+                        scale_factor.clear();
+                        tw = resolution.tile_width;
+                        th = resolution.tile_height;
+                    }
+                }
+                if (!scale_factor.empty()) {
+                    nlohmann::json scaleFactor(scale_factor);
+                    tiles.push_back({{"width", tw}, {"height", th}, {"scaleFactors", scaleFactor}});
+                }
+                if (!tiles.empty()) {
+                    root_obj["tiles"] = tiles;
+                }
             }
+
             root_obj["extraFormats"] = {"tif", "jp2"};
             root_obj["extraQualities"] =  {"color", "gray", "bitonal"};
             root_obj["preferredFormats"] = {"jpg", "tif", "jp2", "png"};

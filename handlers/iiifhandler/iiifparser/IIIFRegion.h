@@ -17,18 +17,19 @@ namespace cserve {
     private:
         CoordType coord_type;
         float rx, ry, rw, rh;
-        int x, y;
-        size_t w, h;
+        int32_t x, y;
+        uint32_t w, h;
         bool canonical_ok;
+        float reduce;
 
     public:
-        inline IIIFRegion() : x(0), y(0), w(0), h(0) {
+        inline IIIFRegion() : x(0), y(0), w(0), h(0), reduce(1.0F) {
             coord_type = FULL;
             rx = ry = rw = rh = 0.F;
             canonical_ok = false;
         }
 
-        inline IIIFRegion(int x, int y, size_t w, size_t h) : x(0), y(0), w(0), h(0) {
+        inline IIIFRegion(int32_t x, int32_t y, uint32_t w, uint32_t h) : x(0), y(0), w(0), h(0), reduce(1.0F) {
             coord_type = COORDS;
             rx = (float) x;
             ry = (float) y;
@@ -38,6 +39,8 @@ namespace cserve {
         };
 
         explicit IIIFRegion(std::string str);
+
+        inline void set_reduce(float reduce_p) { reduce = reduce_p; }
 
         [[nodiscard]]
         inline CoordType getType() const { return coord_type; };
@@ -55,7 +58,7 @@ namespace cserve {
          *
          * \returns CoordType
          */
-        CoordType crop_coords(size_t nx, size_t ny, int &p_x, int &p_y, size_t &p_w, size_t &p_h);
+        CoordType crop_coords(uint32_t nx, uint32_t ny, int32_t &p_x, int32_t &p_y, uint32_t &p_w, uint32_t &p_h);
 
         /*!
          * Returns the canoncial IIIF string for the given region

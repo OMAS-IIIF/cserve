@@ -9,8 +9,8 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __io_j2k_h
-#define __io_j2k_h
+#ifndef io_j2k_h_
+#define io_j2k_h_
 
 #include <string>
 
@@ -36,7 +36,7 @@ namespace cserve {
          * only reads part of the data returning an image with reduces resolution.
          * If the value is 1, only half the resolution is returned. If it is 2, only one forth etc.
          */
-        IIIFImage read(const std::string &filepath, int pagenum, std::shared_ptr<IIIFRegion> region,
+        IIIFImage read(const std::string &filepath, std::shared_ptr<IIIFRegion> region,
                   std::shared_ptr<IIIFSize> size, bool force_bps_8, ScalingQuality scaling_quality) override;
 
         /*!
@@ -46,7 +46,7 @@ namespace cserve {
          * \param[out] width Width of the image in pixels
          * \param[out] height Height of the image in pixels
          */
-        IIIFImgInfo getDim(const std::string &filepath, int pagenum) override;
+        IIIFImgInfo getDim(const std::string &filepath) override;
 
         /*!
          * Write a TIFF image to a file, stdout or to a memory buffer

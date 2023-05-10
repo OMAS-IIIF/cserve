@@ -17,6 +17,8 @@
 #include <string>
 #include <unordered_map>
 #include <exception>
+#include <memory.h>
+#include <vector>
 
 #include "IIIFError.h"
 //#include "IIIFImgTools.h"
@@ -50,6 +52,14 @@ namespace cserve {
         SKIP_NONE = 0x00, SKIP_ICC = 0x01, SKIP_XMP = 0x02, SKIP_IPTC = 0x04, SKIP_EXIF = 0x08, SKIP_ALL = 0xFF
     } SkipMetadata;
 
+    typedef struct SubImageInfo_ {
+        uint32_t reduce;
+        uint32_t width;
+        uint32_t height;
+        uint32_t tile_width;
+        uint32_t tile_height;
+    } SubImageInfo;
+
     typedef enum {
         HIGH = 0, MEDIUM = 1, LOW = 2
     } ScalingMethod;
@@ -78,16 +88,12 @@ namespace cserve {
         uint32_t width;
         uint32_t height;
         Orientation orientation;
-        int tile_width;
-        int tile_height;
-        int clevels;
-        int numpages;
+        std::vector<SubImageInfo> resolutions;
         std::string internalmimetype;
         std::string origname;
         std::string origmimetype;
 
-        inline IIIFImgInfo() : success(FAILURE), width(0), height(0), orientation(TOPLEFT), tile_width(0),
-                               tile_height(0), clevels(0), numpages(0) {};
+        inline IIIFImgInfo() : success(FAILURE), width(0), height(0), orientation(TOPLEFT) {};
 
     };
 
@@ -103,7 +109,8 @@ namespace cserve {
         J2K_Cuse_sop,
         J2K_Stiles,
         J2K_rates,
-        TIFF_COMPRESSION
+        TIFF_COMPRESSION,
+        TIFF_PYRAMID,
     } IIIFCompressionParamName;
 
     typedef std::unordered_map<int, std::string> IIIFCompressionParams;
@@ -163,8 +170,8 @@ class IIIFImageError : public IIIFError {
     */
     class IIIFImage {
         friend IIIFImage separateToContig(IIIFImage img, unsigned int sll);
-        friend std::unique_ptr<byte[]> cvrt1BitTo8Bit(const IIIFImage &img, unsigned int sll, unsigned int black, unsigned int white);
-        friend std::unique_ptr<byte[]> cvrt8BitTo1bit(const IIIFImage &img, unsigned int &sll);
+        friend std::vector<uint8_t> cvrt1BitTo8Bit(const IIIFImage &img, uint32_t sll, uint8_t black, uint8_t white);
+        friend std::vector<uint8_t> cvrt8BitTo1bit(const IIIFImage &img, uint32_t &sll);
         friend class IIIFIcc;       //!< We need SipiIcc as friend class
         friend class IIIFIOTiff;    //!< I/O class for the TIFF file format
         friend class IIIFIOJ2k;     //!< I/O class for the JPEG2000 file format
@@ -172,22 +179,19 @@ class IIIFImageError : public IIIFError {
         friend class IIIFIOPng;     //!< I/O class for the PNG file format
     private:
         static std::unordered_map<std::string, std::shared_ptr<IIIFIO>> io; //!< member variable holding a map of I/O class instances for the different file formats
-        static byte bilinn(const byte buf[], int nx, double x, double y, int c, int n);
-
-        static word bilinn(const word buf[], int nx, double x, double y, int c, int n);
 
         void ensure_exif();
 
     protected:
-        size_t nx;         //!< Number of horizontal pixels (width)
-        size_t ny;         //!< Number of vertical pixels (height)
-        size_t nc;         //!< Total number of samples per pixel
-        size_t bps;        //!< bits per sample. Currently only 8 and 16 are supported
+        uint32_t nx;         //!< Number of horizontal pixels (width)
+        uint32_t ny;         //!< Number of vertical pixels (height)
+        uint32_t nc;         //!< Total number of samples per pixel
+        uint32_t bps;        //!< bits per sample. Currently only 8 and 16 are supported
         std::vector<ExtraSamples> es; //!< meaning of extra samples
         Orientation orientation;            //!< Orientation/location of (0,0)
         PhotometricInterpretation photo;    //!< Image type, that is the meaning of the channels
-        std::unique_ptr<byte[]> bpixels;   //!< Pointer to block of memory holding the pixels
-        std::unique_ptr<word[]> wpixels;   //!< Pointer to block of memory holding the pixels
+        std::vector<uint8_t> bpixels;   //!< Pointer to block of memory holding the pixels
+        std::vector<uint16_t> wpixels;   //!< Pointer to block of memory holding the pixels
         std::shared_ptr<IIIFXmp> xmp{};   //!< Pointer to instance SipiXmp class (\ref SipiXmp), or NULL
         std::shared_ptr<IIIFIcc> icc{};   //!< Pointer to instance of SipiIcc class (\ref SipiIcc), or NULL
         std::shared_ptr<IIIFIptc> iptc{}; //!< Pointer to instance of SipiIptc class (\ref SipiIptc), or NULL
@@ -227,34 +231,34 @@ class IIIFImageError : public IIIFError {
          * \param[in] photo_p The photometric interpretation
          */
         [[maybe_unused]]
-        IIIFImage(size_t nx_p, size_t ny_p, size_t nc_p, size_t bps_p, PhotometricInterpretation photo_p);
+        IIIFImage(uint32_t nx_p, uint32_t ny_p, uint32_t nc_p, uint32_t bps_p, PhotometricInterpretation photo_p);
 
         /*!
          * Getter for nx
          */
-        [[nodiscard]] inline size_t getNx() const { return nx; };
+        [[nodiscard]] inline uint32_t getNx() const { return nx; };
 
         /*!
          * Getter for ny
          */
-        [[nodiscard]] inline size_t getNy() const { return ny; };
+        [[nodiscard]] inline uint32_t getNy() const { return ny; };
 
         /*!
          * Getter for nc (includes alpha channels!)
          */
-        [[nodiscard]] inline size_t getNc() const { return nc; };
+        [[nodiscard]] inline uint32_t getNc() const { return nc; };
 
         /*!
          * Getter for number of alpha channels
          */
-        [[nodiscard]] inline size_t getNalpha() const { return es.size(); }
+        [[nodiscard]] inline uint32_t getNalpha() const { return es.size(); }
 
         /*!
          * Get bits per sample of image
          * @return bis per sample (bps)
          */
         [[nodiscard]]
-        inline size_t getBps() const { return bps; }
+        inline uint32_t getBps() const { return bps; }
 
         /*!
          * Get orientation
@@ -314,7 +318,7 @@ class IIIFImageError : public IIIFError {
          * \param[in] val Pixel value
          */
         [[maybe_unused]]
-        void setPixel(unsigned int x, unsigned int y, unsigned int c, int val);
+        void setPixel(uint32_t x, uint32_t y, uint32_t c, int val);
 
         /*!
          * Assignment operator
@@ -369,7 +373,6 @@ class IIIFImageError : public IIIFError {
          * \throws SipiError
          */
         static IIIFImage read(const std::string& filepath,
-                              int pagenum = 0,
                               const std::shared_ptr<IIIFRegion>& region = nullptr,
                               const std::shared_ptr<IIIFSize>& size = nullptr,
                               bool force_bps_8 = false,
@@ -397,7 +400,6 @@ class IIIFImageError : public IIIFError {
          * \returns true, if everything worked. False, if the checksums do not match.
          */
         static IIIFImage readOriginal(const std::string &filepath,
-                                      int pagenum,
                                       const std::shared_ptr<IIIFRegion>& region,
                                       const std::shared_ptr<IIIFSize>& size,
                                       const std::string &origname,
@@ -425,10 +427,9 @@ class IIIFImageError : public IIIFError {
          * \returns true, if everything worked. False, if the checksums do not match.
          */
         [[maybe_unused]] static IIIFImage readOriginal(const std::string &filepath,
-                                      int pagenum = 0,
-                                      const std::shared_ptr<IIIFRegion>& region = nullptr,
-                                      const std::shared_ptr<IIIFSize>& size = nullptr,
-                                      HashType htype = HashType::sha256);
+                                                       const std::shared_ptr<IIIFRegion> &region = nullptr,
+                                                       const std::shared_ptr<IIIFSize> &size = nullptr,
+                                                       HashType htype = HashType::sha256);
 
         /*!
          * Get the dimension of the image
@@ -437,7 +438,7 @@ class IIIFImageError : public IIIFError {
          * \param[in] pagenum Page that is to be used (for PDF's and multipage TIF's only, first page is 1)
          * \return Info about image (see SipiImgInfo)
          */
-        [[maybe_unused]] static IIIFImgInfo getDim(const std::string &filepath, int pagenum = 0) ;
+        [[maybe_unused]] static IIIFImgInfo getDim(const std::string &filepath) ;
 
         /*!
          * Get the dimension of the image object
@@ -445,7 +446,7 @@ class IIIFImageError : public IIIFError {
          * @param[out] width Width of the image in pixels
          * @param[out] height Height of the image in pixels
          */
-        [[maybe_unused]] void getDim(size_t &width, size_t &height) const;
+        [[maybe_unused]] void getDim(uint32_t &width, uint32_t &height) const;
 
         /*!
          * Write an image to somewhere
@@ -476,7 +477,7 @@ class IIIFImageError : public IIIFError {
          * \param[in] target_icc_p ICC profile which determines the new image representation
          * \param[in] bps Bits/sample of the new image representation
          */
-        void convertToIcc(const IIIFIcc &target_icc_p, int new_bps);
+        void convertToIcc(const IIIFIcc &target_icc_p, uint32_t new_bps);
 
 
         /*!
@@ -484,7 +485,18 @@ class IIIFImageError : public IIIFError {
          *
          * \param[in] chan Index of component to remove, starting with 0
          */
-        [[maybe_unused]] void removeChan(unsigned int chan);
+        [[maybe_unused]] void removeChan(uint32_t chan);
+
+        /*!
+         * Crops an image to a region
+         *
+         * \param[in] Pointer to SipiRegion
+         * \param[in] ny Vertical start position of region. If negative, it's set to 0, and the height is adjusted
+         * \param[in] width Width of the region. If the region goes beyond the image dimensions, it's adjusted.
+         * \param[in] height Height of the region. If the region goes beyond the image dimensions, it's adjusted
+         */
+        [[maybe_unused]]
+        bool crop(const std::shared_ptr<IIIFRegion> &region);
 
         /*!
          * Crops an image to a region
@@ -495,17 +507,7 @@ class IIIFImageError : public IIIFError {
          * \param[in] height Height of the region. If the region goes beyond the image dimensions, it's adjusted
          */
         [[maybe_unused]]
-        void crop(int x, int y, size_t width = 0, size_t height = 0);
-
-        /*!
-         * Crops an image to a region
-         *
-         * \param[in] Pointer to SipiRegion
-         * \param[in] ny Vertical start position of region. If negative, it's set to 0, and the height is adjusted
-         * \param[in] width Width of the region. If the region goes beyond the image dimensions, it's adjusted.
-         * \param[in] height Height of the region. If the region goes beyond the image dimensions, it's adjusted
-         */
-        [[maybe_unused]] bool crop(const std::shared_ptr<IIIFRegion> &region);
+        void crop(uint32_t x, uint32_t y, uint32_t width = 0, uint32_t height = 0);
 
         /*!
          * Resize an image using a high speed algorithm which may result in poor image quality
@@ -513,7 +515,7 @@ class IIIFImageError : public IIIFError {
          * \param[in] nnx New horizontal dimension (width)
          * \param[in] nny New vertical dimension (height)
          */
-        bool scaleFast(size_t nnx, size_t nny);
+        bool scaleFast(uint32_t nnx, uint32_t nny);
 
         /*!
          * Resize an image using some balance between speed and quality
@@ -521,7 +523,9 @@ class IIIFImageError : public IIIFError {
          * \param[in] nnx New horizontal dimension (width)
          * \param[in] nny New vertical dimension (height)
          */
-        bool scaleMedium(size_t nnx, size_t nny);
+        bool scaleMedium(uint32_t nnx, uint32_t nny);
+
+        bool reduce(uint32_t reduce_p);
 
         /*!
          * Resize an image using the best (but slow) algorithm
@@ -529,7 +533,7 @@ class IIIFImageError : public IIIFError {
          * \param[in] nnx New horizontal dimension (width)
          * \param[in] nny New vertical dimension (height)
          */
-        bool scale(size_t nnx = 0, size_t nny = 0);
+        bool scale(uint32_t nnx = 0, uint32_t nny = 0);
 
 
         /*!
@@ -571,7 +575,7 @@ class IIIFImageError : public IIIFError {
 
 
         /*!
-         * Calculates the difference between 2 images.
+         * Calculates the difference between 2 images with same characteristics (nx, ny, nc etc.).
          *
          * The difference between 2 images can contain (and usually will) negative values.
          * In order to create a standard image, the values at "0" will be lifted to 127 (8-bit images)

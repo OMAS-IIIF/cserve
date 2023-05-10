@@ -98,15 +98,15 @@ namespace cserve {
         inline std::shared_ptr<IIIFCache> cache() const { return _cache; }
 
         std::pair<std::string, std::string> get_canonical_url  (
-                size_t tmp_w,
-                size_t tmp_h,
+                uint32_t tmp_w,
+                uint32_t tmp_h,
                 const std::string &host,
                 const std::string &prefix,
                 const std::string &identifier,
                 const std::shared_ptr<IIIFRegion>& region,
                 const std::shared_ptr<IIIFSize>& size,
                 IIIFRotation &rotation,
-                IIIFQualityFormat &quality_format, int pagenum) const;
+                IIIFQualityFormat &quality_format) const;
 
     };
 

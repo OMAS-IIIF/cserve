@@ -24,7 +24,7 @@ namespace cserve {
 
     class IIIFImage;
 
-    std::unique_ptr<unsigned char[]> read_watermark(const std::string &wmfile, int &nx, int &ny, int &nc);
+    std::vector<uint8_t> read_watermark(const std::string &wmfile, uint32_t &nx, uint32_t &ny, uint32_t &nc);
 
     /*! Class which implements the TIFF-reader/writer */
     class IIIFIOTiff : public IIIFIO {
@@ -44,20 +44,32 @@ namespace cserve {
          */
         static void writeExif(const IIIFImage &img, TIFF *tif);
 
+        static void write_basic_tags(const IIIFImage &img,
+                              TIFF *tif,
+                              uint32_t nx, uint32_t ny,
+                              bool its_1_bit,
+                              const std::string &compression
+        );
 
+        static void write_subfile(const IIIFImage &img,
+                      TIFF *tif,
+                      uint32_t level,
+                      uint32_t &tile_width,
+                      uint32_t &tile_height,
+                      const std::string &compression = "");
     public:
-        ~IIIFIOTiff() override {};
+        ~IIIFIOTiff() override = default;
 
         [[maybe_unused]]
         static void initLibrary();
 
         IIIFImage read(const std::string &filepath,
-                       int pagenum, std::shared_ptr<IIIFRegion> region,
+                       std::shared_ptr<IIIFRegion> region,
                        std::shared_ptr<IIIFSize> size,
                        bool force_bps_8,
                        ScalingQuality scaling_quality) override;
 
-        IIIFImgInfo getDim(const std::string &filepath, int pagenum) override;
+        IIIFImgInfo getDim(const std::string &filepath) override;
 
         /*!
          * Write a TIFF image to a file, stdout or to a memory buffer

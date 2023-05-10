@@ -22,6 +22,7 @@ namespace cserve {
      */
     IIIFRegion::IIIFRegion(std::string str) {
         int n;
+        reduce = 1.0F;
         if (str.empty() || (str == "full")) {
             coord_type = FULL;
             rx = 0.F;
@@ -70,32 +71,32 @@ namespace cserve {
      * @param p_h [out] Height of cropping
      * @return Region type
      */
-    IIIFRegion::CoordType IIIFRegion::crop_coords(size_t nx, size_t ny, int &p_x, int &p_y, size_t &p_w, size_t &p_h) {
+    IIIFRegion::CoordType IIIFRegion::crop_coords(uint32_t nx, uint32_t ny, int32_t &p_x, int32_t &p_y, uint32_t &p_w, uint32_t &p_h) {
         switch (coord_type) {
             case COORDS: {
-                x = floor(rx + 0.5F);
-                y = floor(ry + 0.5F);
-                w = floor(rw + 0.5F);
-                h = floor(rh + 0.5F);
+                x = static_cast<int32_t>(lroundf(rx/reduce));
+                y = static_cast<int32_t>(lroundf(ry/reduce));
+                w = lroundf(rw/reduce);
+                h = lroundf(rh/reduce);
                 break;
             }
             case SQUARE: {
                 if (nx > ny) { // landscape format
-                    x = floor((nx - ny) / 2.0F);
+                    x = floor(static_cast<float>(nx - ny) / 2.0F);
                     y = 0;
                     w = h = ny;
                 } else { // portrait format or square
                     x = 0;
-                    y = floor((ny - nx) / 2.0F);
+                    y = floor(static_cast<float>(ny - nx) / 2.0F);
                     w = h = nx;
                 }
                 break;
             }
             case PERCENTS: {
-                x = floor((rx * nx / 100.F) + 0.5F);
-                y = floor((ry * ny / 100.F) + 0.5F);
-                w = floor((rw * nx / 100.F) + 0.5F);
-                h = floor((rh * ny / 100.F) + 0.5F);
+                x = static_cast<int32_t>(lroundf((rx * static_cast<float>(nx) / 100.F)));
+                y = static_cast<int32_t>(lroundf((ry * static_cast<float>(ny) / 100.F)));
+                w = lroundf((rw * static_cast<float>(nx) / 100.F));
+                h = lroundf((rh * static_cast<float>(ny) / 100.F));
                 break;
             }
             case FULL: {

@@ -14,8 +14,6 @@
 #include <string>
 #include <vector>
 #include <cstdio>
-#include <cmath>
-#include <syslog.h>
 #include <cstring>
 
 #include <png.h>
@@ -69,7 +67,8 @@ namespace cserve {
 
         void add_iTXt(char *key, char *data, unsigned int len);
 
-        void add_text(char *key, char *data, unsigned int len);
+        [[maybe_unused]]
+        void add_text(char *key, char *str, unsigned int len);
     };
 
     png_text *PngTextPtr::next() {
@@ -98,6 +97,7 @@ namespace cserve {
     }
     //=============================================
 
+    [[maybe_unused]]
     void PngTextPtr::add_text(char *key, char *str, unsigned int len = 0) {
         png_text *tmp = this->next();
         memset(tmp, 0, sizeof(png_text));
@@ -133,7 +133,6 @@ namespace cserve {
     }
 
     IIIFImage IIIFIOPng::read(const std::string &filepath,
-                              int pagenum,
                               std::shared_ptr<IIIFRegion> region,
                               std::shared_ptr<IIIFSize> size,
                               bool force_bps_8,
@@ -174,7 +173,7 @@ namespace cserve {
         png_uint_32 width, height;
         int color_type, bit_depth, interlace_type;
         png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type,
-                     &interlace_type, NULL, NULL);
+                     &interlace_type, nullptr, nullptr);
 
         img.nx = width;
         img.ny = height;
@@ -310,24 +309,25 @@ namespace cserve {
             img.exif->addKeyVal("Exif.Image.ResolutionUnit", 2); // DPI
         }
 
+        img.bps = png_get_bit_depth(png_ptr, info_ptr);
+        img.nc = png_get_channels(png_ptr, info_ptr);
+
         //
         // prepare storage for reading image
         //
         size_t sll = png_get_rowbytes(png_ptr, info_ptr);
-        auto buffer = std::make_unique<unsigned char[]>(height * sll);
-        auto row_pointers = std::make_unique<png_bytep[]>(height);
+        auto buffer = std::vector<uint8_t>(height * sll);
+        auto row_pointers = std::vector<png_bytep>(height);
         for (size_t i = 0; i < img.ny; i++) {
-            row_pointers[i] = (buffer.get() + i * sll);
+            row_pointers[i] = (buffer.data() + i * sll);
         }
 
         //
         // read image data
         //
-        png_read_image(png_ptr, row_pointers.get());
+        png_read_image(png_ptr, row_pointers.data());
         png_read_end(png_ptr, info_ptr);
 
-        img.bps = png_get_bit_depth(png_ptr, info_ptr);
-        img.nc = png_get_channels(png_ptr, info_ptr);
 
         if (color_type == PNG_COLOR_TYPE_PALETTE && img.nc == 4) {
             img.es.push_back(ASSOCALPHA);
@@ -336,7 +336,8 @@ namespace cserve {
         png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
 
         if (img.bps == 16) {
-            std::unique_ptr<uint16_t[]> tmp((uint16_t *) buffer.release());
+            auto *ptr = reinterpret_cast<uint16_t*>(buffer.data());
+            std::vector<uint16_t> tmp(ptr, ptr + buffer.size()/2);
             for (int i = 0; i < img.nx * img.ny * img.nc; i++) {
                 tmp[i] = ntohs(tmp[i]);
             }
@@ -356,11 +357,14 @@ namespace cserve {
         // resize/Scale the image if necessary
         //
         if (size != nullptr) {
-            size_t nnx, nny;
-            int reduce = -1;
+            uint32_t nnx, nny;
+            uint32_t reduce = 0;
             bool redonly;
             IIIFSize::SizeType rtype = size->get_size(img.nx, img.ny, nnx, nny, reduce, redonly);
-            if (rtype != IIIFSize::FULL) {
+            if (reduce > 1) {
+                img.reduce(reduce);
+            }
+            if ((rtype != IIIFSize::FULL) || !redonly) {
                 switch (scaling_quality.png) {
                     case HIGH:
                         img.scale(nnx, nny);
@@ -381,11 +385,11 @@ namespace cserve {
             }
         }
         return img;
-    };
+    }
 
 
 
-    IIIFImgInfo IIIFIOPng::getDim(const std::string &filepath, int pagenum) {
+    IIIFImgInfo IIIFIOPng::getDim(const std::string &filepath) {
         FILE *infile;
         unsigned char header[8];
         png_structp png_ptr;
@@ -423,6 +427,17 @@ namespace cserve {
         info.orientation = TOPLEFT;
         info.success = IIIFImgInfo::DIMS;
 
+        uint32_t reduce = 2;
+        uint32_t tmp_nnx = IIIFSize::epsilon_ceil_division(static_cast<float>(info.width), static_cast<float>(reduce));
+        uint32_t tmp_nny = IIIFSize::epsilon_ceil_division(static_cast<float>(info.height), static_cast<float>(reduce));
+        while ((tmp_nnx > 128) && (tmp_nny > 128)) {
+            tmp_nnx = IIIFSize::epsilon_ceil_division(static_cast<float>(info.width), static_cast<float>(reduce));
+            tmp_nny = IIIFSize::epsilon_ceil_division(static_cast<float>(info.height), static_cast<float>(reduce));
+            SubImageInfo sub{reduce, tmp_nnx, tmp_nny, 0, 0};
+            info.resolutions.push_back(sub);
+            reduce *= 2;
+        }
+
         IIIFImage img{};
         img.nx = png_get_image_width(png_ptr, info_ptr);
         img.ny = png_get_image_height(png_ptr, info_ptr);
@@ -434,7 +449,7 @@ namespace cserve {
     }
     /*==========================================================================*/
 
-
+    [[maybe_unused]]
     void create_text_chunk(PngTextPtr *png_textptr, char *key, char *str, unsigned int len) {
         png_text *chunk = png_textptr->next();
         chunk->compression = PNG_TEXT_COMPRESSION_NONE;
@@ -451,7 +466,7 @@ namespace cserve {
     static void conn_write_data(png_structp png_ptr, png_bytep data, png_size_t length) {
         auto *conn = (Connection *) png_get_io_ptr(png_ptr);
         try {
-            conn->sendAndFlush(data, length);
+            conn->sendAndFlush(data, static_cast<std::streamsize>(length));
         } catch (const InputFailure &err) {
             // TODO: do nothing ??
         }
@@ -530,7 +545,8 @@ namespace cserve {
                                  fmt::format("Error writing PNG file '{}': cannot handle number of channels () !", filepath));
         }
 
-        png_set_IHDR(png_ptr, info_ptr, img.nx, img.ny, img.bps, color_type, PNG_INTERLACE_NONE,
+        png_set_IHDR(png_ptr, info_ptr, img.nx, img.ny,
+                     static_cast<int>(img.bps), color_type, PNG_INTERLACE_NONE,
                      PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
         //
@@ -539,7 +555,7 @@ namespace cserve {
         IIIFEssentials es = img.essential_metadata();
         if ((img.icc != nullptr) || es.use_icc()) {
             if ((img.icc != nullptr) && (img.icc->getProfileType() == icc_LAB)) {
-                img.convertToIcc(IIIFIcc(PredefinedProfiles::icc_sRGB), img.bps);
+                img.convertToIcc(IIIFIcc(PredefinedProfiles::icc_sRGB), static_cast<int>(img.bps));
             }
             std::vector<unsigned char> icc_buf;
             try {
@@ -592,19 +608,19 @@ namespace cserve {
         }
 
         if (chunk_ptr.num() > 0) {
-            png_set_text(png_ptr, info_ptr, chunk_ptr.ptr(), chunk_ptr.num());
+            png_set_text(png_ptr, info_ptr, chunk_ptr.ptr(), static_cast<int>(chunk_ptr.num()));
         }
         png_write_info(png_ptr, info_ptr);
 
         auto *row_pointers = (png_bytep *) png_malloc(png_ptr, img.ny * sizeof(png_byte *));
 
         if (img.bps == 8) {
-            png_bytep raw_tmp = img.bpixels.get();
+            png_bytep raw_tmp = img.bpixels.data();
             for (size_t i = 0; i < img.ny; i++) {
                 row_pointers[i] = (raw_tmp + i * img.nx * img.nc);
             }
         } else if (img.bps == 16) {
-            auto raw_tmp = (png_bytep) img.wpixels.get();
+            auto raw_tmp = (png_bytep) img.wpixels.data();
             for (size_t i = 0; i < img.ny; i++) {
                 row_pointers[i] = (raw_tmp + 2 * i * img.nx * img.nc);
             }

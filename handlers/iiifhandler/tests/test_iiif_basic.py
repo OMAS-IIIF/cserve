@@ -90,10 +90,6 @@ class TestBasic:
             'preferredFormats': ['jpg', 'tif', 'jp2', 'png'],
             'profile': 'level2',
             'protocol': 'http://iiif.io/api/image',
-            'sizes': [
-                {'height': 400, 'width': 600},
-                {'height': 200, 'width': 300}
-            ],
             'type': 'ImageService3',
             'width': 1200
         }
@@ -307,10 +303,6 @@ class TestBasic:
                     }
                 ]
             },
-            'sizes': [
-                {'height': 400, 'width': 600},
-                {'height': 200, 'width': 300}
-            ],
             'type': 'ImageService3',
             'width': 1200
         }

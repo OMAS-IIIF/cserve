@@ -14,6 +14,8 @@
 #include <utility>
 #include <vector>
 #include <cmath>
+#include <cstring>
+#include <cctype>
 
 #include <climits>
 
@@ -21,8 +23,9 @@
 #include "fmt/format.h"
 #include "Global.h"
 #include "Hash.h"
-//#include "IIIFImage.h"
+#include "IIIFImage.h"
 #include "Parsing.h"
+#include "IIIFImgTools.h"
 #include "imgformats/IIIFIOTiff.h"
 #include "imgformats/IIIFIOJ2k.h"
 #include "imgformats/IIIFIOJpeg.h"
@@ -41,7 +44,7 @@ namespace cserve {
                                                                               {"png", std::make_shared<IIIFIOPng>()}};
 
 
-    IIIFImage::IIIFImage() : nx(0), ny(0), nc(0), bps(0), orientation(TOPLEFT), bpixels(nullptr), wpixels(nullptr),
+    IIIFImage::IIIFImage() : nx(0), ny(0), nc(0), bps(0), orientation(TOPLEFT),
                              xmp(nullptr), icc(nullptr), iptc(nullptr), exif(nullptr), photo(INVALID),
                              skip_metadata(SKIP_NONE), conobj(nullptr) { };
 
@@ -54,13 +57,11 @@ namespace cserve {
                 break;
             }
             case 8: {
-                bpixels = std::make_unique<byte[]>(nx * ny * nc);
-                std::memcpy(bpixels.get(), img_p.bpixels.get(), nx * ny * nc * sizeof(byte));
+                bpixels = img_p.bpixels;
                 break;
             }
             case 16: {
-                wpixels = std::make_unique<word[]>(nx * ny * nc);
-                std::memcpy(wpixels.get(), img_p.wpixels.get(), nx * ny * nc * sizeof(word));
+                wpixels = img_p.wpixels;
                 break;
             }
             default: {
@@ -72,7 +73,7 @@ namespace cserve {
     //============================================================================
 
     IIIFImage::IIIFImage(IIIFImage &&other) noexcept: nx(0), ny(0), nc(0), bps(0), orientation(TOPLEFT), es({}),
-                                                      photo(INVALID), bpixels(nullptr), wpixels(nullptr),
+                                                      photo(INVALID),
                                                       xmp(nullptr), icc(nullptr), iptc(nullptr), exif(nullptr),
                                                       emdata(), conobj(nullptr), skip_metadata(SKIP_NONE) {
         nx = other.nx;
@@ -108,7 +109,7 @@ namespace cserve {
     }
 
     [[maybe_unused]]
-    IIIFImage::IIIFImage(size_t nx_p, size_t ny_p, size_t nc_p, size_t bps_p,
+    IIIFImage::IIIFImage(uint32_t nx_p, uint32_t ny_p, uint32_t nc_p, uint32_t bps_p,
                          PhotometricInterpretation photo_p)
             : nx(nx_p), ny(ny_p), nc(nc_p), bps(bps_p), photo(photo_p), xmp(nullptr), icc(nullptr), iptc(nullptr),
               exif(nullptr), skip_metadata(SKIP_NONE), conobj(nullptr) {
@@ -127,17 +128,12 @@ namespace cserve {
         }
 
         switch (bps) {
-            case 0: {
-                bpixels = nullptr;
-                wpixels = nullptr;
-                break;
-            }
             case 8: {
-                bpixels = std::make_unique<byte[]>(nx * ny * nc);
+                bpixels = std::vector<uint8_t>(nx * ny * nc);
                 break;
             }
             case 16: {
-                wpixels = std::make_unique<word[]>(nx * ny * nc);
+                wpixels = std::vector<uint16_t>(nx * ny * nc);
                 break;
             }
             default: {
@@ -146,7 +142,7 @@ namespace cserve {
         }
     }
 
-    [[maybe_unused]] void IIIFImage::setPixel(unsigned int x, unsigned int y, unsigned int c, int val) {
+    [[maybe_unused]] void IIIFImage::setPixel(uint32_t x, uint32_t y, uint32_t c, int val) {
         if (x >= nx) throw IIIFImageError(file_, __LINE__, "Error in setPixel: x >= nx");
         if (y >= ny) throw IIIFImageError(file_, __LINE__, "Error in setPixel: y >= ny");
         if (c >= nc) throw IIIFImageError(file_, __LINE__, "Error in setPixel: c >= nc");
@@ -182,13 +178,11 @@ namespace cserve {
                     break;
                 }
                 case 8: {
-                    bpixels = std::make_unique<byte[]>(nx*ny*nc);
-                    memcpy(bpixels.get(), img_p.bpixels.get(), nx*ny*nc*sizeof(byte));
+                    bpixels = img_p.bpixels;
                     break;
                 }
                 case 16: {
-                    wpixels = std::make_unique<word[]>(nx*ny*nc);
-                    memcpy(wpixels.get(), img_p.wpixels.get(), nx*ny*nc*sizeof(word));
+                    wpixels = img_p.wpixels;
                     break;
                 }
                 default: {
@@ -209,8 +203,8 @@ namespace cserve {
         if (this != &other) {
             es = {};
             orientation = TOPLEFT;
-            bpixels.reset();
-            wpixels.reset();
+            bpixels.clear();
+            wpixels.clear();
             xmp.reset();
             icc.reset();
             iptc.reset();
@@ -262,7 +256,6 @@ namespace cserve {
     //============================================================================
 
      IIIFImage IIIFImage::read(const std::string& filepath,
-                               int pagenum,
                                const std::shared_ptr<IIIFRegion>& region,
                                const std::shared_ptr<IIIFSize>& size,
                                bool force_bps_8,
@@ -271,29 +264,29 @@ namespace cserve {
         std::string fext(fpath.extension().string());
 
         std::string _fext;
-        std::transform(fext.begin(), fext.end(), _fext.begin(), ::tolower);
+        std::transform(fext.begin(), fext.end(), _fext.begin(), [](unsigned char c) { return std::toupper(c); });
 
         try {
             if (_fext.empty()) {
                 for (auto const &iterator : io) {
                     try {
-                        return iterator.second->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+                        return iterator.second->read(fpath.string(), region, size, force_bps_8, scaling_quality);
                     }
                     catch (const IIIFImageError &err) { }
                 }
             } else if ((_fext == "tif") || (_fext == "tiff")) {
-                return io["tif"]->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+                return io["tif"]->read(fpath.string(), region, size, force_bps_8, scaling_quality);
             } else if ((_fext == "jpg") || (_fext == "jpeg")) {
-                return io["jpg"]->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+                return io["jpg"]->read(fpath.string(), region, size, force_bps_8, scaling_quality);
             } else if (_fext == "png") {
-                return io["png"]->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+                return io["png"]->read(fpath.string(), region, size, force_bps_8, scaling_quality);
             } else if ((_fext == "jp2") || (_fext == "jpx") || (_fext == "j2k")) {
-                return io["jpx"]->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+                return io["jpx"]->read(fpath.string(), region, size, force_bps_8, scaling_quality);
             }
             // file seems to have the wrong extension, let's try all image formats we support
             for (auto const &iterator : io) {
                 try {
-                    return iterator.second->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+                    return iterator.second->read(fpath.string(), region, size, force_bps_8, scaling_quality);
                 }
                 catch (const IIIFImageError &err) { }
             }
@@ -301,7 +294,7 @@ namespace cserve {
         catch (const IIIFImageError &err) {
             for (auto const &iterator : io) {
                 try {
-                    return iterator.second->read(fpath.string(), pagenum, region, size, force_bps_8, scaling_quality);
+                    return iterator.second->read(fpath.string(), region, size, force_bps_8, scaling_quality);
                 }
                 catch (const IIIFImageError &err) { }
             }
@@ -312,12 +305,11 @@ namespace cserve {
     //============================================================================
 
     IIIFImage IIIFImage::readOriginal(const std::string &filepath,
-                                      int pagenum,
                                       const std::shared_ptr<IIIFRegion>& region,
                                       const std::shared_ptr<IIIFSize>& size,
                                       const std::string &origname,
                                       HashType htype) {
-        IIIFImage img = IIIFImage::read(filepath, pagenum, region, size, false);
+        IIIFImage img = IIIFImage::read(filepath, region, size, false);
 
         if (!img.emdata.is_set()) {
             Hash internal_hash(htype);
@@ -326,11 +318,11 @@ namespace cserve {
                     throw IIIFImageError(file_, __LINE__, fmt::format("Image with invalid bps (bps = {}).", img.bps));
                 }
                 case 8: {
-                    internal_hash.add_data(img.bpixels.get(), img.nx * img.ny * img.nc * sizeof(byte));
+                    internal_hash.add_data(img.bpixels.data(), img.nx * img.ny * img.nc * sizeof(uint8_t));
                     break;
                 }
                 case 16: {
-                    internal_hash.add_data(img.wpixels.get(), img.nx * img.ny * img.nc * sizeof(word));
+                    internal_hash.add_data(img.wpixels.data(), img.nx * img.ny * img.nc * sizeof(uint16_t));
                     break;
                 }
                 default: {
@@ -348,11 +340,11 @@ namespace cserve {
                     throw IIIFImageError(file_, __LINE__, fmt::format("Image with invalid bps (bps = {}).", img.bps));
                 }
                 case 8: {
-                    internal_hash.add_data(img.bpixels.get(), img.nx * img.ny * img.nc * sizeof(byte));
+                    internal_hash.add_data(img.bpixels.data(), img.nx * img.ny * img.nc * sizeof(uint8_t));
                     break;
                 }
                 case 16: {
-                    internal_hash.add_data(img.wpixels.get(), img.nx * img.ny * img.nc * sizeof(word));
+                    internal_hash.add_data(img.wpixels.data(), img.nx * img.ny * img.nc * sizeof(uint16_t));
                     break;
                 }
                 default: {
@@ -371,18 +363,17 @@ namespace cserve {
 
     [[maybe_unused]]
     IIIFImage IIIFImage::readOriginal(const std::string &filepath,
-                                      int pagenum,
                                       const std::shared_ptr<IIIFRegion>& region,
                                       const std::shared_ptr<IIIFSize>& size,
                                       HashType htype) {
         std::string origname = getFileName(filepath);
-        return IIIFImage::readOriginal(filepath, pagenum, region, size, origname, htype);
+        return IIIFImage::readOriginal(filepath, region, size, origname, htype);
     }
     //============================================================================
 
 
     [[maybe_unused]]
-    IIIFImgInfo IIIFImage::getDim(const std::string &filepath, int pagenum) {
+    IIIFImgInfo IIIFImage::getDim(const std::string &filepath) {
         size_t pos = filepath.find_last_of('.');
         std::string fext = filepath.substr(pos + 1);
         std::string _fext;
@@ -394,21 +385,21 @@ namespace cserve {
         std::string mimetype = Parsing::getFileMimetype(filepath).first;
 
         if ((mimetype == "image/tiff") || (mimetype == "image/x-tiff")) {
-            info = io[std::string("tif")]->getDim(filepath, pagenum);
+            info = io[std::string("tif")]->getDim(filepath);
         } else if ((mimetype == "image/jpeg") || (mimetype == "image/pjpeg")) {
-            info = io[std::string("jpg")]->getDim(filepath, pagenum);
+            info = io[std::string("jpg")]->getDim(filepath);
         } else if (mimetype == "image/png") {
-            info = io[std::string("png")]->getDim(filepath, pagenum);
+            info = io[std::string("png")]->getDim(filepath);
         } else if ((mimetype == "image/jp2") || (mimetype == "image/jpx")) {
-            info = io[std::string("jpx")]->getDim(filepath, pagenum);
+            info = io[std::string("jpx")]->getDim(filepath);
         } else if (mimetype == "application/pdf") {
-            info = io[std::string("pdf")]->getDim(filepath, pagenum);
+            info = io[std::string("pdf")]->getDim(filepath);
         }
         info.internalmimetype = mimetype;
 
         if (info.success == IIIFImgInfo::FAILURE) {
             for (auto const &iterator : io) {
-                info = iterator.second->getDim(filepath, pagenum);
+                info = iterator.second->getDim(filepath);
                 if (info.success != IIIFImgInfo::FAILURE) break;
             }
         }
@@ -422,7 +413,7 @@ namespace cserve {
 
 
     [[maybe_unused]]
-    void IIIFImage::getDim(size_t &width, size_t &height) const {
+    void IIIFImage::getDim(uint32_t &width, uint32_t &height) const {
         width = getNx();
         height = getNy();
     }
@@ -436,7 +427,7 @@ namespace cserve {
     [[maybe_unused]]
     void IIIFImage::convertYCC2RGB() {
         if (bps == 8) {
-            auto outbuf = std::make_unique<byte[]>(nc*nx*ny);
+            auto outbuf = std::vector<uint8_t>(nc*nx*ny);
 
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
@@ -459,8 +450,7 @@ namespace cserve {
             }
             bpixels = std::move(outbuf);
         } else if (bps == 16) {
-            size_t nnc = nc - 1;
-            auto outbuf = std::make_unique<word[]>(nc*nx*ny);
+            auto outbuf = std::vector<uint16_t>(nc*nx*ny);
 
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
@@ -488,7 +478,7 @@ namespace cserve {
     }
     //============================================================================
 
-    void IIIFImage::convertToIcc(const IIIFIcc &target_icc_p, int new_bps) {
+    void IIIFImage::convertToIcc(const IIIFIcc &target_icc_p, uint32_t new_bps) {
         cmsSetLogErrorHandler(icc_error_logger);
         cmsUInt32Number in_formatter, out_formatter;
 
@@ -531,16 +521,12 @@ namespace cserve {
 
         void *inbuf;
         switch (bps) {
-            case 0: {
-                throw IIIFImageError(file_, __LINE__, fmt::format("Bits per sample is not supported for operation (bps={})", bps));
-                break;
-            }
             case 8: {
-                inbuf = bpixels.get();
+                inbuf = bpixels.data();
                 break;
             }
             case 16: {
-                inbuf = wpixels.get();
+                inbuf = wpixels.data();
                 break;
             }
             default: {
@@ -550,16 +536,16 @@ namespace cserve {
 
         switch (new_bps) {
             case 8: {
-                auto boutbuf = std::make_unique<byte[]>(nx*ny*nnc*sizeof(byte));
-                cmsDoTransform(hTransform, inbuf, boutbuf.get(), nx * ny);
-                wpixels.reset();
+                auto boutbuf = std::vector<uint8_t>(nx*ny*nnc);
+                cmsDoTransform(hTransform, inbuf, boutbuf.data(), nx * ny);
+                wpixels.clear();
                 bpixels = std::move(boutbuf);
                 break;
             }
             case 16: {
-                auto woutbuf = std::make_unique<word[]>(nx*ny*nnc*sizeof(word));
-                cmsDoTransform(hTransform, inbuf, woutbuf.get(), nx * ny);
-                bpixels.reset();
+                auto woutbuf = std::vector<uint16_t>(nx*ny*nnc);
+                cmsDoTransform(hTransform, inbuf, woutbuf.data(), nx * ny);
+                bpixels.clear();
                 wpixels = std::move(woutbuf);
                 break;
             }
@@ -596,7 +582,7 @@ namespace cserve {
 
 
     [[maybe_unused]]
-    void IIIFImage::removeChan(unsigned int chan) {
+    void IIIFImage::removeChan(uint32_t chan) {
         if ((nc == 1) || (chan >= nc)) {
             std::string msg = "Cannot remove component: nc=" + std::to_string(nc) + " chan=" + std::to_string(chan);
             throw IIIFImageError(file_, __LINE__, msg);
@@ -606,7 +592,7 @@ namespace cserve {
             if (nc < 3) {
                 es.clear(); // no more alpha channel
             } else if (nc > 3) { // it's probably an alpha channel
-                if ((nc == 4) && (photo == SEPARATED)) {  // oh no – 4 channes, but CMYK
+                if ((nc == 4) && (photo == SEPARATED)) {  // oh no. – 4 channes, but CMYK
                     throw IIIFImageError(file_, __LINE__, fmt::format("Cannot remove component: nc={} chan={}", nc, chan));
                 } else {
                     es.erase(es.begin() + (chan - ((photo == SEPARATED) ? 4 : 3)));
@@ -619,7 +605,7 @@ namespace cserve {
 
         if (bps == 8) {
             size_t nnc = nc - 1;
-            auto boutbuf = std::make_unique<byte[]>(nnc*nx*ny);
+            auto boutbuf = std::vector<uint8_t>(nnc*nx*ny);
 
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
@@ -632,7 +618,7 @@ namespace cserve {
             bpixels = std::move(boutbuf);
         } else if (bps == 16) {
             size_t nnc = nc - 1;
-            auto woutbuf = std::make_unique<word[]>(nnc*nx*ny);
+            auto woutbuf = std::vector<uint16_t>(nnc*nx*ny);
 
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
@@ -652,102 +638,19 @@ namespace cserve {
         nc--;
     }
 
-
-    [[maybe_unused]]
-    void IIIFImage::crop(int x, int y, size_t width, size_t height) {
-        if (x < 0) {
-            width += x;
-            x = 0;
-        } else if (x >= (long) nx) {
-            throw IIIFImageError(file_, __LINE__, fmt::format("Cropping outside image: nx={}, x={}", nx, x));
-        }
-
-        if (y < 0) {
-            height += y;
-            y = 0;
-        } else if (y >= (long) ny) {
-            throw IIIFImageError(file_, __LINE__, fmt::format("Cropping outside image: ny={}, y={}", ny, y));
-        }
-
-        if (width == 0) {
-            width = nx - x;
-        } else if ((x + width) > nx) {
-            width = nx - x;
-        }
-
-        if (height == 0) {
-            height = ny - y;
-        } else if ((y + height) > ny) {
-            height = ny - y;
-        }
-
-        if ((x == 0) && (y == 0) && (width == nx) && (height == ny)) return; //we do not have to crop!!
-
-        if (bps == 8) {
-            auto boutbuf = std::make_unique<byte[]>(width * height * nc);
-            for (size_t j = 0; j < height; j++) {
-                for (size_t i = 0; i < width; i++) {
-                    for (size_t k = 0; k < nc; k++) {
-                        boutbuf[nc * (j * width + i) + k] = bpixels[nc * ((j + y) * nx + (i + x)) + k];
-                    }
-                }
-            }
-
-            bpixels = std::move(boutbuf);
-        } else if (bps == 16) {
-            auto woutbuf = std::make_unique<word[]>(width * height * nc);
-
-            for (size_t j = 0; j < height; j++) {
-                for (size_t i = 0; i < width; i++) {
-                    for (size_t k = 0; k < nc; k++) {
-                        woutbuf[nc * (j * width + i) + k] = wpixels[nc * ((j + y) * nx + (i + x)) + k];
-                    }
-                }
-            }
-
-            wpixels = std::move(woutbuf);
-        } else {
-            // clean up and throw exception
-        }
-        nx = width;
-        ny = height;
-    }
-
-
-
     [[maybe_unused]]
     bool IIIFImage::crop(const std::shared_ptr<IIIFRegion> &region) {
         int x, y;
-        size_t width, height;
+        uint32_t width, height;
         if (region->getType() == IIIFRegion::FULL) return true; // we do not have to crop;
         region->crop_coords(nx, ny, x, y, width, height);
-
         if (bps == 8) {
-            auto boutbuf = std::make_unique<byte[]>(width * height * nc);
-
-            for (size_t j = 0; j < height; j++) {
-                for (size_t i = 0; i < width; i++) {
-                    for (size_t k = 0; k < nc; k++) {
-                        boutbuf[nc * (j * width + i) + k] = bpixels[nc * ((j + y) * nx + (i + x)) + k];
-                    }
-                }
-            }
-
-            bpixels = std::move(boutbuf);
-        } else if (bps == 16) {
-            auto woutbuf = std::make_unique<word[]>(width * height * nc);
-
-            for (size_t j = 0; j < height; j++) {
-                for (size_t i = 0; i < width; i++) {
-                    for (size_t k = 0; k < nc; k++) {
-                        woutbuf[nc * (j * width + i) + k] = wpixels[nc * ((j + y) * nx + (i + x)) + k];
-                    }
-                }
-            }
-
-            wpixels = std::move(woutbuf);
+            bpixels = doCrop<uint8_t>(std::move(bpixels), nx, ny, nc, region);
+        }
+        else if (bps == 16) {
+            wpixels = doCrop<uint16_t>(std::move(wpixels), nx, ny, nc, region);
         } else {
-            // clean up and throw exception
+            throw IIIFImageError(file_, __LINE__, fmt::format("Bits per sample is not supported for operation (bps={})", bps));
         }
 
         nx = width;
@@ -755,267 +658,76 @@ namespace cserve {
         return true;
     }
 
-
-    /****************************************************************************/
-#define POSITION(x, y, c, n) ((n)*((y)*nx + (x)) + c)
-
-    byte IIIFImage::bilinn(const byte buf[], int nx, double x, double y, int c, int n) {
-        int ix, iy;
-        double rx, ry;
-        ix = (int) x;
-        iy = (int) y;
-        rx = x - (double) ix;
-        ry = y - (double) iy;
-
-        if ((rx < 1.0e-2) && (ry < 1.0e-2)) {
-            return (buf[POSITION(ix, iy, c, n)]);
-        } else if (rx < 1.0e-2) {
-            return ((byte) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                                   (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry))));
-        } else if (ry < 1.0e-2) {
-            return ((byte) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                                    (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry))));
-        } else {
-            return ((byte) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                                    (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
-                                    (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
-                                    (double) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry)));
+    [[maybe_unused]]
+    void IIIFImage::crop(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+        auto region = std::make_shared<IIIFRegion>(x, y, width, height);
+        if (!crop(region)) {
+            throw IIIFImageError(file_, __LINE__, fmt::format("crop failed£", bps));
         }
     }
 
-    /*==========================================================================*/
-
-    word IIIFImage::bilinn(const word buf[], int nx, double x, double y, int c, int n) {
-        int ix, iy;
-        double rx, ry;
-        ix = (int) x;
-        iy = (int) y;
-        rx = x - (double) ix;
-        ry = y - (double) iy;
-
-        if ((rx < 1.0e-2) && (ry < 1.0e-2)) {
-            return (buf[POSITION(ix, iy, c, n)]);
-        } else if (rx < 1.0e-2) {
-            return ((word) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                                   (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry))));
-        } else if (ry < 1.0e-2) {
-            return ((word) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                                   (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry))));
-        } else {
-            return ((word) lround(((double) buf[POSITION(ix, iy, c, n)] * (1 - rx - ry + rx * ry) +
-                                   (double) buf[POSITION((ix + 1), iy, c, n)] * (rx - rx * ry) +
-                                   (double) buf[POSITION(ix, (iy + 1), c, n)] * (ry - rx * ry) +
-                                   (double) buf[POSITION((ix + 1), (iy + 1), c, n)] * rx * ry)));
+    bool IIIFImage::scaleFast(uint32_t nnx, uint32_t nny) {
+        if ((nx == nnx) && (ny == nny)) {
+            return true;
         }
-    }
-    /*==========================================================================*/
-
-#undef POSITION
-
-    bool IIIFImage::scaleFast(size_t nnx, size_t nny) {
-        auto xlut = std::make_unique<size_t[]>(nnx);
-        auto ylut = std::make_unique<size_t[]>(nny);
-
-        for (size_t i = 0; i < nnx; i++) {
-            xlut[i] = (size_t) lround(i * (nx - 1) / (double) (nnx - 1));
-        }
-        for (size_t i = 0; i < nny; i++) {
-            ylut[i] = (size_t) lround(i * (ny - 1) / (double) (nny - 1 ));
-        }
-
         if (bps == 8) {
-            auto boutbuf = std::make_unique<byte[]>(nnx * nny * nc);
-            for (size_t y = 0; y < nny; y++) {
-                for (size_t x = 0; x < nnx; x++) {
-                    for (size_t k = 0; k < nc; k++) {
-                        boutbuf[nc * (y * nnx + x) + k] = bpixels[nc * (ylut[y] * nx + xlut[x]) + k];
-                    }
-                }
-            }
-            bpixels = std::move(boutbuf) ;
-        } else if (bps == 16) {
-            auto woutbuf = std::make_unique<word[]>(nnx * nny * nc);
-            for (size_t y = 0; y < nny; y++) {
-                for (size_t x = 0; x < nnx; x++) {
-                    for (size_t k = 0; k < nc; k++) {
-                        woutbuf[nc * (y * nnx + x) + k] = wpixels[nc * (ylut[y] * nx + xlut[x]) + k];
-                    }
-                }
-            }
-            wpixels = std::move(woutbuf);
+            bpixels = doScaleFast<uint8_t>(std::move(bpixels), nx, ny, nc, nnx, nny);
+        }
+        else if (bps == 16) {
+            wpixels = doScaleFast<uint16_t>(std::move(wpixels), nx, ny, nc, nnx, nny);
         } else {
             return false;
         }
-
         nx = nnx;
         ny = nny;
         return true;
     }
 
-    bool IIIFImage::scaleMedium(size_t nnx, size_t nny) {
-        auto xlut = std::make_unique<double[]>(nnx);
-        auto ylut = std::make_unique<double[]>(nny);
-
-        for (size_t i = 0; i < nnx; i++) {
-            xlut[i] = (double) (i * (nx - 1)) / (double) (nnx - 1);
+    bool IIIFImage::scaleMedium(uint32_t nnx, uint32_t nny) {
+        if ((nx == nnx) && (ny == nny)) {
+            return true;
         }
-        for (size_t j = 0; j < nny; j++) {
-            ylut[j] = (double) (j * (ny - 1)) / (double) (nny - 1);
-        }
-
         if (bps == 8) {
-            auto boutbuf = std::make_unique<byte[]>(nnx * nny * nc);
-            double rx, ry;
-            auto raw_input = bpixels.get();
-            for (size_t j = 0; j < nny; j++) {
-                ry = ylut[j];
-                for (size_t i = 0; i < nnx; i++) {
-                    rx = xlut[i];
-                    for (size_t k = 0; k < nc; k++) {
-                        boutbuf[nc * (j * nnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
-                    }
-                }
-            }
-
-            bpixels = std::move(boutbuf) ;
-        } else if (bps == 16) {
-            auto woutbuf = std::make_unique<word[]>(nnx * nny * nc);
-            double rx, ry;
-
-            auto raw_input = wpixels.get();
-            for (size_t j = 0; j < nny; j++) {
-                ry = ylut[j];
-                for (size_t i = 0; i < nnx; i++) {
-                    rx = xlut[i];
-                    for (size_t k = 0; k < nc; k++) {
-                        woutbuf[nc * (j * nnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
-                    }
-                }
-            }
-
-            wpixels = std::move(woutbuf);
+            bpixels = doScaleMedium<uint8_t>(std::move(bpixels), nx, ny, nc, nnx, nny);
+        }
+        else if (bps == 16) {
+            wpixels = doScaleMedium<uint16_t>(std::move(wpixels), nx, ny, nc, nnx, nny);
         } else {
             return false;
         }
-
         nx = nnx;
         ny = nny;
         return true;
     }
     /*==========================================================================*/
 
-
-    bool IIIFImage::scale(size_t nnx, size_t nny) {
-        size_t iix = 1, iiy = 1;
-        size_t nnnx, nnny;
-
-        //
-        // if the scaling is less than 1 (that is, the image gets smaller), we first
-        // expand it to a integer multiple of the desired size, and then we just
-        // avarage the number of pixels. This is the "proper" way of downscale an
-        // image...
-        //
-        if (nnx < nx) {
-            while (nnx * iix < nx) iix++;
-            nnnx = nnx * iix;
-        } else {
-            nnnx = nnx;
-        }
-
-        if (nny < ny) {
-            while (nny * iiy < ny) iiy++;
-            nnny = nny * iiy;
-        } else {
-            nnny = nny;
-        }
-
-        auto xlut = std::make_unique<double[]>(nnnx);
-        auto ylut = std::make_unique<double[]>(nnny);
-
-        for (size_t i = 0; i < nnnx; i++) {
-            xlut[i] = (double) (i * (nx - 1)) / (double) (nnnx - 1);
-        }
-        for (size_t j = 0; j < nnny; j++) {
-            ylut[j] = (double) (j * (ny - 1)) / (double) (nnny - 1);
-        }
-
+    bool IIIFImage::reduce(uint32_t reduce_p) {
+        uint32_t nnx{0};
+        uint32_t nny{0};
         if (bps == 8) {
-            auto boutbuf = std::make_unique<byte[]>(nnnx * nnny * nc);
-            double rx, ry;
-
-            auto raw_input = bpixels.get();
-            for (size_t j = 0; j < nnny; j++) {
-                ry = ylut[j];
-                for (size_t i = 0; i < nnnx; i++) {
-                    rx = xlut[i];
-                    for (size_t k = 0; k < nc; k++) {
-                        boutbuf[nc * (j * nnnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
-                    }
-                }
-            }
-            bpixels = std::move(boutbuf);
-        } else if (bps == 16) {
-            auto woutbuf = std::make_unique<word[]>(nnnx * nnny * nc);
-            double rx, ry;
-
-            auto raw_input = wpixels.get();
-            for (size_t j = 0; j < nnny; j++) {
-                ry = ylut[j];
-                for (size_t i = 0; i < nnnx; i++) {
-                    rx = xlut[i];
-                    for (size_t k = 0; k < nc; k++) {
-                        woutbuf[nc * (j * nnnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
-                    }
-                }
-            }
-            wpixels = std::move(woutbuf);
+            bpixels = doReduce(std::move(bpixels), reduce_p, nx, ny, nc, nnx, nny);
+        }
+        else if (bps == 16) {
+            wpixels = doReduce(std::move(wpixels), reduce_p, nx, ny, nc, nnx, nny);
         } else {
             return false;
-            // clean up and throw exception
         }
+        nx = nnx;
+        ny = nny;
+        return true;
+    }
 
-        //
-        // now we have to check if we have to average the pixels
-        //
-        if ((iix > 1) || (iiy > 1)) {
-            if (bps == 8) {
-                auto boutbuf = std::make_unique<byte[]>(nnx * nny * nc);
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            unsigned int accu = 0;
-
-                            for (size_t jj = 0; jj < iiy; jj++) {
-                                for (size_t ii = 0; ii < iix; ii++) {
-                                    accu += bpixels[nc * ((iiy * j + jj) * nnnx + (iix * i + ii)) + k];
-                                }
-                            }
-
-                            boutbuf[nc * (j * nnx + i) + k] = accu / (iix * iiy);
-                        }
-                    }
-                }
-                bpixels = std::move(boutbuf);
-            } else if (bps == 16) {
-                auto woutbuf = std::make_unique<word[]>(nnx * nny * nc);
-
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            unsigned int accu = 0;
-
-                            for (size_t jj = 0; jj < iiy; jj++) {
-                                for (size_t ii = 0; ii < iix; ii++) {
-                                    accu += wpixels[nc * ((iiy * j + jj) * nnnx + (iix * i + ii)) + k];
-                                }
-                            }
-
-                            woutbuf[nc * (j * nnx + i) + k] = accu / (iix * iiy);
-                        }
-                    }
-                }
-                wpixels = std::move(woutbuf);
-            }
+    bool IIIFImage::scale(uint32_t nnx, uint32_t nny) {
+        if ((nx == nnx) && (ny == nny)) {
+            return true;
+        }
+        if (bps == 8) {
+            bpixels = doScale<uint8_t>(std::move(bpixels), nx, ny, nc, nnx, nny);
+        }
+        else if (bps == 16) {
+            wpixels = doScale<uint16_t>(std::move(wpixels), nx, ny, nc, nnx, nny);
+        } else {
+            return false;
         }
         nx = nnx;
         ny = nny;
@@ -1023,228 +735,15 @@ namespace cserve {
     }
 
     bool IIIFImage::rotate(float angle, bool mirror) {
-        if (mirror) {
-            if (bps == 8) {
-                auto boutbuf = std::make_unique<byte[]>(nx * ny * nc);
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            boutbuf[nc * (j * nx + i) + k] = bpixels[nc * (j * nx + (nx - i - 1)) + k];
-                        }
-                    }
-                }
-
-                bpixels = std::move(boutbuf);
-            } else if (bps == 16) {
-                auto woutbuf = std::make_unique<word[]>(nx * ny * nc);
-
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            woutbuf[nc * (j * nx + i) + k] = wpixels[nc * (j * nx + (nx - i - 1)) + k];
-                        }
-                    }
-                }
-
-                wpixels = std::move(woutbuf);
-            } else {
-                return false;
-                // clean up and throw exception
-            }
+        uint32_t nnx, nny;
+        if (bps == 8) {
+             bpixels = doRotate<uint8_t>(std::move(bpixels), nx, ny, nc, nnx, nny, angle, mirror);
         }
-
-        while (angle < 0.) angle += 360.;
-        while (angle >= 360.) angle -= 360.;
-
-        if (angle == 0.) {
-            return true;
+        else if (bps == 16) {
+            wpixels = doRotate<uint16_t>(std::move(wpixels), nx, ny, nc, nnx, nny, angle, mirror);
         }
-
-        if (angle == 90.) {
-            //
-            // abcdef     mga
-            // ghijkl ==> nhb
-            // mnopqr     oic
-            //            pjd
-            //            qke
-            //            rlf
-            //
-            size_t nnx = ny;
-            size_t nny = nx;
-
-            if (bps == 8) {
-                auto boutbuf = std::make_unique<byte[]>(nx * ny * nc);
-
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            boutbuf[nc * (j * nnx + i) + k] = bpixels[nc * ((ny - i - 1) * nx + j) + k];
-                        }
-                    }
-                }
-
-                bpixels = std::move(boutbuf);
-            } else if (bps == 16) {
-                auto woutbuf = std::make_unique<word[]>(nx * ny * nc);
-
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            woutbuf[nc * (j * nnx + i) + k] = wpixels[nc * ((ny - i - 1) * nx + j) + k];
-                        }
-                    }
-                }
-
-                wpixels = std::move(woutbuf);
-            }
-            nx = nnx;
-            ny = nny;
-        } else if (angle == 180.) {
-            //
-            // abcdef     rqponm
-            // ghijkl ==> lkjihg
-            // mnopqr     fedcba
-            //
-            size_t nnx = nx;
-            size_t nny = ny;
-            if (bps == 8) {
-                auto boutbuf = std::make_unique<byte[]>(nx * ny * nc);
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            boutbuf[nc * (j * nnx + i) + k] = bpixels[nc * ((ny - j - 1) * nx + (nx - i - 1)) + k];
-                        }
-                    }
-                }
-
-                bpixels = std::move(boutbuf);
-            } else if (bps == 16) {
-                auto woutbuf = std::make_unique<word[]>(nx * ny * nc);
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            woutbuf[nc * (j * nnx + i) + k] = wpixels[nc * ((ny - j - 1) * nx + (nx - i - 1)) + k];
-                        }
-                    }
-                }
-
-                wpixels = std::move(woutbuf);
-            }
-            nx = nnx;
-            ny = nny;
-        } else if (angle == 270.) {
-            //
-            // abcdef     flr
-            // ghijkl ==> ekq
-            // mnopqr     djp
-            //            cio
-            //            bhn
-            //            agm
-            //
-            size_t nnx = ny;
-            size_t nny = nx;
-
-            if (bps == 8) {
-                auto boutbuf = std::make_unique<byte[]>(nx * ny * nc);
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            boutbuf[nc * (j * nnx + i) + k] = bpixels[nc * (i * nx + (nx - j - 1)) + k];
-                        }
-                    }
-                }
-
-                bpixels = std::move(boutbuf) ;
-            } else if (bps == 16) {
-                auto woutbuf = std::make_unique<word[]>(nx * ny * nc);
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            woutbuf[nc * (j * nnx + i) + k] = wpixels[nc * (i * nx + (nx - j - 1)) + k];
-                        }
-                    }
-                }
-                wpixels = std::move(woutbuf);
-            }
-            nx = nnx;
-            ny = nny;
-        } else { // all other angles
-            double phi = M_PI * angle / 180.0;
-            double ptx = static_cast<double>(nx) / 2. - .5;
-            double pty = static_cast<double>(ny) / 2. - .5;
-
-            double si = sin(-phi);
-            double co = cos(-phi);
-
-            size_t nnx;
-            size_t nny;
-
-            if ((angle > 0.) && (angle < 90.)) {
-                nnx = floor((double) nx * cos(phi) + (double) ny * sin(phi) + .5);
-                nny = floor((double) nx * sin(phi) + (double) ny * cos(phi) + .5);
-            } else if ((angle > 90.) && (angle < 180.)) {
-                nnx = floor(-((double) nx) * cos(phi) + (double) ny * sin(phi) + .5);
-                nny = floor((double) nx * sin(phi) - (double) ny * cosf(phi) + .5);
-            } else if ((angle > 180.) && (angle < 270.)) {
-                nnx = floor(-((double) nx) * cos(phi) - (double) ny * sin(phi) + .5);
-                nny = floor(-((double) nx) * sinf(phi) - (double) ny * cosf(phi) + .5);
-            } else {
-                nnx = floor((double) nx * cos(phi) - (double) ny * sin(phi) + .5);
-                nny = floor(-((double) nx) * sin(phi) + (double) ny * cos(phi) + .5);
-            }
-
-            double pptx = ptx * (double) nnx / (double) nx;
-            double ppty = pty * (double) nny / (double) ny;
-
-            if (bps == 8) {
-                auto boutbuf = std::make_unique<byte[]>(nnx * nny * nc);
-                auto raw_input = bpixels.get();
-                byte bg = 0;
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        double rx = ((double) i - pptx) * co - ((double) j - ppty) * si + ptx;
-                        double ry = ((double) i - pptx) * si + ((double) j - ppty) * co + pty;
-
-                        if ((rx < 0.0) || (rx >= (double) (nx - 1)) || (ry < 0.0) || (ry >= (double) (ny - 1))) {
-                            for (size_t k = 0; k < nc; k++) {
-                                boutbuf[nc * (j * nnx + i) + k] = bg;
-                            }
-                        } else {
-                            for (size_t k = 0; k < nc; k++) {
-                                boutbuf[nc * (j * nnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
-                            }
-                        }
-                    }
-                }
-
-                bpixels = std::move(boutbuf);
-            } else if (bps == 16) {
-                auto woutbuf = std::make_unique<word[]>(nnx * nny * nc);
-                auto raw_input = wpixels.get();
-                word bg = 0;
-
-                for (size_t j = 0; j < nny; j++) {
-                    for (size_t i = 0; i < nnx; i++) {
-                        double rx = ((double) i - pptx) * co - ((double) j - ppty) * si + ptx;
-                        double ry = ((double) i - pptx) * si + ((double) j - ppty) * co + pty;
-
-                        if ((rx < 0.0) || (rx >= (double) (nx - 1)) || (ry < 0.0) || (ry >= (double) (ny - 1))) {
-                            for (size_t k = 0; k < nc; k++) {
-                                woutbuf[nc * (j * nnx + i) + k] = bg;
-                            }
-                        } else {
-                            for (size_t k = 0; k < nc; k++) {
-                                woutbuf[nc * (j * nnx + i) + k] = bilinn(raw_input, nx, rx, ry, k, nc);
-                            }
-                        }
-                    }
-                }
-
-                wpixels = std::move(woutbuf) ;
-            }
-            nx = nnx;
-            ny = nny;
-        }
+        nx = nnx;
+        ny = nny;
         return true;
     }
     //============================================================================
@@ -1295,16 +794,10 @@ namespace cserve {
             //icc = NULL;
 
             //byte *outbuf = new(std::nothrow) Sipi::byte[nc*nx*ny];
-            auto boutbuf = std::make_unique<byte[]>(nc * nx * ny);
-            for (size_t j = 0; j < ny; j++) {
-                for (size_t i = 0; i < nx; i++) {
-                    for (size_t k = 0; k < nc; k++) {
-                        // divide pixel values by 256 using ">> 8"
-                        boutbuf[nc * (j * nx + i) + k] = (wpixels[nc * (j * nx + i) + k] >> 8);
-                    }
-                }
+            auto boutbuf = std::vector<uint8_t>(nc * nx * ny);
+            for (uint32_t i = 0; i < nx*ny*nc; ++i) {
+                boutbuf[i] = static_cast<uint8_t>(wpixels[i] >> 8);
             }
-
             bpixels = std::move(boutbuf);
             bps = 8;
         }
@@ -1320,7 +813,7 @@ namespace cserve {
 
         bool doit = false; // will be set true if we find a value not equal 0 or 255
         for (size_t i = 0; i < nx * ny; i++) {
-            if (!doit && (bpixels[i] != 0) && (bpixels[i] != 255)) {
+            if ((bpixels[i] != 0) && (bpixels[i] != 255)) {
                 doit = true;
                 break;
             }
@@ -1355,14 +848,14 @@ namespace cserve {
 
 
     bool IIIFImage::add_watermark(const std::string &wmfilename) {
-        int wm_nx, wm_ny, wm_nc;
-        std::unique_ptr<unsigned char[]> wmbuf = read_watermark(wmfilename, wm_nx, wm_ny, wm_nc);
-        if (wmbuf == nullptr) {
+        uint32_t wm_nx, wm_ny, wm_nc;
+        std::vector<uint8_t> wmbuf = read_watermark(wmfilename, wm_nx, wm_ny, wm_nc);
+        if (wmbuf.empty()) {
             throw IIIFImageError(file_, __LINE__, "Cannot read watermark file " + wmfilename);
         }
 
-        auto xlut = std::make_unique<double[]>(nx);
-        auto ylut = std::make_unique<double[]>(ny);
+        auto xlut = std::vector<double>(nx);
+        auto ylut = std::vector<double>(ny);
 
         for (size_t i = 0; i < nx; i++) {
             xlut[i] = (double) (wm_nx * i) / (double) nx;
@@ -1371,15 +864,14 @@ namespace cserve {
             ylut[j] = (double) (wm_ny * j) / (double) ny;
         }
 
-        auto raw_wmbuf = wmbuf.get();
         if (bps == 8) {
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
-                    byte val = IIIFImage::bilinn(raw_wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
+                    auto val = bilinn<uint8_t>(wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
 
                     for (size_t k = 0; k < nc; k++) {
                         double nval = (bpixels[nc * (j * nx + i) + k] / 255.) * (1.0 + val / 2550.0) + val / 2550.0;
-                        bpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? 255 : (unsigned char) floorl(nval * 255. + .5);
+                        bpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? 255 : static_cast<uint8_t>(floorl(nval * 255. + .5));
                     }
                 }
             }
@@ -1387,10 +879,10 @@ namespace cserve {
             for (size_t j = 0; j < ny; j++) {
                 for (size_t i = 0; i < nx; i++) {
                     for (size_t k = 0; k < nc; k++) {
-                        byte val = bilinn(raw_wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
+                        byte val = bilinn<uint8_t>(wmbuf, wm_nx, xlut[i], ylut[j], 0, wm_nc);
                         double nval =
                                 (wpixels[nc * (j * nx + i) + k] / 65535.0) * (1.0 + val / 655350.0) + val / 352500.;
-                        wpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? (word) 65535 : (word) floorl(nval * 65535. + .5);
+                        wpixels[nc * (j * nx + i) + k] = (nval > 1.0) ? static_cast<uint16_t>(65535) : static_cast<uint16_t>(floorl(nval * 65535. + .5));
                     }
                 }
             }
@@ -1402,103 +894,63 @@ namespace cserve {
 
 
     IIIFImage &IIIFImage::operator-=(const IIIFImage &rhs) {
-        IIIFImage *new_rhs = nullptr;
-
-        if ((nc != rhs.nc) || (bps != rhs.bps) || (photo != rhs.photo)) {
+        if ((nx != rhs.nx) || (ny != rhs.ny) || (nc != rhs.nc) || (bps != rhs.bps) || (photo != rhs.photo)) {
             std::stringstream ss;
             ss << "Image op: images not compatible" << std::endl;
-            ss << "Image 1:  nc: " << nc << " bps: " << bps << " photo: " << as_integer(photo) << std::endl;
-            ss << "Image 2:  nc: " << rhs.nc << " bps: " << rhs.bps << " photo: " << as_integer(rhs.photo)
+            ss << "Image 1:  nx: " << nx << " ny: " << ny << " nc: " << nc << " bps: " << bps << " photo: " << as_integer(photo) << std::endl;
+            ss << "Image 2:  nx: " << rhs.nx << " ny: " << rhs.ny << " nc: " << rhs.nc << " bps: " << rhs.bps << " photo: " << as_integer(rhs.photo)
                << std::endl;
             throw IIIFImageError(file_, __LINE__, ss.str());
         }
 
-        if ((nx != rhs.nx) || (ny != rhs.ny)) {
-            new_rhs = new IIIFImage(rhs);
-            new_rhs->scale(nx, ny);
-        }
 
-        auto diffbuf = std::make_unique<int[]>(nx * ny * nc);
-
+        auto diffbuf = std::vector<int32_t>(nx * ny * nc);
         switch (bps) {
             case 8: {
-                byte *rtmp = (new_rhs == nullptr) ? rhs.bpixels.get() : new_rhs->bpixels.get();
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            if (bpixels[nc * (j * nx + i) + k] != rtmp[nc * (j * nx + i) + k]) {
-                                diffbuf[nc * (j * nx + i) + k] =
-                                        bpixels[nc * (j * nx + i) + k] - rtmp[nc * (j * nx + i) + k];
-                            }
-                        }
-                    }
+                for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+                    diffbuf[i] = bpixels[i] - rhs.bpixels[i];
                 }
                 break;
             }
             case 16: {
-                word *rtmp = (new_rhs == nullptr) ? (word *) rhs.wpixels.get() : (word *) new_rhs->wpixels.get();
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            if (wpixels[nc * (j * nx + i) + k] != rtmp[nc * (j * nx + i) + k]) {
-                                diffbuf[nc * (j * nx + i) + k] =
-                                        wpixels[nc * (j * nx + i) + k] - rtmp[nc * (j * nx + i) + k];
-                            }
-                        }
-                    }
+                for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+                    diffbuf[i] = wpixels[i] - rhs.wpixels[i];
                 }
                 break;
             }
             default: {
-                delete new_rhs;
                 throw IIIFImageError(file_, __LINE__, fmt::format("Bits per pixels not supported (bps={})", bps));
             }
         }
 
-        int min = INT_MAX;
-        int max = INT_MIN;
-
-        for (size_t j = 0; j < ny; j++) {
-            for (size_t i = 0; i < nx; i++) {
-                for (size_t k = 0; k < nc; k++) {
-                    if (diffbuf[nc * (j * nx + i) + k] > max) max = diffbuf[nc * (j * nx + i) + k];
-                    if (diffbuf[nc * (j * nx + i) + k] < min) min = diffbuf[nc * (j * nx + i) + k];
-                }
-            }
+        int32_t min = INT_MAX;
+        int32_t max = INT_MIN;
+        for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+            if (diffbuf[i] > max) max = diffbuf[i];
+            if (diffbuf[i] < min) min = diffbuf[i];
         }
-        int maxmax = abs(min) > abs(max) ? abs(min) : abs(max);
+
+        int32_t maxmax = abs(min) > abs(max) ? abs(min) : abs(max);
 
         switch (bps) {
             case 8: {
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            bpixels[nc * (j * nx + i) + k] = (byte) ((diffbuf[nc * (j * nx + i) + k] + maxmax) *
-                                                                  UCHAR_MAX / (2 * maxmax));
-                        }
-                    }
+                for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+                    bpixels[i] = (uint8_t) ((diffbuf[i] + maxmax) * UCHAR_MAX / (2 * maxmax));
                 }
                 break;
             }
             case 16: {
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            wpixels[nc * (j * nx + i) + k] = (word) ((diffbuf[nc * (j * nx + i) + k] + maxmax) *
-                                                                  USHRT_MAX / (2 * maxmax));
-                        }
-                    }
+                for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+                    wpixels[i] = (word) ((diffbuf[i] + maxmax) * USHRT_MAX / (2 * maxmax));
                 }
                 break;
             }
 
             default: {
-                delete new_rhs;
                 throw IIIFImageError(file_, __LINE__, fmt::format("Bits per pixels not supported (bps={})", bps));
             }
         }
 
-        delete new_rhs;
         return *this;
     }
 
@@ -1513,95 +965,54 @@ namespace cserve {
     /*==========================================================================*/
 
     IIIFImage &IIIFImage::operator+=(const IIIFImage &rhs) {
-        IIIFImage *new_rhs = nullptr;
-
-        if ((nc != rhs.nc) || (bps != rhs.bps) || (photo != rhs.photo)) {
+        if ((nx != rhs.nx) || (ny != rhs.ny) || (nc != rhs.nc) || (bps != rhs.bps) || (photo != rhs.photo)) {
             std::stringstream ss;
             ss << "Image op: images not compatible" << std::endl;
-            ss << "Image 1:  nc: " << nc << " bps: " << bps << " photo: " << as_integer(photo) << std::endl;
-            ss << "Image 2:  nc: " << rhs.nc << " bps: " << rhs.bps << " photo: " << as_integer(rhs.photo)
+            ss << "Image 1:  nx: " << nx << " ny: " << ny << " nc: " << nc << " bps: " << bps << " photo: " << as_integer(photo) << std::endl;
+            ss << "Image 2:  nx: " << rhs.nx << " ny: " << rhs.ny << " nc: " << rhs.nc << " bps: " << rhs.bps << " photo: " << as_integer(rhs.photo)
                << std::endl;
             throw IIIFImageError(file_, __LINE__, ss.str());
         }
 
-        if ((nx != rhs.nx) || (ny != rhs.ny)) {
-            new_rhs = new IIIFImage(rhs);
-            new_rhs->scale(nx, ny);
-        }
-
-        auto diffbuf = std::make_unique<int[]>(nx * ny * nc);
-
+        auto diffbuf = std::vector<int32_t>(nx * ny * nc);
         switch (bps) {
             case 8: {
-                byte *rtmp = (new_rhs == nullptr) ? rhs.bpixels.get() : new_rhs->bpixels.get();
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            if (bpixels[nc * (j * nx + i) + k] != rtmp[nc * (j * nx + i) + k]) {
-                                diffbuf[nc * (j * nx + i) + k] =
-                                        bpixels[nc * (j * nx + i) + k] + rtmp[nc * (j * nx + i) + k];
-                            }
-                        }
-                    }
+                for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+                    diffbuf[i] = bpixels[i] + rhs.bpixels[i];
                 }
                 break;
             }
             case 16: {
-                word *rtmp = (new_rhs == nullptr) ? (word *) rhs.wpixels.get() : (word *) new_rhs->wpixels.get();
-
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            if (wpixels[nc * (j * nx + i) + k] != rtmp[nc * (j * nx + i) + k]) {
-                                diffbuf[nc * (j * nx + i) + k] =
-                                        wpixels[nc * (j * nx + i) + k] - rtmp[nc * (j * nx + i) + k];
-                            }
-                        }
-                    }
+                for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+                    diffbuf[i] = wpixels[i] + rhs.wpixels[i];
                 }
-
                 break;
             }
 
             default: {
-                delete new_rhs;
                 throw IIIFImageError(file_, __LINE__, fmt::format("Bits per pixels not supported (bps={})", bps));
             }
         }
 
         int max = INT_MIN;
-
-        for (size_t j = 0; j < ny; j++) {
-            for (size_t i = 0; i < nx; i++) {
-                for (size_t k = 0; k < nc; k++) {
-                    if (diffbuf[nc * (j * nx + i) + k] > max) max = diffbuf[nc * (j * nx + i) + k];
-                }
-            }
+        for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+            if (diffbuf[i] > max) max = diffbuf[i];
         }
 
         switch (bps) {
             case 8: {
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            bpixels[nc * (j * nx + i) + k] = (byte) (diffbuf[nc * (j * nx + i) + k] * UCHAR_MAX / max);
-                        }
-                    }
+                for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+                    bpixels[i] = static_cast<uint8_t>(diffbuf[i] * UCHAR_MAX / max);
                 }
                 break;
             }
             case 16: {
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            wpixels[nc * (j * nx + i) + k] = (word) (diffbuf[nc * (j * nx + i) + k] * USHRT_MAX / max);
-                        }
-                    }
+                for (uint32_t i = 0; i < nx * ny * nc; ++i) {
+                    wpixels[i] = static_cast<uint16_t>(diffbuf[i] * USHRT_MAX / max);
                 }
                 break;
             }
             default: {
-                delete new_rhs;
                 throw IIIFImageError(file_, __LINE__, fmt::format("Bits per pixels not supported (bps={})", bps));
             }
         }
@@ -1623,16 +1034,12 @@ namespace cserve {
             return false;
         }
 
-        long long n_differences = 0;
+        uint64_t n_differences = 0;
         switch (bps) {
             case 8: {
-                for (size_t j = 0; j < ny; j++) {
-                    for (size_t i = 0; i < nx; i++) {
-                        for (size_t k = 0; k < nc; k++) {
-                            if (bpixels[nc * (j * nx + i) + k] != rhs.bpixels[nc * (j * nx + i) + k]) {
-                                n_differences++;
-                            }
-                        }
+                for (uint32_t i = 0; i < nx*ny*nc; ++i) {
+                    if (bpixels[i] != rhs.bpixels[i]) {
+                        n_differences++;
                     }
                 }
                 break;
@@ -1654,7 +1061,7 @@ namespace cserve {
             }
         }
 
-        return n_differences <= 0;
+        return n_differences == 0;
     }
 
     std::ostream &operator<<(std::ostream &outstr, const IIIFImage &rhs) {

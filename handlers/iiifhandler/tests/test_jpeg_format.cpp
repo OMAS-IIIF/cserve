@@ -65,7 +65,6 @@ TEST_CASE("Image tests", "JPEG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = jpegio.read("data/jpeg_with_icc_es.jpg",
-                                           0,
                                            region,
                                            size,
                                            false,
@@ -84,7 +83,7 @@ TEST_CASE("Image tests", "JPEG") {
         REQUIRE(img.essential_metadata().data_chksum() == "aa9bfcb3a8686a9a700f5cc6b16035844935c536ae91f14ef47061bfe18e6862");
         REQUIRE_FALSE(img.essential_metadata().use_icc());
 
-        auto info = jpegio.getDim("data/jpeg_with_icc_es.jpg", 0);
+        auto info = jpegio.getDim("data/jpeg_with_icc_es.jpg");
         REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
         REQUIRE(info.width == 300);
         REQUIRE(info.height == 200);
@@ -101,7 +100,6 @@ TEST_CASE("Image tests", "JPEG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = jpegio.read("data/image_orientation.jpg",
-                                            0,
                                             region,
                                             size,
                                             false,
@@ -118,7 +116,7 @@ TEST_CASE("Image tests", "JPEG") {
         REQUIRE(img.getOrientation() == cserve::TOPLEFT);
 
 
-        auto info = jpegio.getDim("data/image_orientation.jpg", 0);
+        auto info = jpegio.getDim("data/image_orientation.jpg");
         REQUIRE(info.success == cserve::IIIFImgInfo::DIMS);
         REQUIRE(info.width == 3264);
         REQUIRE(info.height == 2448);
@@ -129,7 +127,6 @@ TEST_CASE("Image tests", "JPEG") {
         auto region = std::make_shared<cserve::IIIFRegion>("full");
         auto size = std::make_shared<cserve::IIIFSize>("max");
         cserve::IIIFImage img = jpegio.read("data/img_exif_gps.jpg",
-                                            0,
                                             region,
                                             size,
                                             false,

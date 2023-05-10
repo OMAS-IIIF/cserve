@@ -1,6 +1,6 @@
 
-#ifndef __iiif_size_h
-#define __iiif_size_h
+#ifndef iiif_size_h
+#define iiif_size_h
 
 #include <string>
 #include <utility>
@@ -65,11 +65,11 @@ namespace cserve {
         SizeType size_type; //!< Holds the type of size/scaling parameters given
         bool upscaling;
         float percent;      //!< if the scaling is given in percent, this holds the value
-        int reduce;         //!< if the scaling is given by a reduce value
+        uint32_t reduce;      //!< if the scaling is given by a reduce value
         bool redonly;       //!< we *only* have a reduce in the resulting size
-        size_t nx, ny;      //!< the parameters given
-        size_t w, h;        //!< the resulting width and height after processing
-        size_t iiif_max_width, iiif_max_height, iiif_max_area;
+        uint32_t nx, ny;      //!< the parameters given
+        uint32_t w, h;        //!< the resulting width and height after processing
+        uint32_t iiif_max_width, iiif_max_height, iiif_max_area{};
         bool canonical_ok;
 
     public:
@@ -84,7 +84,7 @@ namespace cserve {
          *
          * \param[in] reduce_p Reduce parameter
          */
-        explicit IIIFSize(int reduce_p, size_t iiif_max_width = 0, size_t iiif_max_height = 0, size_t iiif_max_area = 0)
+        explicit IIIFSize(uint32_t reduce_p, uint32_t iiif_max_width = 0, uint32_t iiif_max_height = 0, uint32_t iiif_max_area = 0)
                 : size_type(SizeType::REDUCE), upscaling(false), percent(0.0F), reduce(reduce_p), redonly(false), nx(0),
                   ny(0), w(0), h(0), iiif_max_width(iiif_max_width), iiif_max_height(iiif_max_height),
                   iiif_max_area(iiif_max_area), canonical_ok(false) {}
@@ -94,7 +94,7 @@ namespace cserve {
          *
          * \param[in] percent_p Percentage parameter
          */
-        explicit IIIFSize(float percent_p, size_t iiif_max_width = 0, size_t iiif_max_height = 0, size_t iiif_max_area = 0)
+        explicit IIIFSize(float percent_p, uint32_t iiif_max_width = 0, uint32_t iiif_max_height = 0, uint32_t iiif_max_area = 0)
                 : size_type(
                 SizeType::PERCENTS), upscaling(false), percent(percent_p), reduce(false), redonly(false), nx(0), ny(0),
                 w(0), h(0), iiif_max_width(iiif_max_width), iiif_max_height(iiif_max_height),
@@ -105,7 +105,7 @@ namespace cserve {
          *
          * \param[in] str String with the IIIF url part containing the size/scaling information
          */
-        explicit IIIFSize(std::string str, size_t iiif_max_width = 0, size_t iiif_max_height = 0, size_t iiif_max_area = 0);
+        explicit IIIFSize(std::string str, uint32_t iiif_max_width = 0, uint32_t iiif_max_height = 0, uint32_t iiif_max_area = 0);
 
         IIIFSize(const IIIFSize &other);
 
@@ -113,7 +113,7 @@ namespace cserve {
 
         IIIFSize &operator=(const IIIFSize &other);
 
-        IIIFSize &operator=(IIIFSize &&other);
+        IIIFSize &operator=(IIIFSize &&other) noexcept ;
 
         /*!
          * Comparison operator ">"
@@ -165,6 +165,38 @@ namespace cserve {
              return size_type;
          };
          */
+
+        /*!
+         * Get the ceiling of a float using epsilon arithemtics, that is 50.00002 -> 50
+         * and also 49.99998 -> 50, but 50.1 -> 51
+         * \param[in] a Ceiling of a with epsilon
+         * @return Cieling of a using epsilon
+         */
+        static size_t epsilon_ceil(float a);
+
+        /*!
+         * Divide ceil(a/b) using epsilon arithmetics
+         * @param a
+         * @param b
+         * @return
+         */
+        static size_t epsilon_ceil_division(float a, float b);
+
+        /*!
+         * Get the floor of a using epsilon articmetc
+         * @param a
+         * @return
+         */
+        static size_t epsilon_floor(float a);
+
+        /*!
+         * Divide floor(a/b) using epsilon arithmetics
+         * @param a
+         * @param b
+         * @return
+         */
+        static size_t epsilon_floor_division(float a, float b);
+
         /*!
          * Get the size to which the image should be scaled
          *
@@ -174,12 +206,21 @@ namespace cserve {
          * \param[out] h_p Height of scaled image
          * \param[in,out] reduce_p Reduce parameter (especially for J2K images with resolution pyramid). As
          * input specifiy the maximal reduce factor that is allowed (0 if no limit), as output the optimal
-         * reduce factor is returned.
+         * reduce factor is returned. The number of original pixels is devided by the reduce factor. That, is
+         * "reduce=1" returns the original size, "reduce=2" half the size, "reduce=3" one thrid of the size.
+         * IMNPORTANT NOTE: For JPEG2000, reduce should be 1, 2, 4, 8, 16, ...
          * \param[out] redonly_p True, if scaling can be made with the reduce parameter only
          *
          * \returns enum SizeType which indicates how the size was specified
          */
-        IIIFSize::SizeType get_size(size_t nx, size_t ny, size_t &w_p, size_t &h_p, int &reduce_p, bool &redonly_p);
+        IIIFSize::SizeType get_size(
+                uint32_t img_w,
+                uint32_t img_h,
+                uint32_t &w_p,
+                uint32_t &h_p,
+                uint32_t &reduce_p,
+                bool &redonly_p,
+                bool is_j2k = false);
 
         /*!
          * Returns the canoncial IIIF string for the given size/scaling

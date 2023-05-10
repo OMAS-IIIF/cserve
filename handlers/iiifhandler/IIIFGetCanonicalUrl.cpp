@@ -11,23 +11,24 @@ static const char file_[] = __FILE__;
 namespace cserve {
 
     std::pair<std::string, std::string> IIIFHandler::get_canonical_url (
-            size_t tmp_w,
-            size_t tmp_h,
+            uint32_t tmp_w,
+            uint32_t tmp_h,
             const std::string &host,
             const std::string &prefix,
             const std::string &identifier,
             const std::shared_ptr<IIIFRegion>& region,
             const std::shared_ptr<IIIFSize>& size,
             IIIFRotation &rotation,
-            IIIFQualityFormat &quality_format, int pagenum) const
+            IIIFQualityFormat &quality_format) const
     {
         static const int canonical_len = 127;
 
         char canonical_region[canonical_len + 1];
         char canonical_size[canonical_len + 1];
 
-        int tmp_r_x = 0, tmp_r_y = 0, tmp_red = 0;
-        size_t tmp_r_w = 0, tmp_r_h = 0;
+        int tmp_r_x = 0, tmp_r_y = 0;
+        uint32_t tmp_red = 0;
+        uint32_t tmp_r_w = 0, tmp_r_h = 0;
         bool tmp_ro = false;
 
         if (region->getType() != IIIFRegion::FULL) {
@@ -136,9 +137,7 @@ namespace cserve {
             format = "/default.";
         }
 
-        std::string fullid = identifier;
-        if (pagenum > 0)
-            fullid += "@" + std::to_string(pagenum);
+        const std::string& fullid = identifier;
         (void)snprintf(canonical_header, canonical_header_len,
                        "<http://%s/%s/%s/%s/%s/%s/default.%s>;rel=\"canonical\"", host.c_str(), prefix.c_str(),
                        fullid.c_str(), canonical_region, canonical_size, canonical_rotation, ext);
