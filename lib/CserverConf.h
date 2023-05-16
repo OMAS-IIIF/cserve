@@ -59,6 +59,8 @@ namespace cserve {
 
         void add_config(const std::string &prefix, const std::string& name, const std::string &defaultval, const std::string &description);
 
+        void add_config(const std::string &prefix, const std::string& name, const std::vector<std::string> &defaultval, const std::string &description);
+
         void add_config(const std::string &prefix, const std::string& name, const cserve::DataSize &defaultval, const std::string &description);
 
         void add_config(const std::string &prefix, const std::string& name, spdlog::level::level_enum defaultval, const std::string &description);
@@ -86,6 +88,8 @@ namespace cserve {
 
         [[nodiscard]] std::optional<std::string> get_string(const std::string &name) const;
 
+        [[nodiscard]] std::optional<std::vector<std::string>> get_stringvec(const std::string &name) const;
+
         [[nodiscard]] std::optional<cserve::DataSize> get_datasize(const std::string &name) const;
 
         [[nodiscard]] std::optional<std::vector<cserve::RouteInfo>> get_luaroutes(const std::string &prefix, const std::string &name) const;
@@ -94,7 +98,5 @@ namespace cserve {
     };
 
 }
-
-
 
 #endif //CSERVER_CSERVERCONF_H

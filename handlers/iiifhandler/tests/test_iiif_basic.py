@@ -24,7 +24,9 @@ class TestBasic:
                 'max_num_cache_files': 200,
                 'max_tmp_age': 86400,
                 'prefix_as_path': True,
-                'thumbsize': '!128,128'
+                'thumbsize': '!128,128',
+                'iiif_specials': None
+
             },
             'status': 'OK'
         }
@@ -95,6 +97,12 @@ class TestBasic:
         }
         response = manager.get("test_01.tif")
         assert response.json() == expected_response
+
+    def test_iiif_specials(self, manager):
+        response = manager.get("test_01.tif/testit")
+        print("&&=======================")
+        print(response)
+
 
     def test_iiif_restricted(self, manager):
         """return restricted size"""

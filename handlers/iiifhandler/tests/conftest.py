@@ -96,7 +96,8 @@ class CserverProcessManager:
                                   "GET:/iiifhandlervariables:iiifhandlervariables.lua;"
                                   "GET:/test_exif_gps:test_exif_gps.lua;"
                                   "POST:/upload:upload.lua;".format(self.iiif_route),
-            "IIIFHANDLER_PREFIX_AS_PATH": "true"
+            "IIIFHANDLER_PREFIX_AS_PATH": "true",
+            "IIIFHANDLER_IIIF_SPECIALS": "test=call_lua_testit"
         }
         self.compare_command = "compare -metric {} {} {} null:"
         self.compare_out_re = re.compile(r"^(\d+) \(([0-9.]+)\).*$")

@@ -33,42 +33,66 @@ namespace cserve {
             lua_pushstring(L, name.c_str()); // table1 - "index_L1"
             auto vtype = val->get_type();
             switch (vtype) {
-                case cserve::ConfValue::BOOL:
+                case cserve::ConfValue::BOOL: {
                     lua_pushboolean(L, val->get_bool().value_or(true)); // "table1 - index_L1 - value_L1"
                     break;
-                case cserve::ConfValue::INTEGER:
+                }
+                case cserve::ConfValue::INTEGER: {
                     lua_pushinteger(L, val->get_int().value_or(-1)); // "table1 - index_L1 - value_L1"
                     break;
-                case cserve::ConfValue::FLOAT:
+                }
+                case cserve::ConfValue::FLOAT: {
                     lua_pushnumber(L, val->get_float().value_or(0.0)); // "table1 - index_L1 - value_L1"
                     break;
-                case cserve::ConfValue::STRING:
+                }
+                case cserve::ConfValue::STRING: {
                     lua_pushstring(L, val->get_string().value_or("").c_str()); // "table1 - index_L1 - value_L1"
                     break;
-                case cserve::ConfValue::DATASIZE:
-                    lua_pushstring(L, val->get_datasize().value_or(cserve::DataSize()).as_string().c_str()); // "table1 - index_L1 - value_L1"
+                }
+                case cserve::ConfValue::STRINGVEC: {
+                    std::vector<std::string> vv;
+                    std::vector<std::string> res;
+                    lua_createtable(L, res.size(), 0);
+                    res = val->get_stringvec().value_or(vv);
+                    int index = 1;
+                    for (const auto &v: res) {
+                        lua_pushstring(L, v.c_str());
+                        lua_rawseti(L, -2, index++);
+                    }
                     break;
-                case cserve::ConfValue::LOGLEVEL:
-                    lua_pushstring(L, val->get_loglevel_as_string().value_or("OFF").c_str()); // "table1 - index_L1 - value_L1"
+                }
+                case cserve::ConfValue::DATASIZE: {
+                    lua_pushstring(L, val->get_datasize().value_or(
+                            cserve::DataSize()).as_string().c_str()); // "table1 - index_L1 - value_L1"
                     break;
-                case cserve::ConfValue::LUAROUTES:
+                }
+                case cserve::ConfValue::LOGLEVEL: {
+                    lua_pushstring(L, val->get_loglevel_as_string().value_or(
+                            "OFF").c_str()); // "table1 - index_L1 - value_L1"
+                    break;
+                }
+                case cserve::ConfValue::LUAROUTES: {
                     std::vector<cserve::RouteInfo> routes = val->get_luaroutes().value();
                     lua_createtable(L, static_cast<int>(routes.size()), 0);  // "table1 - index_L1 - table2"
                     int index = 0;
-                    for (auto& route: routes) {
+                    for (const auto &route: routes) {
                         lua_createtable(L, 0, 3); // "table1 - index_L1 - table2 - table3"
                         lua_pushstring(L, "method"); // "table1 - index_L1 - table2 - table3 - "method"
-                        lua_pushstring(L, route.method_as_string().c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
+                        lua_pushstring(L,
+                                       route.method_as_string().c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
                         lua_settable(L, -3); // "table1 - index_L1 - table2 - table3"
                         lua_pushstring(L, "_route"); // "table1 - index_L1 - table2 - table3 - "_route"
-                        lua_pushstring(L, route.route.c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
+                        lua_pushstring(L,
+                                       route.route.c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
                         lua_settable(L, -3); // "table1 - index_L1 - table2 - table3"
                         lua_pushstring(L, "script"); // "table1 - index_L1 - table2 - table3 - "_route"
-                        lua_pushstring(L, route.additional_data.c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
+                        lua_pushstring(L,
+                                       route.additional_data.c_str()); // "table1 - index_L1 - table2 - table3 - "method" - value"
                         lua_settable(L, -3); // "table1 - index_L1 - table2 - table3"
                         lua_rawseti(L, -2, index++); // "table1 - index_L1 - table2"
                     }
                     break;
+                }
             }
             lua_rawset(L, -3); // table1
         }
@@ -109,6 +133,16 @@ namespace cserve {
         try {
             auto val = _values.at(name);
             return val->get_string();
+        }
+        catch (std::out_of_range &err) {
+            return {};
+        }
+    }
+
+    std::optional<std::vector<std::string>> CserverConf::get_stringvec(const std::string &name) const {
+        try {
+            auto val = _values.at(name);
+            return val->get_stringvec();
         }
         catch (std::out_of_range &err) {
             return {};
@@ -193,6 +227,14 @@ namespace cserve {
                                                             description, envname, _cserverOpts);
     }
 
+    void CserverConf::add_config(const std::string &prefix, const std::string& name, const std::vector<std::string> &defaultval,
+                                 const std::string &description) {
+        std::string optionname = "--" + name;
+        std::string envname = cserve::strtoupper(prefix) + "_" + cserve::strtoupper(name);
+        _values[name] = std::make_shared<cserve::ConfValue>(prefix, optionname, defaultval,
+                                                            description, envname, _cserverOpts);
+    }
+
     void CserverConf::add_config(const std::string &prefix, const std::string& name, const cserve::DataSize &defaultval,
                                  const std::string &description) {
         std::string optionname = "--" + name;
@@ -233,7 +275,7 @@ namespace cserve {
 
         if (!_cserverOpts->get_option("--config")->empty()) {
             cserve::LuaServer luacfg = cserve::LuaServer(_values["config"]->get_string().value());
-            typedef std::variant<bool, int, float, std::string, cserve::DataSize, spdlog::level::level_enum, std::vector<cserve::RouteInfo>> UnionDataType;
+            typedef std::variant<bool, int, float, std::string, std::vector<std::string>, cserve::DataSize, spdlog::level::level_enum, std::vector<cserve::RouteInfo>> UnionDataType;
             std::unordered_map<std::string, UnionDataType> valmap;
 
             for (auto const& [name, val] : _values) {
@@ -251,6 +293,9 @@ namespace cserve {
                         break;
                     case cserve::ConfValue::STRING:
                         valmap.emplace(name, luacfg.configString(val->get_prefix(), name, val->get_string().value()));
+                        break;
+                    case cserve::ConfValue::STRINGVEC:
+                        valmap.emplace(name, luacfg.configStringList(val->get_prefix(), name));
                         break;
                     case cserve::ConfValue::DATASIZE:
                         valmap.emplace(name, DataSize(luacfg.configString(val->get_prefix(), name, val->get_datasize().value().as_string())));
@@ -278,6 +323,9 @@ namespace cserve {
                             break;
                         case cserve::ConfValue::STRING:
                             _values[name]->set_value(std::get<std::string>(valmap[name]));
+                            break;
+                        case cserve::ConfValue::STRINGVEC:
+                            _values[name]->set_value(std::get<std::vector<std::string>>(valmap[name]));
                             break;
                         case cserve::ConfValue::DATASIZE:
                             _values[name]->set_value(std::get<cserve::DataSize>(valmap[name]));

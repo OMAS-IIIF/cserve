@@ -165,7 +165,7 @@ add_library(iiiflib STATIC
         ../imgformats/IIIFIOPng.cpp ../imgformats/IIIFIOPng.h
         ../imgformats/IIIFIOJpeg.cpp ../imgformats/IIIFIOJpeg.h
         ../imgformats/IIIFIOJ2k.cpp ../imgformats/IIIFIOJ2k.h
-        ../IIIFPhotometricInterpretation.h ../IIIFGetCanonicalUrl.cpp)
+        ../IIIFPhotometricInterpretation.h ../IIIFGetCanonicalUrl.cpp ../IIIFSendSpecial.cpp)
 
 add_executable (tiff_tests test_tiff_format.cpp)
 
