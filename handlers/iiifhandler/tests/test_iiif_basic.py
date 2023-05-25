@@ -99,8 +99,16 @@ class TestBasic:
 
     def test_iiif_specials(self, manager):
         expected_response = {
-            'message': 'lua_testit',
-            'result': 'ok'
+            "cookie": "",
+            "identifier": "test_01.tif",
+            "prefix": "",
+            "status": "ok",
+            "test": {
+                "a": "a",
+                "b": "b",
+                "pi": 3.141590118408203
+            },
+            "zz": ["XXX", "YYY", 3.141590118408203, 42]
         }
         response = manager.get("test_01.tif/testit")
         assert response.json() == expected_response

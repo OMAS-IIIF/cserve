@@ -125,56 +125,97 @@ namespace cserve {
          * Test if LuaValstruct is defined
          * @return True, if is defined
          */
-        auto is_undefined() const  {return (type == UNDEFINED_TYPE); }
+        [[nodiscard]] auto is_undefined() const  {return (type == UNDEFINED_TYPE); }
 
         /*!
          * Get the data type represented by the LuaValstruct
          * @return A LuaValType
          */
-        auto get_type() const { return type; }
+        [[nodiscard]] auto get_type() const { return type; }
 
         /*!
          * Get an optional integer
          * @return std::optional
          */
-        auto get_int() const { return (type == INT_TYPE) ? std::optional<int>{i} : std::nullopt; }
+        [[nodiscard]] auto get_int() const { return (type == INT_TYPE) ? std::optional<int>{i} : std::nullopt; }
 
         /*!
          * Get an optional float
          * @return std::optional
          */
-        auto get_float() const { return (type == FLOAT_TYPE) ? std::optional<float>{i} : std::nullopt; }
+        [[nodiscard]] auto get_float() const { return (type == FLOAT_TYPE) ? std::optional<float>{i} : std::nullopt; }
 
         /*!
          * Get an optional std::string
          * @return std::optional
          */
-        auto get_string() const { return (type == STRING_TYPE) ? std::optional<std::string>{s} : std::nullopt; }
+        [[nodiscard]] auto get_string() const { return (type == STRING_TYPE) ? std::optional<std::string>{s} : std::nullopt; }
 
         /*!
          * Get an optional boolean
          * @return std::optional
          */
-        auto get_boolean() const { return (type == BOOLEAN_TYPE) ? std::optional<bool>{b} : std::nullopt; }
+        [[nodiscard]] auto get_boolean() const { return (type == BOOLEAN_TYPE) ? std::optional<bool>{b} : std::nullopt; }
 
         /*!
          * Get an optional array aka std::vector
          * @return std::optional
          */
-        auto get_array() const { return (type == ARRAY_TYPE) ? std::optional<std::vector<LuaValstruct>>{array} : std::nullopt; }
+        [[nodiscard]] auto get_array() const { return (type == ARRAY_TYPE) ? std::optional<std::vector<LuaValstruct>>{array} : std::nullopt; }
 
         /*!
          * Get an optional table aka std::unordered_map
          * @return std::optional
          */
-        auto get_table() const { return (type == TABLE_TYPE) ? std::optional<std::unordered_map<std::string, LuaValstruct>>{table} : std::nullopt; }
+        [[nodiscard]] auto get_table() const { return (type == TABLE_TYPE) ? std::optional<std::unordered_map<std::string, LuaValstruct>>{table} : std::nullopt; }
 
         /*!
          * Return a nlohmann::json object representing the LuaValstruct
-         * @param vs A LuaValstruct instance
          * @return nlohmann::json instance
          */
-        nlohmann::json get_json(const LuaValstruct &vs);
+        nlohmann::json get_json() const;
+
+        void print(int level = 0) const {
+            switch(type) {
+                case INT_TYPE: {
+                    std::cerr << "&&++ " << level << " LuaValstruct:int = " << i << std::endl;
+                    break;
+                }
+                case FLOAT_TYPE: {
+                    std::cerr << "&&++ " << level << " LuaValstruct:float = " << f << std::endl;
+                    break;
+                }
+                case BOOLEAN_TYPE: {
+                    std::cerr << "&&++ " << level << " LuaValstruct:bool = " << b << std::endl;
+                    break;
+                }
+                case STRING_TYPE: {
+                    std::cerr << "&&++ " << level << " LuaValstruct:string = " << s << std::endl;
+                    break;
+                }
+                case ARRAY_TYPE: {
+                    std::cerr << "&&++ " << level << " LuaValstruct:[" << std::endl;
+                    for (const auto &ele: array) {
+                        ele.print(level + 1);
+                    }
+                    std::cerr << "]" << std::endl;
+                    break;
+                }
+                case TABLE_TYPE: {
+                    std::cerr << "&&++ " << level << " LuaValstruct:{" << std::endl;
+                    for (const auto &[key, val]: table) {
+                        std::cerr << "&&++ " << level << " key = " << key << " ";
+                        val.print(level + 1);
+                    }
+                    std::cerr << "}" << std::endl;
+                    break;
+                }
+                case UNDEFINED_TYPE: {
+                    std::cerr << "&&++ " << level << " LuaValstruct:undefined" << std::endl;
+                    break;
+                }
+            }
+        }
     };
 
     typedef struct RouteInfo {

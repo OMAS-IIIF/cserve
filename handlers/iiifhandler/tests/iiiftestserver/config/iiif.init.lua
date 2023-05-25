@@ -40,10 +40,14 @@ end
 function lua_testit(prefix, identifier, cookie)
     return {
         status = 'ok',
-        message = 'Hello!',
+        prefix = prefix,
+        identifier = identifier,
+        cookie = cookie,
         test = {
             a = 'a',
-            b = 'b'
-        }
+            b = 'b',
+            pi = 3.14159
+        },
+        zz = {"XXX", "YYY", 3.14159, 42}
     }
 end

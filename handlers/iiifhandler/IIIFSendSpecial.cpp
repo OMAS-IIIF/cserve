@@ -14,6 +14,7 @@ namespace cserve {
                                      const std::string &lua_function_name) const {
         IIIFIdentifier sid{urldecode(params.at(IIIF_IDENTIFIER))};
 
+        std::vector<LuaValstruct> rvals;
         if (luaserver.luaFunctionExists(lua_function_name)) {
             // The paramters to be passed to the pre-flight function.
             std::vector<LuaValstruct> lvals;
@@ -28,17 +29,15 @@ namespace cserve {
             lvals.emplace_back(conn.header("cookie"));
 
             try {
-                std::vector<LuaValstruct> rvals = luaserver.executeLuafunction(lua_function_name, lvals);
+                rvals = luaserver.executeLuafunction(lua_function_name, lvals);
             }
             catch (const Error &err) {
-                std::cerr << "&&?? ERROR: " << err << std::endl;
-                nlohmann::json result = {{"result", "error"},{"error", err.to_string()}};
+                nlohmann::json result = {{"error", err.to_string()}};
             }
         }
-        std::cerr << "&&== lua_function_name = " << lua_function_name << std::endl;
-        nlohmann::json result = {{"result", "ok"},{"message", lua_function_name}};
-
+        nlohmann::json result = rvals[0].get_json();
         std::string json_str = result.dump(3);
+        std::cerr << "&&°° " << json_str << std::endl;
 
         Connection::StatusCodes http_status = Connection::StatusCodes::OK;
         conn.status(http_status);

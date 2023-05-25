@@ -3475,22 +3475,57 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         return *this;
     }
 
-    nlohmann::json LuaValstruct::get_json(const LuaValstruct &vs) {
-
+    nlohmann::json LuaValstruct::get_json() const {
+        nlohmann::json jsonobj;
+            switch (type) {
+                case UNDEFINED_TYPE: {
+                    jsonobj = nullptr;
+                    break;
+                }
+                case INT_TYPE: {
+                    jsonobj = i;
+                    break;
+                }
+                case FLOAT_TYPE: {
+                    jsonobj = f;
+                    break;
+                }
+                case STRING_TYPE: {
+                    jsonobj = s;
+                    break;
+                }
+                case BOOLEAN_TYPE: {
+                    jsonobj = b;
+                    break;
+                }
+                case ARRAY_TYPE: {
+                    std::vector<nlohmann::json> jv;
+                    for (const auto &ele: array) {
+                        jv.push_back(ele.get_json());
+                    }
+                    jsonobj = jv;
+                    break;
+                }
+                case TABLE_TYPE: {
+                    for (const auto &[key, val]: table) {
+                        jsonobj[key] = val.get_json();
+                    }
+                    break;
+                }
+            }
+        return jsonobj;
     }
 
     static LuaValstruct getLuaValue(lua_State *L, int index, const std::string &funcname) {
         LuaValstruct tmplv;
-        if (lua_isstring(L, index)) {
-            tmplv = LuaValstruct(std::string(lua_tostring(L, index)));
-        } else if (lua_isinteger(L, index)) {
+        // IMPORTANT NOTE: lua_isstring and lua_isnumber do not check the type, but if the
+        // value is convertible in a string or a number. Therefore we first have to perform all
+        // other checks!
+        if (lua_isinteger(L, index)) {
             tmplv = LuaValstruct(static_cast<int>(lua_tointeger(L, index)));
-        } else if (lua_isnumber(L, index)) {
-            tmplv = LuaValstruct(static_cast<float>(lua_tonumber(L, index)));
         } else if (lua_isboolean(L, index)) {
             tmplv = LuaValstruct(static_cast<bool>(lua_toboolean(L, index)));
         } else if (lua_istable(L, index)) {
-            //std::unordered_map<std::string, LuaValstruct> table;
             std::vector<std::string> keys;
             std::vector<LuaValstruct> values;
             lua_pushnil(L);  /* first key */
@@ -3498,16 +3533,19 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             bool is_array = true;
             while (lua_next(L, index) != 0) {
                 int top = lua_gettop(L);
+                std::string keystr;
                 if (lua_isinteger(L, -2)) {
                     int ii = lua_tointeger(L, -2);
+                    keystr = std::to_string(ii);
                     if (ii != aindex) {
                         is_array = false;
                     }
                 }
                 else {
+                    keystr = lua_tostring(L, -2);
                     is_array = false;
                 }
-                keys.emplace_back(lua_tostring(L, -2));
+                keys.emplace_back(keystr);
                 values.push_back(getLuaValue(L, top, funcname));
                 /* removes 'value'; keeps 'key' for next iteration */
                 lua_pop(L, 1);
@@ -3529,6 +3567,10 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             errStream << "Lua function " << funcname << " returned nil";
             std::string errorMsg = errStream.str();
             throw Error(file_, __LINE__, errorMsg);
+        } else if (lua_isnumber(L, index)) {
+            tmplv = LuaValstruct(static_cast<float>(lua_tonumber(L, index)));
+        } else if (lua_isstring(L, index)) {
+            tmplv = LuaValstruct(std::string(lua_tostring(L, index)));
         } else {
             std::string luaTypeName = std::string(lua_typename(L, index));
             std::ostringstream errMsg;
