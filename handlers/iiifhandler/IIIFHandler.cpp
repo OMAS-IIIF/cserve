@@ -374,7 +374,7 @@ namespace cserve {
         _scaling_quality.png = get_scaling_quality(conf, "j2k_scaling_quality", "high");
         _iiif_max_image_width = conf.get_int("iiif_max_width").value_or(0);
         _iiif_max_image_height = conf.get_int("iiif_max_height").value_or(0);
-        std::vector<std::string> vv;
+        std::vector<std::string> vv{"--$$$$$$$$$$$$$$$$$$$$$--"};
         _iiif_specials = conf.get_stringvec("iiif_specials").value_or(vv);
         try {
             _cache = std::make_shared<IIIFCache>(_cachedir, _cache_size.as_size_t(), _max_num_chache_files, _cache_hysteresis);

@@ -79,15 +79,15 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_01_rgb_uncompressed.tif", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_uncompressed.tif scratch/tiff_01_rgb_uncompressed.tif scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/tiff_01_rgb_uncompressed.tif scratch/tiff_01_rgb_uncompressed.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/tiff_01_rgb_uncompressed.tif");
         std::filesystem::remove("scratch/out.png");
 
         compression[cserve::TIFF_COMPRESSION] = "COMPRESSION_LZW";
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_01_rgb_lzw.tif", compression));
-        auto res2 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_uncompressed.tif scratch/tiff_01_rgb_lzw.tif scratch/out.png 2>&1");
-        REQUIRE(res2 == CommandResult{"0 (0)", 0});
+        auto res2 = Command::exec("compare -quiet -metric ae data/tiff_01_rgb_uncompressed.tif scratch/tiff_01_rgb_lzw.tif scratch/out.png 2>&1");
+        REQUIRE(res2 == CommandResult{"0", 0});
         std::filesystem::remove("scratch/tiff_01_rgb_uncompressed.tif");
         std::filesystem::remove("scratch/out.png");
 
@@ -193,8 +193,8 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_rgba.tif", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/tiff_rgba.tif scratch/tiff_rgba.tif scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/tiff_rgba.tif scratch/tiff_rgba.tif scratch/outXXX.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/tiff_rgba.tif");
         std::filesystem::remove("scratch/out.png");
     }
@@ -275,8 +275,8 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_02_rgb_uncompressed_16bps.tif", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/tiff_02_rgb_uncompressed_16bps.tif scratch/tiff_02_rgb_uncompressed_16bps.tif scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/tiff_02_rgb_uncompressed_16bps.tif scratch/tiff_02_rgb_uncompressed_16bps.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/tiff_02_rgb_uncompressed_16bps.tif");
         std::filesystem::remove("scratch/out.png");
     }
@@ -321,8 +321,8 @@ TEST_CASE("Image tests", "TIFF") {
                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/money-4bit.tif", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/money-4bit-reference.tif scratch/money-4bit.tif scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/money-4bit-reference.tif scratch/money-4bit.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/money-4bit.tif");
         std::filesystem::remove("scratch/out.png");
     }
@@ -337,8 +337,8 @@ TEST_CASE("Image tests", "TIFF") {
                                             {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_12bit_1chan.tif", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/tiff_12bit_1chan_reference.tif scratch/tiff_12bit_1chan.tif scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/tiff_12bit_1chan_reference.tif scratch/tiff_12bit_1chan.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/money-4bit.tif");
         std::filesystem::remove("scratch/out.png");
     }
@@ -359,8 +359,8 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/smalltiff_group4.tif", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/smalltiff_group4.tif scratch/smalltiff_group4.tif scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/smalltiff_group4.tif scratch/smalltiff_group4.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/smalltiff_group4.tif");
         std::filesystem::remove("scratch/out.png");
     }
@@ -381,8 +381,8 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/cmyk.tif", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/cmyk.tif scratch/cmyk.tif scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/cmyk.tif scratch/cmyk.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/cmyk.tif");
         std::filesystem::remove("scratch/out.png");
     }
@@ -438,8 +438,8 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/tiff_01_rgb_pyramid_res01.tif", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res01.tif scratch/tiff_01_rgb_pyramid_res01.tif scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/tiff_01_rgb_pyramid_res01.tif scratch/tiff_01_rgb_pyramid_res01.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res01.tif");
         std::filesystem::remove("scratch/out.png");
 
@@ -454,8 +454,8 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression2;
         REQUIRE_NOTHROW(tiffio.write(img2, "scratch/tiff_01_rgb_pyramid_res02.tif", compression2));
-        auto res2 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res02.tif scratch/tiff_01_rgb_pyramid_res02.tif scratch/out.png 2>&1");
-        REQUIRE(res2 == CommandResult{"0 (0)", 0});
+        auto res2 = Command::exec("compare -quiet -metric ae data/tiff_01_rgb_pyramid_res02.tif scratch/tiff_01_rgb_pyramid_res02.tif scratch/out.png 2>&1");
+        REQUIRE(res2 == CommandResult{"0", 0});
         std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res02.tif");
         std::filesystem::remove("scratch/out.png");
 
@@ -469,8 +469,8 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression3;
         REQUIRE_NOTHROW(tiffio.write(img3, "scratch/tiff_01_rgb_pyramid_res03.tif", compression3));
-        auto res3 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res03.tif scratch/tiff_01_rgb_pyramid_res03.tif scratch/out.png 2>&1");
-        REQUIRE(res3 == CommandResult{"0 (0)", 0});
+        auto res3 = Command::exec("compare -quiet -metric ae data/tiff_01_rgb_pyramid_res03.tif scratch/tiff_01_rgb_pyramid_res03.tif scratch/out.png 2>&1");
+        REQUIRE(res3 == CommandResult{"0", 0});
         std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res03.tif");
         std::filesystem::remove("scratch/out.png");
 
@@ -484,8 +484,8 @@ TEST_CASE("Image tests", "TIFF") {
 
         cserve::IIIFCompressionParams compression4;
         REQUIRE_NOTHROW(tiffio.write(img4, "scratch/tiff_01_rgb_pyramid_res04.tif", compression4));
-        auto res4 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res04.tif scratch/tiff_01_rgb_pyramid_res04.tif scratch/out.png 2>&1");
-        REQUIRE(res4 == CommandResult{"0 (0)", 0});
+        auto res4 = Command::exec("compare -quiet -metric ae data/tiff_01_rgb_pyramid_res04.tif scratch/tiff_01_rgb_pyramid_res04.tif scratch/out.png 2>&1");
+        REQUIRE(res4 == CommandResult{"0", 0});
         std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res04.tif");
         std::filesystem::remove("scratch/out.png");
 
@@ -498,8 +498,8 @@ TEST_CASE("Image tests", "TIFF") {
                                              {cserve::HIGH, cserve::HIGH, cserve::HIGH, cserve::HIGH});
         cserve::IIIFCompressionParams compression5;
         REQUIRE_NOTHROW(tiffio.write(img5, "scratch/tiff_01_rgb_pyramid_res05.tif", compression5));
-        auto res5 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_pyramid_res05.tif scratch/tiff_01_rgb_pyramid_res05.tif scratch/out.png 2>&1");
-        REQUIRE(res5 == CommandResult{"0 (0)", 0});
+        auto res5 = Command::exec("compare -quiet -metric ae data/tiff_01_rgb_pyramid_res05.tif scratch/tiff_01_rgb_pyramid_res05.tif scratch/out.png 2>&1");
+        REQUIRE(res5 == CommandResult{"0", 0});
         std::filesystem::remove("scratch/tiff_01_rgb_pyramid_res05.tif");
         std::filesystem::remove("scratch/out.png");
 
@@ -569,8 +569,8 @@ TEST_CASE("Image tests", "TIFF") {
 
         auto res6 = Command::exec(R"(convert \( scratch/res_a.tif scratch/res_b.tif scratch/res_c.tif +append \) \( scratch/res_d.tif scratch/res_e.tif scratch/res_f.tif +append \) -append scratch/res_comp.tif)");
 
-        auto res7 = Command::exec("compare -quiet -metric mae data/tiff_01_rgb_halfsize.tif scratch/res_comp.tif scratch/out.png 2>&1");
-        REQUIRE(res5 == CommandResult{"0 (0)", 0});
+        auto res7 = Command::exec("compare -quiet -metric ae data/tiff_01_rgb_halfsize.tif scratch/res_comp.tif scratch/out.png 2>&1");
+        REQUIRE(res5 == CommandResult{"0", 0});
         std::filesystem::remove("scratch/res_a.tif");
         std::filesystem::remove("scratch/res_b.tif");
         std::filesystem::remove("scratch/res_c.tif");

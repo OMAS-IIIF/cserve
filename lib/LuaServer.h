@@ -9,16 +9,21 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#ifndef __cserve_lua_server_h
-#define __cserve_lua_server_h
+#ifndef _cserve_lua_server_h
+#define _cserve_lua_server_h
+
 #include <iostream>
 #include <vector>
+#include <variant>
 #include <map>
 #include <unordered_map>
 #include <variant>
 #include <stdexcept>
 #include <memory>
 #include <spdlog/common.h>
+#include <nlohmann/json.hpp>
+#include "NlohmannTraits.h"
+
 
 #include "Error.h"
 #include "Connection.h"
@@ -28,34 +33,164 @@
 
 namespace cserve {
 
-    typedef struct LuaValstruct {
-        enum {
-            INT_TYPE, FLOAT_TYPE, STRING_TYPE, BOOLEAN_TYPE, TABLE_TYPE
-        } type{};
-        struct {
-            int i;
-            float f;
-            std::string s;
-            bool b;
-            std::unordered_map<std::string, std::shared_ptr<struct LuaValstruct>> table;
-        } value;
-        //inline LuaValstruct() { type = }
-    } LuaValstruct;
+
+    /*!
+     * Implementation of a C representation for Lua values which may be nested tables and arrays
+     */
+    class LuaValstruct {
+    public:
+        /*!
+         * Supported data types
+         */
+        enum LuaValType {
+            INT_TYPE, FLOAT_TYPE, STRING_TYPE, BOOLEAN_TYPE, ARRAY_TYPE, TABLE_TYPE, UNDEFINED_TYPE
+        };
+    private:
+        LuaValType type;
+        int i;
+        float f;
+        std::string s;
+        bool b;
+        std::vector<LuaValstruct> array;
+        std::unordered_map<std::string, LuaValstruct> table;
+    public:
+        /*!
+         * Default constructor
+         */
+        explicit LuaValstruct() : i(0), f(0.0F), b(false), type(UNDEFINED_TYPE) {}
+
+        /*!
+         * Constructor for integer
+         * @param i Integer value
+         */
+        explicit LuaValstruct(int i) : i(i), f(0.0F), b(false), type(INT_TYPE) {}
+
+        /*!
+         * Constructor for float values
+         * @param f Float value
+         */
+        explicit LuaValstruct(float f): f(f), i(0), b(false), type(FLOAT_TYPE) {}
+
+        /*!
+         * Constructor for strings
+         * @param str String value
+         */
+        explicit LuaValstruct(const std::string &str) : s(str), i(0), f(0.0F), b(false), type(STRING_TYPE) {}
+
+        /*!
+         * Constructor for booleans
+         * @param b Boolean value
+         */
+        explicit LuaValstruct(bool b) : b(b), i(0), f(0.0F), type(BOOLEAN_TYPE) {}
+
+        /*!
+         * Constructor for vector of LuaValstructs (aka "array")
+         * @param v Vector of LuaValstructs
+         */
+        explicit LuaValstruct(const std::vector<LuaValstruct> &v) : array(v), i(0), f(0.0F), b(false), type(ARRAY_TYPE) {}
+
+        /*!
+         * Constructor for table of LuaValstructs. Indices must be of std::string type!
+         * @param table Unordered map of LuaValstructs
+         */
+        explicit LuaValstruct(const std::unordered_map<std::string, LuaValstruct> &table) : table(table), i(0), f(0.0F), b(false), type(TABLE_TYPE) {}
+
+        /*!
+         * Copy constructor
+         * @param lv
+         */
+        LuaValstruct(const LuaValstruct &lv);
+
+        /*!
+         * Move constructor
+         * @param lv
+         */
+        LuaValstruct(LuaValstruct &&lv) noexcept;
+
+        /*!
+         * Assignment constructor with copy
+         * @param lv
+         * @return
+         */
+        LuaValstruct& operator=(const LuaValstruct &lv);
+
+        /*!
+         * Assigment constructor with move
+         * @param lv
+         * @return
+         */
+        LuaValstruct& operator=(LuaValstruct &&lv) noexcept;
+
+        /*!
+         * Test if LuaValstruct is defined
+         * @return True, if is defined
+         */
+        auto is_undefined() const  {return (type == UNDEFINED_TYPE); }
+
+        /*!
+         * Get the data type represented by the LuaValstruct
+         * @return A LuaValType
+         */
+        auto get_type() const { return type; }
+
+        /*!
+         * Get an optional integer
+         * @return std::optional
+         */
+        auto get_int() const { return (type == INT_TYPE) ? std::optional<int>{i} : std::nullopt; }
+
+        /*!
+         * Get an optional float
+         * @return std::optional
+         */
+        auto get_float() const { return (type == FLOAT_TYPE) ? std::optional<float>{i} : std::nullopt; }
+
+        /*!
+         * Get an optional std::string
+         * @return std::optional
+         */
+        auto get_string() const { return (type == STRING_TYPE) ? std::optional<std::string>{s} : std::nullopt; }
+
+        /*!
+         * Get an optional boolean
+         * @return std::optional
+         */
+        auto get_boolean() const { return (type == BOOLEAN_TYPE) ? std::optional<bool>{b} : std::nullopt; }
+
+        /*!
+         * Get an optional array aka std::vector
+         * @return std::optional
+         */
+        auto get_array() const { return (type == ARRAY_TYPE) ? std::optional<std::vector<LuaValstruct>>{array} : std::nullopt; }
+
+        /*!
+         * Get an optional table aka std::unordered_map
+         * @return std::optional
+         */
+        auto get_table() const { return (type == TABLE_TYPE) ? std::optional<std::unordered_map<std::string, LuaValstruct>>{table} : std::nullopt; }
+
+        /*!
+         * Return a nlohmann::json object representing the LuaValstruct
+         * @param vs A LuaValstruct instance
+         * @return nlohmann::json instance
+         */
+        nlohmann::json get_json(const LuaValstruct &vs);
+    };
 
     typedef struct RouteInfo {
         Connection::HttpMethod method;
         std::string route;
         std::string additional_data;
         RouteInfo() = default;
-        RouteInfo(const std::string &lua_route_str);
-        std::string method_as_string() const;
-        std::string to_string() const;
+        explicit RouteInfo(const std::string &lua_route_str);
+        [[nodiscard]] std::string method_as_string() const;
+        [[nodiscard]] std::string to_string() const;
         inline bool empty() { return route.empty() || additional_data.empty(); }
         inline bool operator==(const RouteInfo &lr) const { return method == lr.method && route == lr.route && additional_data == lr.additional_data; }
         inline friend std::ostream &operator<<(std::ostream &os, const RouteInfo &rhs) { return os << "ROUTE METHOD=" << rhs.method << " ROUTE=" << rhs.route << " SCRIPT=" << rhs.additional_data; };
     } LuaRoute;
 
-    [[maybe_unused]] typedef std::unordered_map<std::string, LuaValstruct> LuaKeyValStore;
+    // [[maybe_unused]] typedef std::unordered_map<std::string, LuaValstruct> LuaKeyValStore;
 
     typedef void (*LuaSetGlobalsFunc)(lua_State *L, cserve::Connection &, void *);
 
@@ -99,14 +234,12 @@ namespace cserve {
         LuaServer(Connection &conn, const std::string &luafile, bool iscode, const std::string &lua_scriptdir);
 
         /*!
-         * Copy constructor throws error (not allowed!)
+         * Copy constructor not allowed!
          */
-        inline LuaServer(const LuaServer &other) {
-            throw Error(__FILE__, __LINE__, "Copy constructor not allowed!");
-        }
+        LuaServer(const LuaServer &other) = delete;
 
         /*!
-         * Assignment operator throws error (not allowed!)
+         * Assignment operator not allowed!
          */
         inline LuaServer &operator=(const LuaServer &other) = delete;
 
@@ -184,7 +317,7 @@ namespace cserve {
          * \param[in] lvals vector of parameters to be passed to the function
          * \returns vector of LuaValstruct containing the result of the execution of the lua function
          */
-        [[maybe_unused]] std::vector<std::shared_ptr<LuaValstruct>> executeLuafunction(const std::string &funcname, const std::vector<std::shared_ptr<LuaValstruct>>& lvals);
+        [[maybe_unused]] std::vector<LuaValstruct> executeLuafunction(const std::string &funcname, const std::vector<LuaValstruct>& lvals);
 
         /*!
          * Executes a Lua function that either is defined in C or in Lua

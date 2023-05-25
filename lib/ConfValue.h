@@ -94,7 +94,7 @@ namespace cserve {
                   std::string envname,
                   const std::shared_ptr<CLI::App> &app);
 
-        ConfValue(std::string prefix, std::string optionname, std::vector<std::string> str, std::string description,
+        ConfValue(std::string prefix, std::string optionname, std::vector<std::string> strvec, std::string description,
                   std::string envname,
                   const std::shared_ptr<CLI::App> &app);
 

@@ -151,7 +151,7 @@ namespace cserve {
               _description(std::move(description)),
               _envname(std::move(envname)),
               _value_type(STRINGVEC) {
-        app->add_option(std::move(optionname), _string_value, _description)
+        app->add_option(std::move(optionname), _stringvec_value, _description)
                 ->envname(_envname);
     }
 

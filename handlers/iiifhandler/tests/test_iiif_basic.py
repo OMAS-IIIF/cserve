@@ -25,8 +25,7 @@ class TestBasic:
                 'max_tmp_age': 86400,
                 'prefix_as_path': True,
                 'thumbsize': '!128,128',
-                'iiif_specials': None
-
+                'iiif_specials': {'testit': 'lua_testit'}
             },
             'status': 'OK'
         }
@@ -99,9 +98,12 @@ class TestBasic:
         assert response.json() == expected_response
 
     def test_iiif_specials(self, manager):
+        expected_response = {
+            'message': 'lua_testit',
+            'result': 'ok'
+        }
         response = manager.get("test_01.tif/testit")
-        print("&&=======================")
-        print(response)
+        assert response.json() == expected_response
 
 
     def test_iiif_restricted(self, manager):

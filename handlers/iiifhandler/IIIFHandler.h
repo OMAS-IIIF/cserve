@@ -68,6 +68,12 @@ namespace cserve {
         [[nodiscard]]
         const std::string& name() const override;
 
+        /*!
+         *
+         * @param conn Reference to the connection object (see ....)
+         * @param lua The Lua interpreter
+         * @param route
+         */
         void handler(Connection& conn, LuaServer &lua, const std::string &route) override;
 
         void set_config_variables(CserverConf &conf) override;
