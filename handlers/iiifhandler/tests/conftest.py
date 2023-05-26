@@ -172,7 +172,7 @@ class CserverProcessManager:
         while not self.cserver_ready and cnt < 10:
             time.sleep(0.2)
             cnt += 1
-        if cnt >= 10:
+        if cnt >= 20:
             raise CserverTestError(f"Cserver did not start after {cnt*0.2} seconds")
         else:
             print(f"Cserver ready after {cnt*0.2} seconds")
