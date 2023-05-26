@@ -19,7 +19,6 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
-#include "spdlog/spdlog.h"
 #include <dirent.h>
 
 #include "curl/curl.h"
@@ -31,8 +30,6 @@
 
 #include "sole.hpp"
 
-#include <nlohmann/json.hpp>
-#include "NlohmannTraits.h"
 #include <jwt-cpp/jwt.h>
 #include <utility>
 
@@ -3271,6 +3268,8 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                     case 2:
                         route.additional_data = lua_tostring(L, -1); // table - routestable - route - fieldval
                         break;
+                    default:
+                        throw Error(file_, __LINE__, "Invalid route information!");
                 }
                 // remove the field value from the top of the stack
                 lua_pop(L, 1); // table - routestable - route
@@ -3368,29 +3367,199 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
     }
     //=========================================================================
 
-    static std::shared_ptr<LuaValstruct> getLuaValue(lua_State *L, int index, const std::string &funcname) {
-        std::shared_ptr<LuaValstruct> tmplv = std::make_shared<LuaValstruct>();
-        if (lua_isstring(L, index)) {
-            tmplv->type = LuaValstruct::STRING_TYPE;
-            tmplv->value.s = std::string(lua_tostring(L, index));
-        } else if (lua_isinteger(L, index)) {
-            tmplv->type = LuaValstruct::INT_TYPE;
-            tmplv->value.i = lua_tointeger(L, index);
-        } else if (lua_isnumber(L, index)) {
-            tmplv->type = LuaValstruct::FLOAT_TYPE;
-            tmplv->value.f = (float) lua_tonumber(L, index);
+    LuaValstruct::LuaValstruct(const LuaValstruct &lv) {
+        switch (lv.type) {
+            case INT_TYPE:
+                i = lv.i;
+                break;
+            case FLOAT_TYPE:
+                f = lv.f;
+                break;
+            case STRING_TYPE:
+                s = lv.s;
+                break;
+            case BOOLEAN_TYPE:
+                b = lv.b;
+                break;
+            case ARRAY_TYPE:
+                array = lv.array;
+                break;
+            case TABLE_TYPE:
+                table = lv.table;
+                break;
+            case UNDEFINED_TYPE:
+                break;
+        }
+        type = lv.type;
+    }
+
+    LuaValstruct::LuaValstruct(LuaValstruct &&lv) noexcept {
+        switch (lv.type) {
+            case INT_TYPE:
+                i = lv.i;
+                break;
+            case FLOAT_TYPE:
+                f = lv.f;
+                break;
+            case STRING_TYPE:
+                s = lv.s;
+                break;
+            case BOOLEAN_TYPE:
+                b = lv.b;
+                break;
+            case ARRAY_TYPE:
+                array = std::move(lv.array);
+                break;
+            case TABLE_TYPE:
+                table = std::move(lv.table);
+                break;
+            case UNDEFINED_TYPE:
+                break;
+        }
+        type = lv.type;
+        lv.type = UNDEFINED_TYPE;
+    }
+
+    LuaValstruct &LuaValstruct::operator=(const LuaValstruct &lv) {
+        switch (lv.type) {
+            case INT_TYPE:
+                i = lv.i;
+                break;
+            case FLOAT_TYPE:
+                f = lv.f;
+                break;
+            case STRING_TYPE:
+                s = lv.s;
+                break;
+            case BOOLEAN_TYPE:
+                b = lv.b;
+                break;
+            case ARRAY_TYPE:
+                array = lv.array;
+                break;
+            case TABLE_TYPE:
+                table = lv.table;
+                break;
+            case UNDEFINED_TYPE:
+                break;
+        }
+        type = lv.type;
+        return *this;
+    }
+
+    LuaValstruct &LuaValstruct::operator=(LuaValstruct &&lv) noexcept {
+        switch (lv.type) {
+            case INT_TYPE:
+                i = lv.i;
+                break;
+            case FLOAT_TYPE:
+                f = lv.f;
+                break;
+            case STRING_TYPE:
+                s = lv.s;
+                break;
+            case BOOLEAN_TYPE:
+                b = lv.b;
+                break;
+            case ARRAY_TYPE:
+                array = std::move(lv.array);
+                break;
+            case TABLE_TYPE:
+                table = std::move(lv.table);
+                break;
+            case UNDEFINED_TYPE:
+                break;
+        }
+        type = lv.type;
+        lv.type = UNDEFINED_TYPE;
+        return *this;
+    }
+
+    nlohmann::json LuaValstruct::get_json() const {
+        nlohmann::json jsonobj;
+            switch (type) {
+                case UNDEFINED_TYPE: {
+                    jsonobj = nullptr;
+                    break;
+                }
+                case INT_TYPE: {
+                    jsonobj = i;
+                    break;
+                }
+                case FLOAT_TYPE: {
+                    jsonobj = f;
+                    break;
+                }
+                case STRING_TYPE: {
+                    jsonobj = s;
+                    break;
+                }
+                case BOOLEAN_TYPE: {
+                    jsonobj = b;
+                    break;
+                }
+                case ARRAY_TYPE: {
+                    std::vector<nlohmann::json> jv;
+                    for (const auto &ele: array) {
+                        jv.push_back(ele.get_json());
+                    }
+                    jsonobj = jv;
+                    break;
+                }
+                case TABLE_TYPE: {
+                    for (const auto &[key, val]: table) {
+                        jsonobj[key] = val.get_json();
+                    }
+                    break;
+                }
+            }
+        return jsonobj;
+    }
+
+    static LuaValstruct getLuaValue(lua_State *L, int index, const std::string &funcname) {
+        LuaValstruct tmplv;
+        // IMPORTANT NOTE: lua_isstring and lua_isnumber do not check the type, but if the
+        // value is convertible in a string or a number. Therefore we first have to perform all
+        // other checks!
+        if (lua_isinteger(L, index)) {
+            tmplv = LuaValstruct(static_cast<int>(lua_tointeger(L, index)));
         } else if (lua_isboolean(L, index)) {
-            tmplv->type = LuaValstruct::BOOLEAN_TYPE;
-            tmplv->value.b = (bool) lua_toboolean(L, index);
+            tmplv = LuaValstruct(static_cast<bool>(lua_toboolean(L, index)));
         } else if (lua_istable(L, index)) {
-            tmplv->type = LuaValstruct::TABLE_TYPE;
+            std::vector<std::string> keys;
+            std::vector<LuaValstruct> values;
             lua_pushnil(L);  /* first key */
+            int aindex = 1;
+            bool is_array = true;
             while (lua_next(L, index) != 0) {
-                std::string key(lua_tostring(L, -2));
-                std::shared_ptr<LuaValstruct> val = getLuaValue(L, -1, funcname);
-                tmplv->value.table[key] = val;
+                int top = lua_gettop(L);
+                std::string keystr;
+                if (lua_isinteger(L, -2)) {
+                    int ii = lua_tointeger(L, -2);
+                    keystr = std::to_string(ii);
+                    if (ii != aindex) {
+                        is_array = false;
+                    }
+                }
+                else {
+                    keystr = lua_tostring(L, -2);
+                    is_array = false;
+                }
+                keys.emplace_back(keystr);
+                values.push_back(getLuaValue(L, top, funcname));
                 /* removes 'value'; keeps 'key' for next iteration */
                 lua_pop(L, 1);
+                ++aindex;
+            }
+            if (is_array) {
+                tmplv = LuaValstruct(values);
+            }
+            else {
+                std::unordered_map<std::string, LuaValstruct> table;
+                for (int i = 0; i < keys.size(); ++i) {
+                    table[keys[i]] = values[i];
+                }
+                tmplv = LuaValstruct(table);
             }
         } else if (lua_isnil(L, index)) {
             std::string luaTypeName = std::string(lua_typename(L, index));
@@ -3398,6 +3567,10 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             errStream << "Lua function " << funcname << " returned nil";
             std::string errorMsg = errStream.str();
             throw Error(file_, __LINE__, errorMsg);
+        } else if (lua_isnumber(L, index)) {
+            tmplv = LuaValstruct(static_cast<float>(lua_tonumber(L, index)));
+        } else if (lua_isstring(L, index)) {
+            tmplv = LuaValstruct(std::string(lua_tostring(L, index)));
         } else {
             std::string luaTypeName = std::string(lua_typename(L, index));
             std::ostringstream errMsg;
@@ -3408,37 +3581,60 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         return tmplv;
     }
 
-    static void pushLuaValue(lua_State *L, const std::shared_ptr<LuaValstruct>& lv) {
-        switch (lv->type) {
-            case LuaValstruct::INT_TYPE: {
-                lua_pushinteger(L, lv->value.i);
-                break;
-            }
-            case LuaValstruct::FLOAT_TYPE: {
-                lua_pushnumber(L, lv->value.f);
-                break;
-            }
-            case LuaValstruct::STRING_TYPE: {
-                lua_pushstring(L, lv->value.s.c_str());
-                break;
-            }
-            case LuaValstruct::BOOLEAN_TYPE: {
-                lua_pushboolean(L, lv->value.b);
-                break;
-            }
-            case LuaValstruct::TABLE_TYPE: {
-                lua_createtable(L, 0, static_cast<int>(lv->value.table.size()));
-                for( const auto& keyval : lv->value.table ) {
-                    lua_pushstring(L, keyval.first.c_str());
-                    pushLuaValue(L, keyval.second);
+    static void pushLuaValue(lua_State *L, const LuaValstruct& lv) {
+        try {
+            switch (lv.get_type()) {
+                case LuaValstruct::UNDEFINED_TYPE:
+                    lua_pushnil(L);
+                    break;
+                case LuaValstruct::INT_TYPE: {
+                    lua_pushinteger(L, lv.get_int().value());
+                    break;
                 }
-                break;
+                case LuaValstruct::FLOAT_TYPE: {
+                    lua_pushnumber(L, lv.get_float().value());
+                    break;
+                }
+                case LuaValstruct::STRING_TYPE: {
+                    lua_pushstring(L, lv.get_string().value().c_str());
+                    break;
+                }
+                case LuaValstruct::BOOLEAN_TYPE: {
+                    lua_pushboolean(L, lv.get_boolean().value());
+                    break;
+                }
+                case LuaValstruct::ARRAY_TYPE: {
+                    std::vector<LuaValstruct> v = lv.get_array().value();
+                    int index = 1;
+                    lua_createtable(L, 0, static_cast<int>(v.size()));
+                    for (const auto &ele: v) {
+                        lua_pushinteger(L, index);
+                        pushLuaValue(L, ele);
+                        lua_rawset(L, -3);
+                        ++index;
+                    }
+                    lua_rawset(L, -3); // table
+                    break;
+                }
+                case LuaValstruct::TABLE_TYPE: {
+                    std::unordered_map<std::string, LuaValstruct> m = lv.get_table().value();
+                    lua_createtable(L, 0, static_cast<int>(m.size()));
+                    for (const auto &[key, val]: m) {
+                        lua_pushstring(L, key.c_str());
+                        pushLuaValue(L, val);
+                        lua_rawset(L, -3); // table
+                    }
+                    break;
+                }
             }
+        }
+        catch (const std::bad_optional_access &err) {
+            lua_pushnil(L);
         }
     }
 
-    std::vector<std::shared_ptr<LuaValstruct>>
-    LuaServer::executeLuafunction(const std::string &funcname, const std::vector<std::shared_ptr<LuaValstruct>>& lvs) {
+    std::vector<LuaValstruct>
+    LuaServer::executeLuafunction(const std::string &funcname, const std::vector<LuaValstruct> &lvs) {
         if (lua_getglobal(L, funcname.c_str()) != LUA_TFUNCTION) {
             lua_settop(L, 0); // clear stack
             std::ostringstream errMsg;
@@ -3459,8 +3655,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         int top = lua_gettop(L);
-        std::vector<std::shared_ptr<LuaValstruct>> retval;
-
+        std::vector<LuaValstruct> retval;
         for (int i = 1; i <= top; i++) {
             retval.push_back(getLuaValue(L, i, funcname));
         }
@@ -3468,7 +3663,6 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         lua_pop(L, top);
         return retval;
     }
-
     //=========================================================================
 
 

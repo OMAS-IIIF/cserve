@@ -13,9 +13,9 @@ endif ()
 #
 ExternalProject_Add(project_lua
         INSTALL_DIR ${COMMON_LOCAL}
-        URL http://www.lua.org/ftp/lua-5.4.4.tar.gz
+        URL http://www.lua.org/ftp/lua-5.4.6.tar.gz
         ${timestamp_policy}
-        SOURCE_DIR ${COMMON_SRCS}/lua-5.4.4
+        SOURCE_DIR ${COMMON_SRCS}/lua-5.4.6
         CONFIGURE_COMMAND ls
         BUILD_COMMAND make INSTALL_LIB=${CONFIGURE_LIBDIR} ${LUA_ARCH}
         INSTALL_COMMAND make INSTALL_LIB=${CONFIGURE_LIBDIR} install INSTALL_TOP=${COMMON_LOCAL}

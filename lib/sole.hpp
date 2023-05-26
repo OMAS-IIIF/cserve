@@ -1,5 +1,7 @@
 /* Sole is a lightweight C++11 library to generate universally unique identificators.
  * Sole provides interface for UUID versions 0, 1 and 4.
+
+ * https://github.com/r-lyeh/sole
  * Copyright (c) 2013,2014,2015 r-lyeh. zlib/libpng licensed.
 
  * Based on code by Dmitri Bouianov, Philip O'Toole, Poco C++ libraries and anonymous
@@ -44,14 +46,20 @@
 //////////////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include <stdio.h>     // for size_t; should be stddef.h instead; however, clang+archlinux fails on compiling it (@Travis-Ci)
 #include <stdint.h>
+#include <stdio.h>     // for size_t; should be stddef.h instead; however, clang+archlinux fails when compiling it (@Travis-Ci)
+#include <sys/types.h> // for uint32_t; should be stdint.h instead; however, GCC 5 on OSX fails when compiling it (See issue #11)
 #include <functional>
 #include <string>
 
 // public API
 
-#define SOLE_VERSION "1.0.0" // (2016/02/03): Initial semver adherence; Switch to header-only; Remove warnings
+#define SOLE_VERSION "1.0.5" /* (2022/07/15): Fix #42 (clang: __thread vs threadlocal)
+#define SOLE_VERSION "1.0.4" // (2022/04/09): Fix potential threaded issues (fix #18, PR #39) and a socket leak (fix #38)
+#define SOLE_VERSION "1.0.3" // (2022/01/17): Merge fixes by @jasonwinterpixel(emscripten) + @jj-tetraquark(get_any_mac)
+#define SOLE_VERSION "1.0.2" // (2021/03/16): Merge speed improvements by @vihangm
+#define SOLE_VERSION "1.0.1" // (2017/05/16): Improve UUID4 and base62 performance; fix warnings
+#define SOLE_VERSION "1.0.0" // (2016/02/03): Initial semver adherence; Switch to header-only; Remove warnings */
 
 namespace sole
 {
@@ -87,9 +95,14 @@ namespace sole
     uuid rebuild( const std::string &uustr );
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4127)
+#endif
+
 namespace std {
     template<>
-    struct hash< sole::uuid > : public std::unary_function< sole::uuid, size_t > {
+    struct hash< sole::uuid > {
     public:
         // hash functor: hash uuid to size_t value by pseudorandomizing transform
         size_t operator()( const sole::uuid &uuid ) const {
@@ -102,6 +115,10 @@ namespace std {
         }
     };
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 // implementation
 
@@ -120,10 +137,12 @@ namespace std {
 #include <vector>
 
 #if defined(_WIN32)
-#   include <windows.h>
+#   include <winsock2.h>
 #   include <process.h>
 #   include <iphlpapi.h>
+#   ifdef _MSC_VER
 #   pragma comment(lib,"iphlpapi.lib")
+#   endif
 #   define $windows $yes
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || \
         defined(__OpenBSD__) || defined(__MINT__) || defined(__bsdi__)
@@ -132,6 +151,7 @@ namespace std {
 #   include <sys/socket.h>
 #   include <sys/time.h>
 #   include <sys/types.h>
+#   include <unistd.h>
 #   define $bsd $yes
 #elif (defined(__APPLE__) && defined(__MACH__))
 #   include <ifaddrs.h>
@@ -145,6 +165,7 @@ namespace std {
 #   define $osx $yes
 #elif defined(__linux__)
 #   include <arpa/inet.h>
+#   include <ifaddrs.h>
 #   include <net/if.h>
 #   include <netinet/in.h>
 #   include <sys/ioctl.h>
@@ -153,6 +174,9 @@ namespace std {
 #   include <unistd.h>
 #   define $linux $yes
 #else //elif defined(__unix__)
+#	if defined(__EMSCRIPTEN__)
+#		define $emscripten $yes
+#	endif
 #   if defined(__VMS)
 #      include <ioctl.h>
 #      include <inet.h>
@@ -171,9 +195,6 @@ namespace std {
 #   include <sys/time.h>
 #   include <sys/types.h>
 #   include <unistd.h>
-#   if defined(__VMS)
-        namespace { enum { MAXHOSTNAMELEN = 64 }; }
-#   endif
 #   define $unix $yes
 #endif
 
@@ -181,7 +202,15 @@ namespace std {
 #   define $msvc  $yes
 #endif
 
-#if defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__ <= 40902 )
+#ifdef _MSC_VER
+#   define $thread __declspec(thread)
+#elif defined __clang__
+#   define $thread thread_local
+#else
+#   define $thread __thread
+#endif
+
+#if defined(__GNUC__) && (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 < 50100)
     namespace std
     {
         static inline std::string put_time( const std::tm* tmb, const char* fmt ) {
@@ -237,6 +266,12 @@ namespace std {
 #define $melse   $yes
 #endif
 
+#ifdef $emscripten
+#define $emselse	$no
+#else
+#define $emselse	$yes
+#endif
+
 #define $yes(...) __VA_ARGS__
 #define $no(...)
 
@@ -255,29 +290,6 @@ inline bool sole::uuid::operator<( const sole::uuid &other ) const {
 
 namespace sole {
 
-    inline std::string rebase( uint64_t input, const std::string &basemap ) {
-        uint64_t rem, size = basemap.size();
-        std::string res;
-        do {
-            rem = input % size;
-            res = std::string() + basemap[int(rem)] + res;
-            input /= size;
-        } while (input > 0);
-        return res;
-    }
-
-    inline uint64_t rebase( const std::string &input, const std::string &basemap ) {
-        auto strpos = [](const std::string &chars, char ch ) -> size_t {
-            return chars.find_first_of( ch );
-        };
-        auto limit = input.size();
-        auto size = basemap.size();
-        uint64_t res = strpos( basemap, input[0] );
-        for( size_t i = 1; i < limit; ++i )
-            res = size * res + strpos( basemap, input[i] );
-        return res;
-    }
-
     inline std::string printftime( uint64_t timestamp_secs = 0, const std::string &locale = std::string() ) {
         std::string timef;
         try {
@@ -289,13 +301,15 @@ namespace sole {
                 localtime_s( &tm, &t );
             )
             $melse(
-                localtime_r( &t, &tm );
+                $windows(tm = *localtime( &t ); )
+                $welse( localtime_r(&t, &tm); )
             )
 
             std::stringstream ss;
-
+            $melse(
             std::locale lc( locale.c_str() );
             ss.imbue( lc );
+            )
             ss << std::put_time( &tm, "\"%c\"" );
 
             timef = ss.str();
@@ -335,30 +349,50 @@ namespace sole {
     }
 
     inline std::string uuid::str() const {
-        std::stringstream ss;
-        ss << std::hex << std::nouppercase << std::setfill('0');
+        char uustr[] = "00000000-0000-0000-0000-000000000000";
+        constexpr char encode[] = "0123456789abcdef";
 
-        uint32_t a = (ab >> 32);
-        uint32_t b = (ab & 0xFFFFFFFF);
-        uint32_t c = (cd >> 32);
-        uint32_t d = (cd & 0xFFFFFFFF);
+        size_t bit = 15;
+        for( size_t i = 0; i < 18; i++ ) {
+            if( i == 8 || i == 13 ) {
+                continue;
+            }
+            uustr[i] = encode[ab>>4*bit&0x0f];
+            bit--;
+        }
 
-        ss << std::setw(8) << (a) << '-';
-        ss << std::setw(4) << (b >> 16) << '-';
-        ss << std::setw(4) << (b & 0xFFFF) << '-';
-        ss << std::setw(4) << (c >> 16 ) << '-';
-        ss << std::setw(4) << (c & 0xFFFF);
-        ss << std::setw(8) << d;
+        bit = 15;
+        for( size_t i = 18; i < 36; i++ ) {
+            if( i == 18 || i == 23 ) {
+                continue;
+            }
+            uustr[i] = encode[cd>>4*bit&0x0f];
+            bit--;
+        }
 
-        return ss.str();
+        return std::string(uustr);
     }
 
     inline std::string uuid::base62() const {
-        static const std::string base62 =
+        int base62len = 10 + 26 + 26;
+        const char base62[] =
             "0123456789"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "abcdefghijklmnopqrstuvwxyz";
-        return rebase( ab, base62 ) + "-" + rebase( cd, base62 );
+        char res[24], *end = &res[24]; *(--end) = '\0';
+        uint64_t rem, AB = ab, CD = cd;
+        do {
+            rem = CD % base62len;
+            *--end = base62[int(rem)];
+            CD /= base62len;
+        } while (CD > 0);
+        *--end = '-';
+        do {
+            rem = AB % base62len;
+            *--end = base62[int(rem)];
+            AB /= base62len;
+        } while (AB > 0);
+        return end;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////
@@ -377,7 +411,7 @@ namespace sole {
             FILETIME ft;
             uint64_t tmpres = 0;
 
-            if (tv != nullptr) {
+            if( NULL != tv ) {
                 GetSystemTimeAsFileTime(&ft);
 
                 // The GetSystemTimeAsFileTime returns the number of 100 nanosecond
@@ -400,7 +434,7 @@ namespace sole {
                 tv->tv_usec = (tmpres % 1000000UL);
             }
 
-            if (tz != nullptr) {
+            if( NULL != tz ) {
                 static bool once = true;
                 if( once ) {
                     once = false;
@@ -426,16 +460,16 @@ namespace sole {
             return 0;
         }
     )
-    $lelse( $belse( // if not linux, if not bsd... valid for apple/win32
+    $lelse( $belse( $emselse ( // if not linux, if not bsd, if not emscripten... valid for apple/win32
         inline int clock_gettime( int /*clk_id*/, struct timespec* t ) {
             struct timeval now;
-            int rv = gettimeofday(&now, nullptr);
+            int rv = gettimeofday(&now, NULL);
             if( rv ) return rv;
             t->tv_sec  = now.tv_sec;
             t->tv_nsec = now.tv_usec * 1000;
             return 0;
         }
-    ))
+    )))
 
     //////////////////////////////////////////////////////////////////////////////////////
     // Timestamp and MAC interfaces
@@ -449,14 +483,15 @@ namespace sole {
         uint64_t uuid_time;
         uuid_time = tp.tv_sec * 10000000;
         uuid_time = uuid_time + (tp.tv_nsec / 100);
-        uuid_time = uuid_time + offset;
 
         // If the clock looks like it went backwards, or is the same, increment it.
         static uint64_t last_uuid_time = 0;
-        if( last_uuid_time > uuid_time )
-            last_uuid_time = uuid_time;
+        if( last_uuid_time >= uuid_time )
+            uuid_time = ++last_uuid_time;
         else
-            last_uuid_time = ++uuid_time;
+            last_uuid_time = uuid_time;
+
+        uuid_time = uuid_time + offset;
 
         return uuid_time;
     }
@@ -566,23 +601,36 @@ namespace sole {
     })
 
     $linux({
-        struct ifreq ifr;
+        struct ifaddrs* ifaphead;
+        if (getifaddrs(&ifaphead) == -1) return $no("cannot get network adapter list") false;
 
-        int s = socket(PF_INET, SOCK_DGRAM, 0);
-        if (s == -1) return $no("cannot open socket") false;
+        bool foundAdapter = false;
+        for (struct ifaddrs* ifap = ifaphead; ifap; ifap = ifap->ifa_next)
+        {
+            struct ifreq ifr;
+            int s = socket(PF_INET, SOCK_DGRAM, 0);
+            if (s == -1) continue;
 
-        std::strcpy(ifr.ifr_name, "eth0");
-        int rc = ioctl(s, SIOCGIFHWADDR, &ifr);
-        close(s);
-        if (rc < 0) return $no("cannot get MAC address") false;
-        struct sockaddr* sa = reinterpret_cast<struct sockaddr*>(&ifr.ifr_addr);
-        _node.resize( sizeof(sa->sa_data) );
-        std::memcpy(_node.data(), sa->sa_data, _node.size() );
+            if (std::strcmp("lo", ifap->ifa_name) == 0) { close(s); continue;}  // loopback address is zero
+
+            std::strcpy(ifr.ifr_name, ifap->ifa_name);
+            int rc = ioctl(s, SIOCGIFHWADDR, &ifr);
+            close(s);
+            if (rc < 0) continue;
+            struct sockaddr* sa = reinterpret_cast<struct sockaddr*>(&ifr.ifr_addr);
+            _node.resize( sizeof(sa->sa_data) );
+            std::memcpy(_node.data(), sa->sa_data, _node.size() );
+            foundAdapter = true;
+            break;
+        }
+        freeifaddrs(ifaphead);
+        if (!foundAdapter) return $no("cannot determine MAC address (no suitable network adapter found)") false;
         return true;
+
     })
 
     $unix({
-        char name[MAXHOSTNAMELEN];
+        char name[HOST_NAME_MAX];
         if (gethostname(name, sizeof(name)))
             return $no("cannot get host name") false;
 
@@ -626,8 +674,8 @@ namespace sole {
     // UUID implementations
 
     inline uuid uuid4() {
-        std::random_device rd;
-        std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
+        static $thread std::random_device rd;
+        static $thread std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
 
         uuid my;
 
@@ -713,31 +761,52 @@ namespace sole {
 
     inline uuid rebuild( uint64_t ab, uint64_t cd ) {
         uuid u;
-        u.ab = ab, u.cd = cd;
+        u.ab = ab; u.cd = cd;
         return u;
     }
 
     inline uuid rebuild( const std::string &uustr ) {
-        char sep;
-        uint64_t a,b,c,d,e;
         uuid u = { 0, 0 };
         auto idx = uustr.find_first_of("-");
         if( idx != std::string::npos ) {
-            static const std::string base62 =
-                "0123456789"
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                "abcdefghijklmnopqrstuvwxyz";
             // single separator, base62 notation
             if( uustr.find_first_of("-",idx+1) == std::string::npos ) {
-                u.ab = rebase( uustr.substr(0,idx), base62 );
-                u.cd = rebase( uustr.substr(idx+1), base62 );
+                auto rebase62 = [&]( const char *input, size_t limit ) -> uint64_t {
+                    int base62len = 10 + 26 + 26;
+                    auto strpos = []( char ch ) -> size_t {
+                        if( ch >= 'a' ) return ch - 'a' + 10 + 26;
+                        if( ch >= 'A' ) return ch - 'A' + 10;
+                        return ch - '0';
+                    };
+                    uint64_t res = strpos( input[0] );
+                    for( size_t i = 1; i < limit; ++i )
+                        res = base62len * res + strpos( input[i] );
+                    return res;
+                };
+                u.ab = rebase62( &uustr[0], idx );
+                u.cd = rebase62( &uustr[idx+1], uustr.size() - (idx+1) );
             }
             // else classic hex notation
             else {
-                std::stringstream ss( uustr );
-                if( ss >> std::hex >> a >> sep >> b >> sep >> c >> sep >> d >> sep >> e ) {
-                    u.ab = (a << 32) | (b << 16) | c;
-                    u.cd = (d << 48) | e;
+                if (uustr[8] == '-' || uustr[13] == '-' || uustr[18] == '-' || uustr[23] == '-') {
+                    auto decode = []( char ch ) -> size_t {
+                        if( 'f' >= ch && ch >= 'a' ) return ch - 'a' + 10;
+                        if( 'F' >= ch && ch >= 'A' ) return ch - 'A' + 10;
+                        if( '9' >= ch && ch >= '0' ) return ch - '0';
+                        return 0;
+                    };
+                    for( size_t i = 0; i < 18; i++ ) {
+                        if( i == 8 || i == 13 ) {
+                            continue;
+                        }
+                        u.ab = u.ab<<4 | decode(uustr[i]);
+                    }
+                    for( size_t i = 19; i < 36; i++ ) {
+                        if( i == 23 ) {
+                            continue;
+                        }
+                        u.cd = u.cd<<4 | decode(uustr[i]);
+                    }
                 }
             }
         }
@@ -873,6 +942,12 @@ int main() {
     run::benchmark(uuid1, "v1");
     run::benchmark(uuid4, "v4");
 
+    auto uustr = uuid4().str();
+    run::benchmark([=]() { sole::rebuild( uustr ); }, "rebuild");
+
+    auto uuid = uuid4();
+    run::benchmark([=]() { uuid.str(); }, "str");
+
     run::verify(uuid4);             // use fastest implementation
 
 //  run::tests(uuid0);              // not applicable
@@ -881,3 +956,4 @@ int main() {
 }
 
 #endif
+

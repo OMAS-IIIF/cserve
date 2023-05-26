@@ -10,6 +10,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 #include <regex>
+#include <unordered_map>
 
 
 #include "Global.h"
@@ -41,6 +42,16 @@ namespace cserve {
         // {scheme}://{server}/{pre/fix/...}/{identifier}" -> redirect to {scheme}://{server}/{pre/fix}/{identifier}/info.json
         // {scheme}://{server}/{pre/fix/...}/{identifier}/file" -> serve as blob
         //
+
+        std::unordered_map<std::string, std::string> special_requests {{"info.json", ""}, {"file", ""}};
+        if (!_iiif_specials.empty()) {
+            for (const auto &spez: _iiif_specials) {
+                std::vector<std::string> vv = split(spez, '=');
+                if (vv.size() == 2) {
+                    special_requests[vv[0]] = vv[1];
+                }
+            }
+        }
 
         std::vector<std::string> headers = conn.header();
         std::string uri = conn.uri();
@@ -225,10 +236,9 @@ namespace cserve {
             return;
         }
 
-
-        if (tmpstr == "info.json") {
-            // {scheme}://{server}/{pre/fix/...}/{identifier}/info.json
-            // ->get ID and prefix and send info.json
+        if (special_requests.find(tmpstr) != special_requests.end()) {
+            // {scheme}://{server}/{pre/fix/...}/{identifier}/{spezial}
+            // ->get ID and prefix and send send_iiif_{special}
             partspos = parts.size() - 2; // position before "info.json" which is last
             if (partspos >= 0) {
                 iiif_str_params[IIIF_IDENTIFIER] = urldecode(parts[partspos]);
@@ -247,32 +257,16 @@ namespace cserve {
             } else {
                 iiif_str_params[IIIF_PREFIX] = "";
             }
-            send_iiif_info(conn, lua, iiif_str_params);
-            return;
-        } else if (tmpstr == "file") {
-            // {scheme}://{server}/{pre/fix/...}/{identifier}/file" -> serve as blob
-            // -> get ID and prefix and send blob
-            partspos = parts.size() - 2; // position before "info.json" which is last
-            if (partspos >= 0) {
-                iiif_str_params[IIIF_IDENTIFIER] = urldecode(parts[partspos]);
-                if (iiif_str_params[IIIF_IDENTIFIER].empty()) {
-                    send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. IIIF URl syntax is screwed up.");
-                    return;
-                }
+            if (tmpstr == "info.json") {
+                send_iiif_info(conn, lua, iiif_str_params);
             }
-            if (partspos > 0) { // we have a prefix
-                std::stringstream prefix;
-                for (int i = 0; i < partspos; i++) {
-                    if (i > 0) prefix << "/";
-                    prefix << urldecode(parts[i]);
-                }
-                iiif_str_params[IIIF_PREFIX] = prefix.str(); // includes starting "/"!
+            else if (tmpstr == "file") {
+                send_iiif_blob(conn, lua, iiif_str_params);
             } else {
-                iiif_str_params[IIIF_PREFIX] = "";
+                send_iiif_special(conn, lua, iiif_str_params, special_requests[tmpstr]);
             }
-            send_iiif_blob(conn, lua, iiif_str_params);
-            return;
-        } else {
+        }
+        else {
             // {scheme}://{server}/{pre/fix/...}/{identifier}"
             // -> redirect to {scheme}://{server}/{pre/fix}/{identifier}/info.json
             partspos = parts.size() - 1; // position before "info.json" which is last
@@ -330,6 +324,7 @@ namespace cserve {
         std::vector<RouteInfo> routes = {
                 RouteInfo("GET:/iiif:C++"),
         };
+        std::vector<std::string> iiif_specials;
         conf.add_config(_name, "routes",routes, "Route for iiifhandler");
         conf.add_config(_name, "imgroot", "./imgroot", "Root directory containing the images for the IIIF server.");
         conf.add_config(_name, "max_tmp_age", 86400, "The maximum allowed age of temporary files (in seconds) before they are deleted.");
@@ -348,6 +343,7 @@ namespace cserve {
         conf.add_config(_name, "j2k_scaling_quality", "high", "Scaling quality for J2K images [Default: \"high\"]");
         conf.add_config(_name, "iiif_max_width", 0, "Maximal image width delivered by IIIF [Default: 0 (no limit)]");
         conf.add_config(_name, "iiif_max_height", 0, "Maximal image height delivered by IIIF [Default: 0 (no limit)]");
+        conf.add_config(_name, "iiif_specials", iiif_specials, "Special extensions to IIIF URL");
     }
 
     static ScalingMethod get_scaling_quality(const CserverConf &conf, const std::string &format, const std::string &def) {
@@ -378,6 +374,8 @@ namespace cserve {
         _scaling_quality.png = get_scaling_quality(conf, "j2k_scaling_quality", "high");
         _iiif_max_image_width = conf.get_int("iiif_max_width").value_or(0);
         _iiif_max_image_height = conf.get_int("iiif_max_height").value_or(0);
+        std::vector<std::string> vv{"--$$$$$$$$$$$$$$$$$$$$$--"};
+        _iiif_specials = conf.get_stringvec("iiif_specials").value_or(vv);
         try {
             _cache = std::make_shared<IIIFCache>(_cachedir, _cache_size.as_size_t(), _max_num_chache_files, _cache_hysteresis);
         }
@@ -432,6 +430,19 @@ namespace cserve {
 
         lua_pushstring(L, "thumbsize");
         lua_pushstring(L, _thumbnail_size.c_str());
+        lua_rawset(L, -3); // table1
+
+        lua_pushstring(L, "iiif_specials");
+        lua_createtable(L, _iiif_specials.size(), 0);
+        int index = 1;
+        for (const auto &special: _iiif_specials) {
+            std::vector<std::string> tmp = split(special, '=');
+            if (tmp.size() == 2) {
+                lua_pushstring(L, tmp[0].c_str());
+                lua_pushstring(L, tmp[1].c_str());
+                lua_rawset(L, -3); // table1
+            }
+        }
         lua_rawset(L, -3); // table1
 
         lua_setglobal(L, _name.c_str());

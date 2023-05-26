@@ -45,6 +45,7 @@ namespace cserve {
         std::string _cachedir;
         std::string _iiif_preflight_funcname;
         std::string _file_preflight_funcname;
+        std::vector<std::string> _iiif_specials;
         int _max_tmp_age;
         bool _prefix_as_path;
         DataSize _cache_size;
@@ -67,6 +68,12 @@ namespace cserve {
         [[nodiscard]]
         const std::string& name() const override;
 
+        /*!
+         *
+         * @param conn Reference to the connection object (see ....)
+         * @param lua The Lua interpreter
+         * @param route
+         */
         void handler(Connection& conn, LuaServer &lua, const std::string &route) override;
 
         void set_config_variables(CserverConf &conf) override;
@@ -94,6 +101,11 @@ namespace cserve {
         void send_iiif_file(Connection &conn_obj, LuaServer &luaserver, const std::unordered_map<Parts,std::string> &params) const;
 
         void send_iiif_blob(Connection &conn_obj, LuaServer &luaserver, const std::unordered_map<Parts,std::string> &params) const;
+
+        void send_iiif_special(Connection &conn_obj,
+                               LuaServer &luaserver,
+                               const std::unordered_map<Parts,std::string> &params,
+                               const std::string &lua_function_name) const;
 
         inline std::shared_ptr<IIIFCache> cache() const { return _cache; }
 

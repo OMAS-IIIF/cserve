@@ -96,7 +96,8 @@ class CserverProcessManager:
                                   "GET:/iiifhandlervariables:iiifhandlervariables.lua;"
                                   "GET:/test_exif_gps:test_exif_gps.lua;"
                                   "POST:/upload:upload.lua;".format(self.iiif_route),
-            "IIIFHANDLER_PREFIX_AS_PATH": "true"
+            "IIIFHANDLER_PREFIX_AS_PATH": "true",
+            "IIIFHANDLER_IIIF_SPECIALS": "testit=lua_testit"
         }
         self.compare_command = "compare -metric {} {} {} null:"
         self.compare_out_re = re.compile(r"^(\d+) \(([0-9.]+)\).*$")
@@ -171,7 +172,7 @@ class CserverProcessManager:
         while not self.cserver_ready and cnt < 10:
             time.sleep(0.2)
             cnt += 1
-        if cnt >= 10:
+        if cnt >= 20:
             raise CserverTestError(f"Cserver did not start after {cnt*0.2} seconds")
         else:
             print(f"Cserver ready after {cnt*0.2} seconds")

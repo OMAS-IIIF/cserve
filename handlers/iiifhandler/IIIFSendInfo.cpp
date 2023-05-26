@@ -247,9 +247,6 @@ namespace cserve {
         }
 
         std::string json_str = root_obj.dump(3);
-        std::cerr << "&&**" << std::endl;
-        std::cerr << json_str << std::endl;
-        std::cerr << "&&!!" << std::endl;
         conn.sendAndFlush(json_str.c_str(), json_str.size());
    };
 }

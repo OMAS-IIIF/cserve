@@ -24,7 +24,8 @@ class TestBasic:
                 'max_num_cache_files': 200,
                 'max_tmp_age': 86400,
                 'prefix_as_path': True,
-                'thumbsize': '!128,128'
+                'thumbsize': '!128,128',
+                'iiif_specials': {'testit': 'lua_testit'}
             },
             'status': 'OK'
         }
@@ -95,6 +96,26 @@ class TestBasic:
         }
         response = manager.get("test_01.tif")
         assert response.json() == expected_response
+
+    def test_iiif_specials(self, manager):
+        expected_response = {
+            "status": "OK",
+            "result": {
+                "cookie": "",
+                "identifier": "test_01.tif",
+                "prefix": "",
+                "status": "ok",
+                "test": {
+                    "a": "a",
+                    "b": "b",
+                    "pi": 3.141590118408203
+                },
+                "zz": ["XXX", "YYY", 3.141590118408203, 42]
+            }
+        }
+        response = manager.get("test_01.tif/testit")
+        assert response.json() == expected_response
+
 
     def test_iiif_restricted(self, manager):
         """return restricted size"""

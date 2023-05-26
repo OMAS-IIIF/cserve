@@ -118,8 +118,8 @@ TEST_CASE("Image tests", "PNG") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb8.png", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/png_rgb8.png scratch/png_rgb8.png scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/png_rgb8.png scratch/png_rgb8.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/png_rgb8.png");
         std::filesystem::remove("scratch/out.png");
     }
@@ -145,8 +145,8 @@ TEST_CASE("Image tests", "PNG") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb8_alpha.png", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/png_rgb8_alpha.png scratch/png_rgb8_alpha.png scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/png_rgb8_alpha.png scratch/png_rgb8_alpha.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/png_rgb8_alpha.png");
         std::filesystem::remove("scratch/out.png");
     }
@@ -172,8 +172,8 @@ TEST_CASE("Image tests", "PNG") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb16.png", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/png_rgb16.png scratch/png_rgb16.png scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/png_rgb16.png scratch/png_rgb16.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/png_rgb16.png");
         std::filesystem::remove("scratch/out.png");
     }
@@ -199,8 +199,8 @@ TEST_CASE("Image tests", "PNG") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb16_alpha.png", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/png_rgb16_alpha.png scratch/png_rgb16_alpha.png scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/png_rgb16_alpha.png scratch/png_rgb16_alpha.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/png_rgb16_alpha.png");
         std::filesystem::remove("scratch/out.png");
     }
@@ -226,8 +226,8 @@ TEST_CASE("Image tests", "PNG") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(pngio.write(img, "scratch/png_palette8.png", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/png_palette8.png scratch/png_palette8.png scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/png_palette8.png scratch/png_palette8.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/png_palette8.png");
         std::filesystem::remove("scratch/out.png");
     }
@@ -260,8 +260,8 @@ TEST_CASE("Image tests", "PNG") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(pngio.write(img, "scratch/png_rgb8_icc_es.png", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/png_rgb8_icc_es.png scratch/png_rgb8_icc_es.png scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/png_rgb8_icc_es.png scratch/png_rgb8_icc_es.png scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/png_rgb8_icc_es.png");
         std::filesystem::remove("scratch/out.png");
     }
@@ -282,8 +282,8 @@ TEST_CASE("Image tests", "PNG") {
 
         cserve::IIIFCompressionParams compression;
         REQUIRE_NOTHROW(tiffio.write(img, "scratch/mario.tif", compression));
-        auto res = Command::exec("compare -quiet -metric mae data/mario.tif scratch/mario.tif scratch/out.png 2>&1");
-        REQUIRE(res == CommandResult{"0 (0)", 0});
+        auto res = Command::exec("compare -quiet -metric ae data/mario.tif scratch/mario.tif scratch/out.png 2>&1");
+        REQUIRE(res == CommandResult{"0", 0});
         std::filesystem::remove("scratch/mario.tif");
     }
 

@@ -13,6 +13,7 @@
 #define CSERVER_CONFVALUE_H
 
 #include <string>
+#include <vector>
 #include <optional>
 #include <utility>
 
@@ -56,7 +57,7 @@ namespace cserve {
     class ConfValue {
     public:
         enum DataType {
-            BOOL, INTEGER, FLOAT, STRING, DATASIZE, LOGLEVEL, LUAROUTES
+            BOOL, INTEGER, FLOAT, STRING, STRINGVEC, DATASIZE, LOGLEVEL, LUAROUTES
         };
     private:
         std::string _prefix;
@@ -65,6 +66,7 @@ namespace cserve {
         int _int_value{};
         float _float_value{};
         std::string _string_value{};
+        std::vector<std::string> _stringvec_value{};
         DataSize _datasize_value{};
         spdlog::level::level_enum _loglevel_value{};
         std::vector<std::string> _luaroutes_value{};
@@ -92,6 +94,10 @@ namespace cserve {
                   std::string envname,
                   const std::shared_ptr<CLI::App> &app);
 
+        ConfValue(std::string prefix, std::string optionname, std::vector<std::string> strvec, std::string description,
+                  std::string envname,
+                  const std::shared_ptr<CLI::App> &app);
+
         ConfValue(std::string prefix, std::string optionname, const DataSize &ds, std::string description,
                   std::string envname,
                   const std::shared_ptr<CLI::App> &app);
@@ -106,7 +112,7 @@ namespace cserve {
 
         inline ConfValue(const ConfValue &cv)
                 : _prefix(cv._prefix), _value_type(cv._value_type), _int_value(cv._int_value), _float_value(cv._float_value),
-                  _string_value(cv._string_value),
+                  _string_value(cv._string_value), _stringvec_value(cv._stringvec_value),
                   _datasize_value(cv._datasize_value), _loglevel_value(cv._loglevel_value),
                   _luaroutes_value(cv._luaroutes_value), _description(cv._description), _envname(cv._envname) {}
 
@@ -117,6 +123,7 @@ namespace cserve {
             _int_value = cv._int_value;
             _float_value = cv._float_value;
             _string_value = cv._string_value;
+            _stringvec_value = cv._stringvec_value;
             _datasize_value = cv._datasize_value;
             _loglevel_value = cv._loglevel_value;
             _luaroutes_value = cv._luaroutes_value;
@@ -161,6 +168,15 @@ namespace cserve {
         [[nodiscard]] inline std::optional<std::string> get_string() const {
             if (_value_type == STRING) {
                 return _string_value;
+            }
+            else {
+                return {};
+            }
+        }
+
+        [[nodiscard]] inline std::optional<std::vector<std::string>> get_stringvec() const {
+            if (_value_type == STRINGVEC) {
+                return _stringvec_value;
             }
             else {
                 return {};
@@ -214,6 +230,7 @@ namespace cserve {
                     tmp_str_vec = _luaroutes_value;
                 }
                 std::vector<RouteInfo> routes{};
+                routes.reserve(tmp_str_vec.size());
                 for (auto& rstr: tmp_str_vec) {
                     routes.emplace_back(rstr);
                 }
@@ -242,6 +259,11 @@ namespace cserve {
         inline void set_value(const std::string &strval) {
             _string_value = strval;
             _value_type = STRING;
+        }
+
+        inline void set_value(const std::vector<std::string> &strvecval) {
+            _stringvec_value = strvecval;
+            _value_type = STRINGVEC;
         }
 
         inline void set_value(const DataSize &dsval) {

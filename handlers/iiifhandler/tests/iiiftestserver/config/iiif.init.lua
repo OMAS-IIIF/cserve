@@ -36,3 +36,18 @@ function file_preflight(filepath, cookie)
         return "allow", filepath
     end
 end
+
+function lua_testit(prefix, identifier, cookie)
+    return {
+        status = 'ok',
+        prefix = prefix,
+        identifier = identifier,
+        cookie = cookie,
+        test = {
+            a = 'a',
+            b = 'b',
+            pi = 3.14159
+        },
+        zz = {"XXX", "YYY", 3.14159, 42}
+    }
+end
