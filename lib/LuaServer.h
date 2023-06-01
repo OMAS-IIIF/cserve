@@ -15,6 +15,7 @@
 #include <iostream>
 #include <vector>
 #include <variant>
+#include <optional>
 #include <map>
 #include <unordered_map>
 #include <variant>

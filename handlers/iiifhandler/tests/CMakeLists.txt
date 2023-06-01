@@ -139,7 +139,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
-    target_link_libraries(metadata_tests lcms2 rt)
+	target_link_libraries(metadata_tests PRIVATE lcms2 rt)
 endif()
 
 add_test(NAME metadata_tests
@@ -211,7 +211,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
-    target_link_libraries(tiff_tests lcms2 rt)
+	target_link_libraries(tiff_tests PRIVATE lcms2 rt)
 endif()
 
 add_test(NAME tiff_tests COMMAND tiff_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -263,7 +263,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
-    target_link_libraries(png_tests lcms2 rt)
+	target_link_libraries(png_tests PRIVATE lcms2 rt)
 endif()
 
 add_test(NAME png_tests COMMAND png_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -314,7 +314,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
-    target_link_libraries(jpeg_tests lcms2 rt)
+	target_link_libraries(jpeg_tests  PRIVATE lcms2 rt)
 endif()
 
 add_test(NAME jpeg_tests COMMAND jpeg_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -365,7 +365,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
-    target_link_libraries(j2k_tests lcms2 rt)
+	target_link_libraries(j2k_tests PRIVATE lcms2 rt)
 endif()
 
 add_test(NAME j2k_tests COMMAND j2k_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

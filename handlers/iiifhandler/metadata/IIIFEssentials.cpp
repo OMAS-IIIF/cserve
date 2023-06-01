@@ -17,6 +17,7 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
+#include <memory>
 
 #include "Error.h"
 #include "IIIFEssentials.h"

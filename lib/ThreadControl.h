@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <thread>
+#include <memory>
 #include <pthread.h> //for threading , link with lpthread
 //#include <thread>
 #include <utility>

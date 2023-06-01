@@ -3,6 +3,7 @@
 //
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 
 #include "Error.h"
 #include "HttpHelpers.h"

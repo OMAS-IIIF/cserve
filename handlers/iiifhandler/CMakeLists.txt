@@ -17,7 +17,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
     else()
         SET(KDU_MAKE "Makefile-MAC-arm-${BITS}-gcc")
         SET(KDU_ARCH "Mac-arm-${BITS}-gcc")
-        SET(KDU_EXEC_PLATFORM "Mac-arm-64-gcc")
     endif()
     SET(LUA_ARCH "macosx")
     # ToDo: shouldn't this be also set on the mac through FindOpenSSL?
@@ -101,6 +100,7 @@ add_subdirectory(ext/tiff)
 add_subdirectory(ext/png)
 add_subdirectory(ext/expat)
 add_subdirectory(ext/gettext)
+add_subdirectory(ext/iconv)
 add_subdirectory(ext/exiv2)
 add_subdirectory(ext/lcms2)
 add_subdirectory(ext/kakadu)
@@ -149,6 +149,7 @@ add_dependencies(iiifhandler
         png
         expat
         gettext
+        iconv
         exiv2
         lcms2
         lerc
@@ -186,7 +187,6 @@ target_link_libraries(iiifhandler PRIVATE
         expat
         lcms2
         iconv
-        gettext_intl
         xz
         zlib
         zstd
@@ -197,10 +197,11 @@ target_link_libraries(iiifhandler PRIVATE
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(iiifhandler PRIVATE
+            gettext_intl
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
-    target_link_libraries(iiifhandler lcms2 rt)
+	target_link_libraries(iiifhandler PRIVATE lcms2 rt)
 endif()
 
 

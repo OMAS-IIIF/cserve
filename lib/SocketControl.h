@@ -20,6 +20,9 @@
 #include <csignal>
 #include <iostream>
 #include <cstring>
+#include <memory>
+#include <functional>
+#include <optional>
 
 #include <sys/types.h>
 #include <sys/socket.h>

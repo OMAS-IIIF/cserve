@@ -16,7 +16,7 @@
 #include <cstring>      // Needed for memset
 #include <chrono>
 #include <cerrno>
-
+#include <vector>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
@@ -3091,8 +3091,8 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
  * @param variable Variable name (which must be a table/array)
  * @return Vector of table entries
  */
-    std::__1::vector<std::string> cserve::LuaServer::configStringList(const std::string& table, const std::string& variable) {
-        std::__1::vector<std::string> strings;
+    std::vector<std::string> cserve::LuaServer::configStringList(const std::string& table, const std::string& variable) {
+        std::vector<std::string> strings;
         if (lua_getglobal(L, table.c_str()) != LUA_TTABLE) {
             lua_pop(L, 1);
             return strings;
@@ -3131,11 +3131,11 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
  * @param variable Variable name (which must be a table with key value pairs)
  * @return Map of key-value pairs
  */
-    std::__1::map<std::string,std::string> cserve::LuaServer::configStringTable(
+    std::map<std::string,std::string> cserve::LuaServer::configStringTable(
             const std::string &table,
             const std::string &variable,
-            const std::__1::map<std::string,std::string> &defval) {
-        std::__1::map<std::string,std::string> subtable;
+            const std::map<std::string,std::string> &defval) {
+        std::map<std::string,std::string> subtable;
 
         int top = lua_gettop(L);
 
