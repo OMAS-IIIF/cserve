@@ -79,7 +79,6 @@ target_link_libraries(iiifparser_tests PRIVATE
         kdu_aux
         expat
         lcms2
-        iconv
         gettext_intl
         zlib
         zstd
@@ -131,6 +130,7 @@ target_link_libraries(metadata_tests PRIVATE
         zstd
         sharpyuv
         deflate
+        iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -203,6 +203,7 @@ target_link_libraries(tiff_tests PRIVATE
         zstd
         sharpyuv
         deflate
+        iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -255,6 +256,7 @@ target_link_libraries(png_tests PRIVATE
         zstd
         sharpyuv
         deflate
+        iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -306,6 +308,7 @@ target_link_libraries(jpeg_tests PRIVATE
         zstd
         deflate
         sharpyuv
+        iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 

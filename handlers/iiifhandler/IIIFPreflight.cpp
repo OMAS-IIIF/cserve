@@ -20,19 +20,19 @@ namespace cserve {
         // std::string infile;
 
         // The paramters to be passed to the pre-flight function.
-        std::vector<LuaValstruct> lvals;
+        std::vector<std::shared_ptr<LuaValstruct>> lvals;
 
         // The first parameter is the IIIF prefix.
-        lvals.emplace_back(prefix);
+        lvals.push_back(std::make_shared<LuaValstruct>(prefix));
 
         // The second parameter is the IIIF identifier.
-        lvals.emplace_back(identifier);
+        lvals.push_back(std::make_shared<LuaValstruct>(identifier));
 
         // The third parameter is the HTTP cookie.
-        lvals.emplace_back(conn_obj.header("cookie"));
+        lvals.push_back(std::make_shared<LuaValstruct>(conn_obj.header("cookie")));
 
         // Call the pre-flight function.
-        std::vector<LuaValstruct> rvals = luaserver.executeLuafunction(_iiif_preflight_funcname, lvals);
+        std::vector<std::shared_ptr<LuaValstruct>> rvals = luaserver.executeLuafunction(_iiif_preflight_funcname, lvals);
 
         // If it returned nothing, that's an error.
         if (rvals.empty()) {
@@ -43,15 +43,15 @@ namespace cserve {
         auto permission_return_val = rvals.at(0);
 
         // The permission code must be a string.
-        if (permission_return_val.get_type() == LuaValstruct::STRING_TYPE) {
-            preflight_info["type"] = permission_return_val.get_string().value();
-        } else if (permission_return_val.get_type() == LuaValstruct::TABLE_TYPE) {
+        if (permission_return_val->get_type() == LuaValstruct::STRING_TYPE) {
+            preflight_info["type"] = permission_return_val->get_string().value();
+        } else if (permission_return_val->get_type() == LuaValstruct::TABLE_TYPE) {
             try {
-                std::unordered_map<std::string, LuaValstruct> tmpmap(permission_return_val.get_table().value());
-                preflight_info["type"] = tmpmap.at("type").get_string().value();
+                std::unordered_map<std::string, std::shared_ptr<LuaValstruct>> tmpmap(permission_return_val->get_table().value());
+                preflight_info["type"] = tmpmap.at("type")->get_string().value();
                 for (const auto &[key, val]: tmpmap) {
                     if (key == "type") continue;
-                    preflight_info[key] = val.get_string().value();
+                    preflight_info[key] = val->get_string().value();
                 }
             }
             catch (const std::bad_optional_access &err) {
@@ -87,7 +87,7 @@ namespace cserve {
             // The file path must exist and be a string.
             try {
                 auto infile_return_val = rvals.at(1);
-                preflight_info["infile"] = infile_return_val.get_string().value();
+                preflight_info["infile"] = infile_return_val->get_string().value();
             }
             catch (const std::bad_optional_access &err) {
                 throw IIIFError(file_, __LINE__,fmt::format("The file path returned by Lua function  '{}'  was not a string", _iiif_preflight_funcname));
@@ -110,16 +110,16 @@ namespace cserve {
         // std::string infile;
 
         // The paramters to be passed to the pre-flight function.
-        std::vector<LuaValstruct> lvals;
+        std::vector<std::shared_ptr<LuaValstruct>> lvals;
 
         // The first parameter is the filepath.
-        lvals.emplace_back(filepath);
+        lvals.push_back(std::make_shared<LuaValstruct>(filepath));
 
         // The second parameter is the HTTP cookie.
-        lvals.emplace_back(conn_obj.header("cookie"));
+        lvals.push_back(std::make_shared<LuaValstruct>(conn_obj.header("cookie")));
 
         // Call the pre-flight function.
-        std::vector<LuaValstruct> rvals = luaserver.executeLuafunction(_file_preflight_funcname, lvals);
+        std::vector<std::shared_ptr<LuaValstruct>> rvals = luaserver.executeLuafunction(_file_preflight_funcname, lvals);
 
         // If it returned nothing, that's an error.
         if (rvals.empty()) {
@@ -130,15 +130,15 @@ namespace cserve {
         auto permission_return_val = rvals.at(0);
 
         // The permission code must be a string or a table.
-        if (permission_return_val.get_type() == LuaValstruct::STRING_TYPE) {
-            preflight_info["type"] = permission_return_val.get_string().value();
-        } else if (permission_return_val.get_type() == LuaValstruct::TABLE_TYPE) {
+        if (permission_return_val->get_type() == LuaValstruct::STRING_TYPE) {
+            preflight_info["type"] = permission_return_val->get_string().value();
+        } else if (permission_return_val->get_type() == LuaValstruct::TABLE_TYPE) {
             try {
-                std::unordered_map<std::string, LuaValstruct> tmpmap(permission_return_val.get_table().value());
-                preflight_info["type"] = tmpmap.at("type").get_string().value();
+                std::unordered_map<std::string, std::shared_ptr<LuaValstruct>> tmpmap(permission_return_val->get_table().value());
+                preflight_info["type"] = tmpmap.at("type")->get_string().value();
                 for (const auto &[key, val]: tmpmap) {
                     if (key == "type") continue;
-                    preflight_info[key] = val.get_string().value();
+                    preflight_info[key] = val->get_string().value();
                 }
             }
             catch (const std::bad_optional_access &err) {
@@ -168,7 +168,7 @@ namespace cserve {
             // The file path must be a string.
             try {
                 auto infile_return_val = rvals.at(1);
-                preflight_info["infile"] = infile_return_val.get_string().value();
+                preflight_info["infile"] = infile_return_val->get_string().value();
             }
             catch (const std::bad_optional_access &err) {
                 throw IIIFError(file_, __LINE__,fmt::format("The file path returned by Lua function  '{}'  was not a string", _iiif_preflight_funcname));

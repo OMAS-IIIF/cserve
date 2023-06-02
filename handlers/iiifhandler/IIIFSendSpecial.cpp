@@ -14,20 +14,20 @@ namespace cserve {
                                      const std::string &lua_function_name) const {
         IIIFIdentifier sid{urldecode(params.at(IIIF_IDENTIFIER))};
 
-        std::vector<LuaValstruct> rvals;
+        std::vector<std::shared_ptr<LuaValstruct>> rvals;
         nlohmann::json result;
         if (luaserver.luaFunctionExists(lua_function_name)) {
             // The paramters to be passed to the pre-flight function.
-            std::vector<LuaValstruct> lvals;
+            std::vector<std::shared_ptr<LuaValstruct>> lvals;
 
             // The first parameter is the IIIF prefix.
-            lvals.emplace_back(params.at(IIIF_PREFIX));
+            lvals.push_back(std::make_shared<LuaValstruct>(params.at(IIIF_PREFIX)));
 
             // The second parameter is the IIIF identifier.
-            lvals.emplace_back(sid.get_identifier());
+            lvals.push_back(std::make_shared<LuaValstruct>(sid.get_identifier()));
 
             // The third parameter is the HTTP cookie.
-            lvals.emplace_back(conn.header("cookie"));
+            lvals.push_back(std::make_shared<LuaValstruct>(conn.header("cookie")));
 
             try {
                 rvals = luaserver.executeLuafunction(lua_function_name, lvals);
@@ -41,7 +41,7 @@ namespace cserve {
         }
         if (result.empty()) {
             result["status"] = "OK";
-            result["result"] = rvals[0].get_json();
+            result["result"] = rvals[0]->get_json();
         }
         std::string json_str = result.dump(3);
 

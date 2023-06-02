@@ -100,7 +100,6 @@ add_subdirectory(ext/tiff)
 add_subdirectory(ext/png)
 add_subdirectory(ext/expat)
 add_subdirectory(ext/gettext)
-add_subdirectory(ext/iconv)
 add_subdirectory(ext/exiv2)
 add_subdirectory(ext/lcms2)
 add_subdirectory(ext/kakadu)
@@ -149,7 +148,6 @@ add_dependencies(iiifhandler
         png
         expat
         gettext
-        iconv
         exiv2
         lcms2
         lerc
@@ -164,6 +162,7 @@ set_target_properties(iiifhandler PROPERTIES PREFIX "")
 
 target_link_libraries(iiifhandler PRIVATE
         cserve
+        iconv
         fmt
         magic
         lua

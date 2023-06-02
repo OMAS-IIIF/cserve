@@ -3501,14 +3501,14 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                 case ARRAY_TYPE: {
                     std::vector<nlohmann::json> jv;
                     for (const auto &ele: array) {
-                        jv.push_back(ele.get_json());
+                        jv.push_back(ele->get_json());
                     }
                     jsonobj = jv;
                     break;
                 }
                 case TABLE_TYPE: {
                     for (const auto &[key, val]: table) {
-                        jsonobj[key] = val.get_json();
+                        jsonobj[key] = val->get_json();
                     }
                     break;
                 }
@@ -3516,18 +3516,18 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         return jsonobj;
     }
 
-    static LuaValstruct getLuaValue(lua_State *L, int index, const std::string &funcname) {
-        LuaValstruct tmplv;
+    static std::shared_ptr<LuaValstruct> getLuaValue(lua_State *L, int index, const std::string &funcname) {
+        std::shared_ptr<LuaValstruct> tmplv;
         // IMPORTANT NOTE: lua_isstring and lua_isnumber do not check the type, but if the
         // value is convertible in a string or a number. Therefore we first have to perform all
         // other checks!
         if (lua_isinteger(L, index)) {
-            tmplv = LuaValstruct(static_cast<int>(lua_tointeger(L, index)));
+            tmplv = std::make_shared<LuaValstruct>(static_cast<int>(lua_tointeger(L, index)));
         } else if (lua_isboolean(L, index)) {
-            tmplv = LuaValstruct(static_cast<bool>(lua_toboolean(L, index)));
+            tmplv = std::make_shared<LuaValstruct>(static_cast<bool>(lua_toboolean(L, index)));
         } else if (lua_istable(L, index)) {
             std::vector<std::string> keys;
-            std::vector<LuaValstruct> values;
+            std::vector<std::shared_ptr<LuaValstruct>> values;
             lua_pushnil(L);  /* first key */
             int aindex = 1;
             bool is_array = true;
@@ -3552,14 +3552,14 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                 ++aindex;
             }
             if (is_array) {
-                tmplv = LuaValstruct(values);
+                tmplv = std::make_shared<LuaValstruct>(values);
             }
             else {
-                std::unordered_map<std::string, LuaValstruct> table;
+                std::unordered_map<std::string, std::shared_ptr<LuaValstruct>> table;
                 for (int i = 0; i < keys.size(); ++i) {
                     table[keys[i]] = values[i];
                 }
-                tmplv = LuaValstruct(table);
+                tmplv = std::make_shared<LuaValstruct>(table);
             }
         } else if (lua_isnil(L, index)) {
             std::string luaTypeName = std::string(lua_typename(L, index));
@@ -3568,9 +3568,9 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             std::string errorMsg = errStream.str();
             throw Error(file_, __LINE__, errorMsg);
         } else if (lua_isnumber(L, index)) {
-            tmplv = LuaValstruct(static_cast<float>(lua_tonumber(L, index)));
+            tmplv = std::make_shared<LuaValstruct>(static_cast<float>(lua_tonumber(L, index)));
         } else if (lua_isstring(L, index)) {
-            tmplv = LuaValstruct(std::string(lua_tostring(L, index)));
+            tmplv = std::make_shared<LuaValstruct>(std::string(lua_tostring(L, index)));
         } else {
             std::string luaTypeName = std::string(lua_typename(L, index));
             std::ostringstream errMsg;
@@ -3581,30 +3581,30 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         return tmplv;
     }
 
-    static void pushLuaValue(lua_State *L, const LuaValstruct& lv) {
+    static void pushLuaValue(lua_State *L, const std::shared_ptr<LuaValstruct>& lv) {
         try {
-            switch (lv.get_type()) {
+            switch (lv->get_type()) {
                 case LuaValstruct::UNDEFINED_TYPE:
                     lua_pushnil(L);
                     break;
                 case LuaValstruct::INT_TYPE: {
-                    lua_pushinteger(L, lv.get_int().value());
+                    lua_pushinteger(L, lv->get_int().value());
                     break;
                 }
                 case LuaValstruct::FLOAT_TYPE: {
-                    lua_pushnumber(L, lv.get_float().value());
+                    lua_pushnumber(L, lv->get_float().value());
                     break;
                 }
                 case LuaValstruct::STRING_TYPE: {
-                    lua_pushstring(L, lv.get_string().value().c_str());
+                    lua_pushstring(L, lv->get_string().value().c_str());
                     break;
                 }
                 case LuaValstruct::BOOLEAN_TYPE: {
-                    lua_pushboolean(L, lv.get_boolean().value());
+                    lua_pushboolean(L, lv->get_boolean().value());
                     break;
                 }
                 case LuaValstruct::ARRAY_TYPE: {
-                    std::vector<LuaValstruct> v = lv.get_array().value();
+                    std::vector<std::shared_ptr<LuaValstruct>> v = lv->get_array().value();
                     int index = 1;
                     lua_createtable(L, 0, static_cast<int>(v.size()));
                     for (const auto &ele: v) {
@@ -3617,7 +3617,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                     break;
                 }
                 case LuaValstruct::TABLE_TYPE: {
-                    std::unordered_map<std::string, LuaValstruct> m = lv.get_table().value();
+                    std::unordered_map<std::string, std::shared_ptr<LuaValstruct>> m = lv->get_table().value();
                     lua_createtable(L, 0, static_cast<int>(m.size()));
                     for (const auto &[key, val]: m) {
                         lua_pushstring(L, key.c_str());
@@ -3633,8 +3633,8 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
     }
 
-    std::vector<LuaValstruct>
-    LuaServer::executeLuafunction(const std::string &funcname, const std::vector<LuaValstruct> &lvs) {
+    std::vector<std::shared_ptr<LuaValstruct>>
+    LuaServer::executeLuafunction(const std::string &funcname, const std::vector<std::shared_ptr<LuaValstruct>> &lvs) {
         if (lua_getglobal(L, funcname.c_str()) != LUA_TFUNCTION) {
             lua_settop(L, 0); // clear stack
             std::ostringstream errMsg;
@@ -3655,7 +3655,7 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         }
 
         int top = lua_gettop(L);
-        std::vector<LuaValstruct> retval;
+        std::vector<std::shared_ptr<LuaValstruct>> retval;
         for (int i = 1; i <= top; i++) {
             retval.push_back(getLuaValue(L, i, funcname));
         }

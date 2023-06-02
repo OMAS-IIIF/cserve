@@ -13,6 +13,7 @@
 #define _cserve_lua_server_h
 
 #include <iostream>
+#include <memory>
 #include <vector>
 #include <variant>
 #include <optional>
@@ -52,8 +53,8 @@ namespace cserve {
         float f;
         std::string s;
         bool b;
-        std::vector<LuaValstruct> array;
-        std::unordered_map<std::string, LuaValstruct> table;
+        std::vector<std::shared_ptr<LuaValstruct>> array;
+        std::unordered_map<std::string, std::shared_ptr<LuaValstruct>> table;
     public:
         /*!
          * Default constructor
@@ -88,13 +89,13 @@ namespace cserve {
          * Constructor for vector of LuaValstructs (aka "array")
          * @param v Vector of LuaValstructs
          */
-        explicit LuaValstruct(const std::vector<LuaValstruct> &v) : array(v), i(0), f(0.0F), b(false), type(ARRAY_TYPE) {}
+        explicit LuaValstruct(const std::vector<std::shared_ptr<LuaValstruct>> &v) : array(v), i(0), f(0.0F), b(false), type(ARRAY_TYPE) {}
 
         /*!
          * Constructor for table of LuaValstructs. Indices must be of std::string type!
          * @param table Unordered map of LuaValstructs
          */
-        explicit LuaValstruct(const std::unordered_map<std::string, LuaValstruct> &table) : table(table), i(0), f(0.0F), b(false), type(TABLE_TYPE) {}
+        explicit LuaValstruct(const std::unordered_map<std::string, std::shared_ptr<LuaValstruct>> &table) : table(table), i(0), f(0.0F), b(false), type(TABLE_TYPE) {}
 
         /*!
          * Copy constructor
@@ -162,13 +163,13 @@ namespace cserve {
          * Get an optional array aka std::vector
          * @return std::optional
          */
-        [[nodiscard]] auto get_array() const { return (type == ARRAY_TYPE) ? std::optional<std::vector<LuaValstruct>>{array} : std::nullopt; }
+        [[nodiscard]] auto get_array() const { return (type == ARRAY_TYPE) ? std::optional<std::vector<std::shared_ptr<LuaValstruct>>>{array} : std::nullopt; }
 
         /*!
          * Get an optional table aka std::unordered_map
          * @return std::optional
          */
-        [[nodiscard]] auto get_table() const { return (type == TABLE_TYPE) ? std::optional<std::unordered_map<std::string, LuaValstruct>>{table} : std::nullopt; }
+        [[nodiscard]] auto get_table() const { return (type == TABLE_TYPE) ? std::optional<std::unordered_map<std::string, std::shared_ptr<LuaValstruct>>>{table} : std::nullopt; }
 
         /*!
          * Return a nlohmann::json object representing the LuaValstruct
@@ -197,7 +198,7 @@ namespace cserve {
                 case ARRAY_TYPE: {
                     std::cerr << "&&++ " << level << " LuaValstruct:[" << std::endl;
                     for (const auto &ele: array) {
-                        ele.print(level + 1);
+                        ele->print(level + 1);
                     }
                     std::cerr << "]" << std::endl;
                     break;
@@ -206,7 +207,7 @@ namespace cserve {
                     std::cerr << "&&++ " << level << " LuaValstruct:{" << std::endl;
                     for (const auto &[key, val]: table) {
                         std::cerr << "&&++ " << level << " key = " << key << " ";
-                        val.print(level + 1);
+                        val->print(level + 1);
                     }
                     std::cerr << "}" << std::endl;
                     break;
@@ -359,7 +360,7 @@ namespace cserve {
          * \param[in] lvals vector of parameters to be passed to the function
          * \returns vector of LuaValstruct containing the result of the execution of the lua function
          */
-        [[maybe_unused]] std::vector<LuaValstruct> executeLuafunction(const std::string &funcname, const std::vector<LuaValstruct>& lvals);
+        std::vector<std::shared_ptr<LuaValstruct>> executeLuafunction(const std::string &funcname, const std::vector<std::shared_ptr<LuaValstruct>> &lvs);
 
         /*!
          * Executes a Lua function that either is defined in C or in Lua
@@ -368,7 +369,8 @@ namespace cserve {
          * \param[in] n Number of arguments
          * \returns true if function with given name exists
          */
-        [[maybe_unused]] bool luaFunctionExists(const std::string &funcname);
+        [[maybe_unused]]
+        bool luaFunctionExists(const std::string &funcname);
     };
 
 }
