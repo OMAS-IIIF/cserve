@@ -288,11 +288,3 @@ namespace cserve {
         lua_setglobal(L, _name.c_str());
     }
 }
-
-extern "C" cserve::FileHandler * create_filehandler() {
-    return new cserve::FileHandler();
-};
-
-extern "C" void destroy_filehandler(cserve::FileHandler *handler) {
-    delete handler;
-}

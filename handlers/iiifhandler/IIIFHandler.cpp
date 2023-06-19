@@ -450,11 +450,3 @@ namespace cserve {
         iiif_lua_globals(L, conn, *this);
     }
 }
-
-extern "C" [[maybe_unused]] cserve::IIIFHandler * create_iiifhandler() {
-    return new cserve::IIIFHandler();
-}
-
-extern "C" [[maybe_unused]] void destroy_iiifhandler(cserve::IIIFHandler *handler) {
-    delete handler;
-}

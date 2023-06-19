@@ -203,9 +203,12 @@ add_dependencies(cserver
         testhandler
         pinghandler
         scripthandler
-        filehandler
-        iiifhandler
-        )
+        filehandler)
+
+if(${IIIF_HANDLER})
+    add_dependencies(cserver
+            iiifhandler)
+endif()
 
 add_custom_command(TARGET cserver POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy

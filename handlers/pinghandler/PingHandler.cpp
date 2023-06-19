@@ -45,11 +45,3 @@ namespace cserve {
     }
 
 } // cserve
-
-extern "C" cserve::PingHandler * create_pinghandler() {
-    return new cserve::PingHandler();
-};
-
-extern "C" void destroy_pinghandler(cserve::PingHandler *handler) {
-    delete handler;
-}

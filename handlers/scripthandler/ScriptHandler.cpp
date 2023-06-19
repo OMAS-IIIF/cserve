@@ -157,13 +157,4 @@ namespace cserve {
         lua_rawset(L, -3); // table1
         lua_setglobal(L, _name.c_str());
     }
-
-}
-
-extern "C" cserve::ScriptHandler * create_scripthandler() {
-    return new cserve::ScriptHandler();
-};
-
-extern "C" void destroy_scripthandler(cserve::ScriptHandler *handler) {
-    delete handler;
 }

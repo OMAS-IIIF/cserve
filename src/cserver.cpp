@@ -101,22 +101,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    //
-    // load the plugin handlers (*.so files)
-    //
-    /*
-    std::filesystem::path handler_path(handlerdir);
-    for (const auto & entry : std::filesystem::directory_iterator(handler_path)) {
-        if (entry.is_regular_file() && (entry.path().extension() == ".so")) {
-            logger->info("Loading handler plugin \"{}\" ...", entry.path().string());
-            std::string handler_name =  entry.path().stem().string();
-            std::string allocator_symbol = "create_" + handler_name;
-            std::string deleter_symbol = "destroy_" + handler_name;
-            cserve::RequestHandlerLoader loader(entry.path(), allocator_symbol, deleter_symbol);
-            handlers[handler_name] = loader.get_instance();
-        }
-    }
-     */
     {
         auto testhandler = std::make_shared<cserve::TestHandler>();
         handlers[testhandler->name()] = testhandler;
