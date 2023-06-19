@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include "Cserve.h"
+#include "../../../lib/Cserve.h"
 #include "PingHandler.h"
 
 namespace cserve {

@@ -12,7 +12,6 @@
 #ifndef CSERVER_PINGHANDLER_H
 #define CSERVER_PINGHANDLER_H
 
-#include "PingHandler.h"
 #include "../../lib/RequestHandler.h"
 
 namespace cserve {

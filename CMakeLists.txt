@@ -14,6 +14,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 option(MAKE_SHARED_CSERVE "Create cserver using all shared libraries" OFF)
+option(IIIF_HANDLER "Add IIIF Handler" ON)
 
 set(COMMON_LOCAL ${CMAKE_BINARY_DIR}/local)
 set(COMMON_SRCS ${CMAKE_BINARY_DIR}/extsrcs)
@@ -126,7 +127,9 @@ add_subdirectory(handlers/testhandler)
 add_subdirectory(handlers/pinghandler)
 add_subdirectory(handlers/scripthandler)
 add_subdirectory(handlers/filehandler)
-add_subdirectory(handlers/iiifhandler)
+if(${IIIF_HANDLER})
+    add_subdirectory(handlers/iiifhandler)
+endif()
 
 
 link_directories(
@@ -146,6 +149,7 @@ configure_file(${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h.in ${COMMON_LIBRARY_F
 
 target_link_libraries(cserver
         cserve
+        fmt
         magic
         lua
         sqlite3
@@ -157,9 +161,34 @@ target_link_libraries(cserver
         zlib
         xz
         bzip2
+        testhandler
+        pinghandler
+        filehandler
+        scripthandler
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
+if(${IIIF_HANDLER})
+    target_link_libraries(cserver
+            iiifhandler
+            deflate
+            exiv2
+            expat
+            gettext
+            jbigkit
+            kdu
+            kdu_aux
+            lcms2
+            lerc
+            png
+            tiff
+            turbojpeg
+            webp
+            zstd
+            sharpyuv
+            iconv
+            )
+endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(cserver ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
@@ -175,7 +204,8 @@ add_dependencies(cserver
         pinghandler
         scripthandler
         filehandler
-        iiifhandler)
+        iiifhandler
+        )
 
 add_custom_command(TARGET cserver POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy

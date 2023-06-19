@@ -14,10 +14,10 @@
 #include <filesystem>
 
 #include <vector>
-#include "Cserve.h"
-#include "HttpSendError.h"
+#include "../../../lib/Cserve.h"
+#include "../../../lib/HttpSendError.h"
+#include "../../../lib/Parsing.h"
 #include "FileHandler.h"
-#include "Parsing.h"
 
 static const char file_[] = __FILE__;
 

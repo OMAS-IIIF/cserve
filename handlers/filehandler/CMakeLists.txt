@@ -24,41 +24,44 @@ include_directories(
         /usr/local/include
 )
 
-add_library(filehandler MODULE
-        FileHandler.cpp FileHandler.h )
-
-set_target_properties(filehandler PROPERTIES PREFIX "")
-
-target_link_libraries(filehandler PRIVATE
+add_library(filehandler STATIC
+        FileHandler.cpp FileHandler.h)
+add_dependencies(filehandler
         cserve
-        magic
-        lua
-        sqlite3
-        jwtcpp
-        spdlog
-        curl
-        ssl
-        crypto
-        zlib
-        xz
-        bzip2
-        Threads::Threads
-        ${CMAKE_DL_LIBS})
+        )
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(filehandler PRIVATE ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
-endif()
+#set_target_properties(filehandler PROPERTIES PREFIX "")
 
+#target_link_libraries(filehandler PRIVATE
+#        cserve
+#        magic
+#        lua
+#        sqlite3
+#        jwtcpp
+#        spdlog
+#        curl
+#        ssl
+#        crypto
+#        zlib
+#        xz
+#        bzip2
+#        Threads::Threads
+#        ${CMAKE_DL_LIBS})
 
-add_custom_command(TARGET filehandler POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:filehandler>
-        ${PROJECT_BINARY_DIR}/handler/$<TARGET_FILE_NAME:filehandler>)
-
-add_custom_command(TARGET filehandler POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:filehandler>
-        ${CMAKE_SOURCE_DIR}/serverroot/handler/$<TARGET_FILE_NAME:filehandler>)
+#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    target_link_libraries(filehandler PRIVATE ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
+#endif()
 
 
-install(TARGETS filehandler DESTINATION ${COMMON_LOCAL}/share/cserver/)
+#add_custom_command(TARGET filehandler POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy
+#        $<TARGET_FILE:filehandler>
+#        ${PROJECT_BINARY_DIR}/handler/$<TARGET_FILE_NAME:filehandler>)
+
+#add_custom_command(TARGET filehandler POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy
+#        $<TARGET_FILE:filehandler>
+#        ${CMAKE_SOURCE_DIR}/serverroot/handler/$<TARGET_FILE_NAME:filehandler>)
+
+
+#install(TARGETS filehandler DESTINATION ${COMMON_LOCAL}/share/cserver/)

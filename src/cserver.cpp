@@ -14,6 +14,13 @@
 
 #include "RequestHandlerLoader.h"
 
+#include "../handlers/testhandler/TestHandler.h"
+#include "../handlers/pinghandler/PingHandler.h"
+#include "../handlers/scripthandler/ScriptHandler.h"
+#include "../handlers/filehandler/FileHandler.h"
+#include "../handlers/iiifhandler/IIIFHandler.h"
+
+
 cserve::Server *serverptr = nullptr;
 
 static sig_t old_sighandler;
@@ -97,6 +104,7 @@ int main(int argc, char *argv[]) {
     //
     // load the plugin handlers (*.so files)
     //
+    /*
     std::filesystem::path handler_path(handlerdir);
     for (const auto & entry : std::filesystem::directory_iterator(handler_path)) {
         if (entry.is_regular_file() && (entry.path().extension() == ".so")) {
@@ -107,6 +115,23 @@ int main(int argc, char *argv[]) {
             cserve::RequestHandlerLoader loader(entry.path(), allocator_symbol, deleter_symbol);
             handlers[handler_name] = loader.get_instance();
         }
+    }
+     */
+    {
+        auto testhandler = std::make_shared<cserve::TestHandler>();
+        handlers[testhandler->name()] = testhandler;
+
+        auto pinghandler = std::make_shared<cserve::PingHandler>();
+        handlers[pinghandler->name()] = pinghandler;
+
+        auto filehandler = std::make_shared<cserve::FileHandler>();
+        handlers[filehandler->name()] = filehandler;
+
+        auto scripthandler = std::make_shared<cserve::ScriptHandler>();
+        handlers[scripthandler->name()] = scripthandler;
+
+        auto iiifhandler = std::make_shared<cserve::IIIFHandler>();
+        handlers[iiifhandler->name()] = iiifhandler;
     }
 
     //

@@ -17,7 +17,10 @@ ExternalProject_Add(
         URL https://github.com/gabime/spdlog/archive/refs/heads/v2.x.zip
         ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/spdlog-v2.x
-        CMAKE_ARGS -DCMAKE_PREFIX_PATH=${COMMON_LOCAL} -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL} -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}
+        CMAKE_ARGS
+        -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
+        -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
+        -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}
 )
 
 ExternalProject_Get_Property(project_spdlog install_dir)

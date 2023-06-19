@@ -49,8 +49,8 @@
 #include "SocketControl.h"
 
 #include "RequestHandlerData.h"
-
-#include "../handlers/filehandler/FileHandler.h"
+#include "RequestHandler.h"
+//#include "../handlers/filehandler/FileHandler.h"
 
 #include "lua.hpp"
 

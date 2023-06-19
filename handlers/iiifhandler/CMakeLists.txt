@@ -89,7 +89,6 @@ add_custom_target(icc_profiles
         DEPENDS ${GENERATED_ICC_HEADERS}
         )
 
-
 add_subdirectory(ext/lerc)
 add_subdirectory(ext/webp)
 add_subdirectory(ext/turbojpeg)
@@ -111,7 +110,7 @@ include_directories(
         /usr/local/include
 )
 
-add_library(iiifhandler MODULE
+add_library(iiifhandler STATIC
         IIIFHandler.cpp IIIFHandler.h
         IIIFError.cpp IIIFError.h
         IIIFSendInfo.cpp
@@ -142,6 +141,8 @@ add_library(iiifhandler MODULE
         IIIFPhotometricInterpretation.h IIIFGetCanonicalUrl.cpp imgformats/exif_tagmap.h IIIFSendSpecial.cpp)
 
 add_dependencies(iiifhandler
+        cserve
+        fmt
         icc_profiles
         turbojpeg
         tiff
@@ -157,65 +158,6 @@ add_dependencies(iiifhandler
         jbigkit
         deflate
         sharpyuv)
-
-set_target_properties(iiifhandler PROPERTIES PREFIX "")
-
-target_link_libraries(iiifhandler PRIVATE
-        cserve
-        iconv
-        fmt
-        magic
-        lua
-        sqlite3
-        jwtcpp
-        spdlog
-        curl
-        ssl
-        crypto
-        zlib
-        bzip2
-        exiv2
-        tiff
-        turbojpeg
-        png
-        webp
-        lerc
-        jbigkit
-        kdu
-        kdu_aux
-        expat
-        lcms2
-        iconv
-        xz
-        zlib
-        zstd
-        deflate
-        sharpyuv
-        Threads::Threads
-        ${CMAKE_DL_LIBS})
-
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(iiifhandler PRIVATE
-            gettext_intl
-            ${COREFOUNDATION_FRAMEWORK}
-            ${SYSTEMCONFIGURATION_FRAMEWORK})
-else()
-	target_link_libraries(iiifhandler PRIVATE lcms2 rt)
-endif()
-
-
-add_custom_command(TARGET iiifhandler POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:iiifhandler>
-        ${PROJECT_BINARY_DIR}/handler/$<TARGET_FILE_NAME:iiifhandler>)
-
-add_custom_command(TARGET iiifhandler POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:iiifhandler>
-        ${CMAKE_SOURCE_DIR}/serverroot/handler/$<TARGET_FILE_NAME:iiifhandler>)
-
-
-install(TARGETS iiifhandler DESTINATION ${COMMON_LOCAL}/share/cserver/)
 
 include(CTest)
 
