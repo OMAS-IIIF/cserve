@@ -2350,15 +2350,19 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
             level = static_cast<int>(lua_tointeger(L, 2));
         }
 
+        lua_Debug ldbg;
+        lua_getinfo(L, "S", &ldbg);
+
         if (!message.empty()) {
+            auto lmsg = fmt::format("LUA: {}: {}", ldbg.short_src, message);
             switch (level) {
-                case spdlog::level::trace: cserve::Server::logger()->trace(message); break;
-                case spdlog::level::debug: cserve::Server::logger()->debug(message); break;
-                case spdlog::level::info: cserve::Server::logger()->info(message); break;
-                case spdlog::level::warn: cserve::Server::logger()->warn(message); break;
-                case spdlog::level::err: cserve::Server::logger()->error(message); break;
-                case spdlog::level::critical: cserve::Server::logger()->critical(message); break;
-                default: cserve::Server::logger()->info(message);
+                case spdlog::level::trace: cserve::Server::logger()->trace(lmsg); break;
+                case spdlog::level::debug: cserve::Server::logger()->debug(lmsg); break;
+                case spdlog::level::info: cserve::Server::logger()->info(lmsg); break;
+                case spdlog::level::warn: cserve::Server::logger()->warn(lmsg); break;
+                case spdlog::level::err: cserve::Server::logger()->error(lmsg); break;
+                case spdlog::level::critical: cserve::Server::logger()->critical(lmsg); break;
+                default: cserve::Server::logger()->info(lmsg);
             }
         }
 

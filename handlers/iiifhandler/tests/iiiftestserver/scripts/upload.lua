@@ -3,6 +3,7 @@
 --- Created by rosenth.
 --- DateTime: 11.07.21 19:16
 ---
+---server.log
 require "send_response"
 
 
@@ -18,11 +19,14 @@ else
     protocol = 'http://'
 end
 
+server.log("upload.lua: Received upload request...", server.loglevel.info)
+
 files = {}
 for imgindex, fileinfo in pairs(server.uploads) do
     local mimetype, consistency
     success, consistency = server.file_mimeconsistency(imgindex)
     if not success then
+        server.log("Inconsistent mime type: " .. consistency, server.loglevel.error)
         return send_error(500, consistency)
     end
 
@@ -30,7 +34,7 @@ for imgindex, fileinfo in pairs(server.uploads) do
         local mimetypeobj
         success, mimetypeobj = server.file_mimetype(imgindex)
         if not success then
-            server.log("Couldn't determine mimetype!", server.loglevel.error)
+            server.log("upload.lua: Couldn't determine mimetype!", server.loglevel.error)
             send_error(500, mimetypeobj)
             return false
         end
@@ -80,7 +84,10 @@ for imgindex, fileinfo in pairs(server.uploads) do
         --
         local status, errmsg = myimg[imgindex]:write(fullfilepath)
         if not status then
+            server.log("upload.lua: Error converting image to j2k: " .. filename .. " ** " .. errmsg, server.loglevel.error)
             server.print('Error converting image to j2k: ', filename, ' ** ', errmsg)
+        else
+            server.log("upload.lua: Uploaded " .. filename, server.loglevel.info)
         end
 
     else
@@ -88,6 +95,7 @@ for imgindex, fileinfo in pairs(server.uploads) do
         info["filename"] = '_' .. fileinfo.origname
         success, errmsg = server.copyTmpfile(imgindex, fpath)
         if not success then
+            server.log("upload.lua: Uploaded " .. fileinfo.origname, server.loglevel.info)
             return send_error(500, errmsg)
         end
     end
