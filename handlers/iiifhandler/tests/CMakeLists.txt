@@ -54,6 +54,7 @@ add_executable (iiifparser_tests test_iiifparser.cpp
 
 target_link_libraries(iiifparser_tests PRIVATE
         cserve
+        iiifhandler
         Catch2Main
         Catch2
         fmt
@@ -75,11 +76,11 @@ target_link_libraries(iiifparser_tests PRIVATE
         lerc
         jbigkit
         png
-        kdu
         kdu_aux
+        kdu
         expat
         lcms2
-        gettext_intl
+        #gettext_intl
         zlib
         zstd
         sharpyuv
@@ -99,6 +100,11 @@ add_executable (metadata_tests test_metadata.cpp
 
 target_link_libraries(metadata_tests PRIVATE
         cserve
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
         Catch2Main
         Catch2
         fmt
@@ -114,23 +120,19 @@ target_link_libraries(metadata_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
         lerc
         jbigkit
-        kdu
         kdu_aux
+        kdu
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         sharpyuv
         deflate
-        iconv
+        #iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -171,7 +173,16 @@ add_executable (tiff_tests test_tiff_format.cpp)
 
 target_link_libraries(tiff_tests PRIVATE
         cserve
-        iiiflib
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu_aux
+        kdu
+        cserve
         Catch2Main
         Catch2
         fmt
@@ -187,23 +198,15 @@ target_link_libraries(tiff_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
-        lerc
-        jbigkit
-        kdu
-        kdu_aux
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         sharpyuv
         deflate
-        iconv
+        #iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -224,7 +227,16 @@ add_executable (png_tests test_png_format.cpp
 
 target_link_libraries(png_tests PRIVATE
         cserve
-        iiiflib
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu_aux
+        kdu
+        cserve
         Catch2Main
         Catch2
         fmt
@@ -240,23 +252,15 @@ target_link_libraries(png_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
-        lerc
-        jbigkit
-        kdu
-        kdu_aux
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         sharpyuv
         deflate
-        iconv
+        #iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -276,8 +280,17 @@ add_executable (jpeg_tests test_jpeg_format.cpp)
 
 target_link_libraries(jpeg_tests PRIVATE
         cserve
-        iiiflib
-        Catch2Main
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu_aux
+        kdu
+        cserve
+       Catch2Main
         Catch2
         fmt
         magic
@@ -292,23 +305,15 @@ target_link_libraries(jpeg_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
-        lerc
-        jbigkit
-        kdu
-        kdu_aux
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         deflate
         sharpyuv
-        iconv
+        #iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
@@ -328,7 +333,16 @@ add_executable (j2k_tests test_j2k_format.cpp)
 
 target_link_libraries(j2k_tests PRIVATE
         cserve
-        iiiflib
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu_aux
+        kdu
+        cserve
         Catch2Main
         Catch2
         fmt
@@ -344,18 +358,10 @@ target_link_libraries(j2k_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
-        lerc
-        jbigkit
-        kdu
-        kdu_aux
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         deflate

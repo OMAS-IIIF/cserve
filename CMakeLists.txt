@@ -106,8 +106,11 @@ endif()
 
 
 
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+find_package(Iconv REQUIRED)
+#message(STATUS "--->iconv libraries: ${ICONV_LIBRARIES}")
 
 add_subdirectory(${EXT_PROJECTS_DIR}/fmt)
 add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
@@ -127,9 +130,7 @@ add_subdirectory(handlers/testhandler)
 add_subdirectory(handlers/pinghandler)
 add_subdirectory(handlers/scripthandler)
 add_subdirectory(handlers/filehandler)
-if(${IIIF_HANDLER})
-    add_subdirectory(handlers/iiifhandler)
-endif()
+add_subdirectory(handlers/iiifhandler)
 
 
 link_directories(
@@ -149,6 +150,11 @@ configure_file(${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h.in ${COMMON_LIBRARY_F
 
 target_link_libraries(cserver
         cserve
+        testhandler
+        pinghandler
+        filehandler
+        scripthandler
+        iiifhandler
         fmt
         magic
         lua
@@ -161,34 +167,26 @@ target_link_libraries(cserver
         zlib
         xz
         bzip2
-        testhandler
-        pinghandler
-        filehandler
-        scripthandler
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        exiv2
+        kdu_aux
+        kdu
+        expat
+        lcms2
+        xz
+        zlib
+        zstd
+        deflate
+        sharpyuv
+        cserve
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
-if(${IIIF_HANDLER})
-    target_link_libraries(cserver
-            iiifhandler
-            deflate
-            exiv2
-            expat
-            gettext
-            jbigkit
-            kdu
-            kdu_aux
-            lcms2
-            lerc
-            png
-            tiff
-            turbojpeg
-            webp
-            zstd
-            sharpyuv
-            iconv
-            )
-endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(cserver ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
