@@ -184,7 +184,6 @@ TEST_CASE("Testing IIIFIptc class", "[IIIFIptc]") {
     SECTION("IIIFIptc basic") {
         unsigned int len{};
         auto buf = iptc_from_tiff("/Users/rosenth/ProgDev/OMAS/cserve/handlers/iiifhandler/tests/data/IPTC-PhotometadataRef-Std2014_large.tiff",len);
-
         REQUIRE_NOTHROW(cserve::IIIFIptc(buf.get(), len));
         std::vector<unsigned char> vbuf(buf.get(), buf.get() + len);
         REQUIRE_NOTHROW(cserve::IIIFIptc(vbuf));

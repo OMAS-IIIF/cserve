@@ -109,7 +109,10 @@ endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(Iconv REQUIRED)
+if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
+    find_package(Iconv REQUIRED)
+endif()
+
 #message(STATUS "--->iconv libraries: ${ICONV_LIBRARIES}")
 
 add_subdirectory(${EXT_PROJECTS_DIR}/fmt)
@@ -187,10 +190,13 @@ target_link_libraries(cserver
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
-
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(cserver ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
+if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
+    target_link_libraries(cserver
+            ${COREFOUNDATION_FRAMEWORK}
+            ${SYSTEMCONFIGURATION_FRAMEWORK}
+            iconv)
 endif()
+
 
 target_include_directories(cserver PUBLIC
         ${PROJECT_BINARY_DIR}

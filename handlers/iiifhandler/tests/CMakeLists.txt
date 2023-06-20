@@ -38,6 +38,10 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
     SET(LUA_ARCH "linux")
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
+    find_package(Iconv REQUIRED)
+endif()
+
 include_directories(
         ${CMAKE_SOURCE_DIR}/lib
         ${COMMON_LOCAL}/include
@@ -87,6 +91,7 @@ target_link_libraries(iiifparser_tests PRIVATE
         deflate
         Threads::Threads
         ${CMAKE_DL_LIBS})
+
 
 add_test(NAME iiifparser_tests COMMAND iiifparser_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -138,6 +143,7 @@ target_link_libraries(metadata_tests PRIVATE
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(metadata_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
@@ -212,6 +218,7 @@ target_link_libraries(tiff_tests PRIVATE
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(tiff_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
@@ -266,6 +273,7 @@ target_link_libraries(png_tests PRIVATE
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(png_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
@@ -319,6 +327,7 @@ target_link_libraries(jpeg_tests PRIVATE
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(jpeg_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
@@ -371,6 +380,7 @@ target_link_libraries(j2k_tests PRIVATE
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(j2k_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
