@@ -110,7 +110,8 @@ namespace cserve {
             in_format = IIIFQualityFormat::PDF;
 
         if (access(infile.c_str(), R_OK) != 0) { // test, if file exists
-            Server::logger()->info("File '{}' not found", infile);
+            Server::logger()->info("[{}] <IIIFSendFile> {} {} : File '{}' not found",
+                                   conn.peer_ip(), conn.method_string(), conn.uri(), infile);
             send_error(conn, Connection::NOT_FOUND);
             return;
         }
@@ -179,8 +180,9 @@ namespace cserve {
         //
         std::pair<std::string, std::string> tmppair;
         try {
-            tmppair = get_canonical_url(img_w, img_h, conn.host(), params.at(IIIF_PREFIX),
-                                              sid.get_identifier(), region, size, rotation, quality_format);
+            tmppair = get_canonical_url(img_w, img_h, conn.secure(), conn.host(),
+                                        params.at(IIIF_ROUTE), params.at(IIIF_PREFIX),
+                                        sid.get_identifier(), region, size, rotation, quality_format);
         }
         catch (IIIFError &err) {
             send_error(conn, Connection::BAD_REQUEST, err);
@@ -224,10 +226,12 @@ namespace cserve {
                 conn.sendFile(infile);
             }
             catch (const InputFailure &iofail) {
-                Server::logger()->warn("Client unexpectedly closed connection");
+                Server::logger()->warn("[{}] <IIIFSendFile> {} {} : Client unexpectedly closed connection",
+                                       conn.peer_ip(), conn.method_string(), conn.uri());
             }
             catch (const IIIFError &err) {
-                Server::logger()->warn("Internal error: {}", err.to_string());
+                Server::logger()->warn("[{}] <IIIFSendFile> {} {} : Internal error: {}",
+                                       conn.peer_ip(), conn.method_string(), conn.uri(), err.to_string());
                 send_error(conn, Connection::INTERNAL_SERVER_ERROR, err);
             }
             return;
@@ -241,7 +245,6 @@ namespace cserve {
                                                  true); // we block the file from being deleted if successfull
 
             if (!cachefile.empty()) {
-                Server::logger()->debug("Using cachefile {}", cachefile);
                 conn.status(Connection::OK);
                 conn.header("Cache-Control", "must-revalidate, post-check=0, pre-check=0");
                 conn.header("Link", canonical_header);
@@ -275,12 +278,14 @@ namespace cserve {
                 }
                 catch (const InputFailure &err) {
                     // -1 was thrown
-                    Server::logger()->warn("Client unexpectedly closed connection");
+                    Server::logger()->warn("[{}] <IIIFSendFile> {} {} : Client unexpectedly closed connection",
+                                           conn.peer_ip(), conn.method_string(), conn.uri());
                     _cache->deblock(cachefile);
                     return;
                 }
                 catch (const IIIFError &err) {
-                    Server::logger()->error("Error sending cache file: \"{}\": {}", cachefile, err.to_string());
+                    Server::logger()->error("[{}] <IIIFSendFile> {} {} :  Error sending cache file: \"{}\": {}",
+                                            conn.peer_ip(), conn.method_string(), conn.uri(), cachefile, err.to_string());
                     send_error(conn, Connection::INTERNAL_SERVER_ERROR, err);
                     _cache->deblock(cachefile);
                     return;
@@ -289,6 +294,8 @@ namespace cserve {
                 return;
             }
             _cache->deblock(cachefile);
+            Server::logger()->info("[{}] <IIIFSendFile> {} {} : '{}' (cache)",
+                                   conn.peer_ip(), conn.method_string(), conn.uri(), canonical);
         }
 
         IIIFImage img;
@@ -347,7 +354,8 @@ namespace cserve {
                 send_error(conn, Connection::INTERNAL_SERVER_ERROR, err);
                 return;
             }
-            Server::logger()->info("GET {}: adding watermark", conn.uri());
+            Server::logger()->info("[{}] <IIIFSendFile> {} {}: adding watermark: {}",
+                                   conn.peer_ip(), conn.method_string(), conn.uri(), watermark);
         }
 
         img.connection(&conn);
@@ -416,7 +424,8 @@ namespace cserve {
 
                 default: {
                     // HTTP 400 (format not supported)
-                    Server::logger()->warn("Unsupported file format requested! Supported are .jpg, .jp2, .tif, .png");
+                    Server::logger()->warn("[{}] <IIIFSendFile> {} {} : Unsupported file format requested! Supported are .jpg, .jp2, .tif, .png",
+                                           conn.peer_ip(), conn.method_string(), conn.uri());
                     conn.setBuffer();
                     conn.status(Connection::BAD_REQUEST);
                     conn.header("Content-Type", "text/plain");
@@ -442,7 +451,8 @@ namespace cserve {
             send_error(conn, Connection::INTERNAL_SERVER_ERROR, err);
             return;
         }
-
+        Server::logger()->info("[{}] <IIIFSendFile> {} {}: '{}' (transcode)",
+                               conn.peer_ip(), conn.method_string(), conn.uri(), canonical);
         conn.flush();
    }
 }

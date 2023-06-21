@@ -71,7 +71,7 @@ static void new_lua_func(lua_State *L, cserve::Connection &conn, [[maybe_unused]
 /*LUA TEST****************************************************************************/
 
 int main(int argc, char *argv[]) {
-    auto logger = cserve::Server::create_logger();
+    auto logger = cserve::Server::create_logger(spdlog::level::trace);
     std::unordered_map<std::string, std::shared_ptr<cserve::RequestHandler>> handlers;
 
     int old_ll = setlogmask(LOG_MASK(LOG_INFO));
@@ -86,8 +86,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    std::string handlerdir("./handler");
+    //std::string handlerdir("./handler");
 
+    /*
     if (const char* env_p = std::getenv("CSERVE_HANDLERDIR")) {
         handlerdir = env_p;
     }
@@ -100,7 +101,7 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-
+    */
     {
         auto testhandler = std::make_shared<cserve::TestHandler>();
         handlers[testhandler->name()] = testhandler;
@@ -129,7 +130,7 @@ int main(int argc, char *argv[]) {
     cserve::CserverConf config;
     const std::string prefix{"cserve"};
 
-    config.add_config(prefix, "handlerdir", "./handler", "Path to dirctory containing the handler plugins.");
+    //config.add_config(prefix, "handlerdir", "./handler", "Path to dirctory containing the handler plugins.");
     config.add_config(prefix, "config", "./config", "Configuration file for web server.");
     config.add_config(prefix, "userid", "", "Username to use to run cserver. Mus be launched as root to use this option");
     config.add_config(prefix, "port", 8080, "HTTP port to be used [default=8080]");

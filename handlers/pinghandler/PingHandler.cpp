@@ -27,7 +27,8 @@ namespace cserve {
             conn << _echo << cserve::Connection::flush_data;
         }
         catch (InputFailure &err) {
-            Server::logger()->debug("conn write error: {}", err.what());
+            Server::logger()->debug("[{}] <PintHandler> {} {} : conn write error: {}",
+                                    conn.peer_ip(), conn.method_string(), conn.uri(), err.what());
             return;
         }
     }

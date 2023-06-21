@@ -247,7 +247,9 @@ namespace cserve {
                     conn.sendFile(path.string(), 8192, start, end);
                 }
                 conn.flush();
-                Server::logger()->info("Sent {} to {}:{}.", path.string(), conn.peer_ip(), conn.peer_port());
+                Server::logger()->info("[{}] <FileHandler> {} {} : Path: {}",
+                                       conn.peer_ip(), conn.method_string(), conn.uri(),
+                                       path.string());
             }
         } catch (InputFailure &iofail) {
             return; // we have an io error => just return, the thread will exit
@@ -260,7 +262,8 @@ namespace cserve {
                 conn.flush();
             } catch (InputFailure &iofail) {}
 
-            Server::logger()->error("FileHandler: internal error: {}", err.to_string());
+            Server::logger()->error("[{}] <FileHandler> {} {} : internal error: {}",
+                                    conn.peer_ip(), conn.method_string(), conn.uri(), err.to_string());
             return;
         }
     }

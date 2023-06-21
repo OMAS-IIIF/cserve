@@ -112,7 +112,9 @@ namespace cserve {
         std::pair<std::string, std::string> get_canonical_url  (
                 uint32_t tmp_w,
                 uint32_t tmp_h,
+                bool secure,
                 const std::string &host,
+                const std::string &route,
                 const std::string &prefix,
                 const std::string &identifier,
                 const std::shared_ptr<IIIFRegion>& region,

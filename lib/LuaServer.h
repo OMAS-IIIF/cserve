@@ -35,7 +35,6 @@
 
 namespace cserve {
 
-
     /*!
      * Implementation of a C representation for Lua values which may be nested tables and arrays
      */
@@ -242,7 +241,7 @@ namespace cserve {
     class LuaServer {
     private:
         lua_State *L{};
-        //std::vector<LuaSetGlobalsFunc> setGlobals;
+        std::string scriptfilename;
 
     public:
         /*!
@@ -290,6 +289,7 @@ namespace cserve {
          * Destroys the lua interpreter and all associated resources
          */
         ~LuaServer();
+
 
         /*!
          * Getter for the Lua state

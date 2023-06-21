@@ -390,7 +390,7 @@ endif()
 add_test(NAME j2k_tests COMMAND j2k_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_test(NAME iiif_e2e
-        COMMAND pytest -s --cserver=${CSERVER_EXE} --handlerdir=${PROJECT_BINARY_DIR}/handler
+        COMMAND pytest -s --cserver=${CSERVER_EXE}
         WORKING_DIRECTORY  ${PROJECT_SOURCE_DIR}/handlers/iiifhandler/tests)
 
 

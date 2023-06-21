@@ -3,6 +3,7 @@
 //
 #include "nlohmann/json.hpp"
 
+#include "Cserve.h"
 #include "IIIFHandler.h"
 #include "iiifparser/IIIFIdentifier.h"
 static const char file_[] = __FILE__;
@@ -50,6 +51,8 @@ namespace cserve {
         conn.setBuffer(); // we want buffered output, since we send JSON text...
         conn.header("Access-Control-Allow-Origin", "*");
         conn.sendAndFlush(json_str.c_str(), json_str.size());
+        Server::logger()->info("[{}] <IIIFSendSpecial> {} {} : '{}'",
+                               conn.peer_ip(), conn.method_string(), conn.uri(), lua_function_name);
     }
 
 }

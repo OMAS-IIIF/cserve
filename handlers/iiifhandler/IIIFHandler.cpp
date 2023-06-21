@@ -104,12 +104,15 @@ namespace cserve {
                         return;
                     }
                     conn.flush();
+                    Server::logger()->info("[{}] <IIIFHandler> {} {} : Lua script executed: {}",
+                                           conn.peer_ip(), conn.method_string(), conn.uri(), scriptpath.string());
                 } else {
                     send_error(conn, Connection::INTERNAL_SERVER_ERROR,
                                fmt::format("Script has no valid extension: '{}'", extension));
                 }
             } catch (InputFailure &iofail) {
-                Server::logger()->error("ScriptHandler: internal error: cannot send data...");
+                Server::logger()->error("[{}] <IIIFHandler>{} {} : internal error: cannot send data...",
+                                        conn.peer_ip(), conn.method_string(), conn.uri());
                 return; // we have an io error => just return, the thread will exit
             } catch (Error &err) {
                 send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
@@ -305,7 +308,8 @@ namespace cserve {
             conn.header("Location", redirect);
             conn.header("Content-Type", "text/plain");
             conn << "Redirect to " << redirect;
-            Server::logger()->info("GET: redirect to {}", redirect);
+            Server::logger()->info("[{}] <IIIFHandler> {} {}: redirect to {}",
+                                   conn.peer_ip(), conn.method_string(), conn.uri(), redirect);
             conn.flush();
             return;
         }
@@ -381,7 +385,7 @@ namespace cserve {
         }
         catch (const IIIFError &err) {
             _cache = nullptr;
-            Server::logger()->warn("Couldn't open cache directory {}: %s", _cachedir, err.to_string());
+            Server::logger()->warn("Couldn't open cache directory {}: {}", _cachedir, err.to_string());
         }
 
     }

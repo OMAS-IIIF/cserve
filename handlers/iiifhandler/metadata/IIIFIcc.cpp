@@ -41,7 +41,7 @@ namespace cserve {
         unsigned int len = cmsGetProfileInfoASCII(icc_profile, cmsInfoDescription, cmsNoLanguage, cmsNoCountry, nullptr, 0);
         auto buf = std::make_unique<char[]>(len);
         cmsGetProfileInfoASCII(icc_profile, cmsInfoDescription, cmsNoLanguage, cmsNoCountry, buf.get(), len);
-        if ((strcmp(buf.get(), "sRGB IEC61966-2.1") == 0) || (strcmp(buf.get(), "sRGB built-in"))) {
+        if ((strcmp(buf.get(), "sRGB IEC61966-2.1") == 0) || (strcmp(buf.get(), "sRGB built-in") == 0)) {
             profile_type = icc_sRGB;
         }
         else if (strncmp(buf.get(), "AdobeRGB", 8) == 0) {
