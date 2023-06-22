@@ -697,7 +697,7 @@ namespace cserve {
         }
         outstr << " | percent = " << rhs.percent << " | nx = " << rhs.nx << " | ny = " << rhs.ny;
         outstr << " | w = " << rhs.w << " | h = " << rhs.h;
-        outstr << " | reduce = " << rhs.reduce;
+        outstr << " | reduce = " << rhs.reduce << " | upscaling = " << rhs.upscaling;
         return outstr;
     }
     //-------------------------------------------------------------------------

@@ -135,7 +135,7 @@ namespace cserve {
             }
             for (auto &part: tmpparts) {
                 if (!part.empty()) {
-                    parts.push_back(part);
+                    parts.push_back(urldecode(part));
                 } else {
                     send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Empty parts '//' in URL.");
                     return;
@@ -375,7 +375,7 @@ namespace cserve {
         _scaling_quality.jpeg = get_scaling_quality(conf, "jpeg_scaling_quality", "medium");
         _scaling_quality.tiff = get_scaling_quality(conf, "tiff_scaling_quality", "high");
         _scaling_quality.png = get_scaling_quality(conf, "png_scaling_quality", "medium");
-        _scaling_quality.png = get_scaling_quality(conf, "j2k_scaling_quality", "high");
+        _scaling_quality.jk2 = get_scaling_quality(conf, "j2k_scaling_quality", "high");
         _iiif_max_image_width = conf.get_int("iiif_max_width").value_or(0);
         _iiif_max_image_height = conf.get_int("iiif_max_height").value_or(0);
         std::vector<std::string> vv{"--$$$$$$$$$$$$$$$$$$$$$--"};

@@ -293,6 +293,7 @@ class CserverProcessManager:
     def compare_iiif_images(self, iiifpath: str, referencepath: str, headers=None) -> bool:
         expected_file_basename, expected_file_extension = os.path.splitext(referencepath)
         downloaded_file_path = self.download_file(iiifpath, headers=headers, suffix=expected_file_extension)
+        print("&&&---", downloaded_file_path)
 
         im1 = Image.open(referencepath)
         im2 = Image.open(downloaded_file_path)
