@@ -161,7 +161,7 @@ namespace cserve {
     }
 
     std::string Server::version_string() {
-        return fmt::format("*** CSERVE V{}.{}.{} ©Lukas Rosenthaler (2022) ***", cserver_VERSION_MAJOR, cserver_VERSION_MINOR, cserver_VERSION_PATCH);
+        return fmt::format("*** CSERVE V{}.{}.{} ©Lukas Rosenthaler (2022, 2023) ***", cserver_VERSION_MAJOR, cserver_VERSION_MINOR, cserver_VERSION_PATCH);
     }
 
 
@@ -271,9 +271,19 @@ namespace cserve {
     }
     //=========================================================================
 
+    std::shared_ptr<spdlog::logger> Server::logger() {
+        if (Server::_logger == nullptr) {
+            Server::_logger = Server::create_logger(spdlog::level::debug);
+        }
+        return Server::_logger;
+    }
+
     std::shared_ptr<spdlog::logger> Server::logger(spdlog::level::level_enum level) {
         if (Server::_logger == nullptr) {
             Server::_logger = Server::create_logger(level);
+        }
+        else {
+            Server::_logger->set_level(level);
         }
         return Server::_logger;
     }

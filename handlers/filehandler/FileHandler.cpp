@@ -14,10 +14,10 @@
 #include <filesystem>
 
 #include <vector>
-#include "Cserve.h"
-#include "HttpSendError.h"
+#include "../../../lib/Cserve.h"
+#include "../../../lib/HttpSendError.h"
+#include "../../../lib/Parsing.h"
 #include "FileHandler.h"
-#include "Parsing.h"
 
 static const char file_[] = __FILE__;
 
@@ -247,7 +247,9 @@ namespace cserve {
                     conn.sendFile(path.string(), 8192, start, end);
                 }
                 conn.flush();
-                Server::logger()->info("Sent {} to {}:{}.", path.string(), conn.peer_ip(), conn.peer_port());
+                Server::logger()->info("[{}] <FileHandler> {} {} : Path: {}",
+                                       conn.peer_ip(), conn.method_string(), conn.uri(),
+                                       path.string());
             }
         } catch (InputFailure &iofail) {
             return; // we have an io error => just return, the thread will exit
@@ -260,7 +262,8 @@ namespace cserve {
                 conn.flush();
             } catch (InputFailure &iofail) {}
 
-            Server::logger()->error("FileHandler: internal error: {}", err.to_string());
+            Server::logger()->error("[{}] <FileHandler> {} {} : internal error: {}",
+                                    conn.peer_ip(), conn.method_string(), conn.uri(), err.to_string());
             return;
         }
     }
@@ -287,12 +290,4 @@ namespace cserve {
         lua_rawset(L, -3); // table1
         lua_setglobal(L, _name.c_str());
     }
-}
-
-extern "C" cserve::FileHandler * create_filehandler() {
-    return new cserve::FileHandler();
-};
-
-extern "C" void destroy_filehandler(cserve::FileHandler *handler) {
-    delete handler;
 }

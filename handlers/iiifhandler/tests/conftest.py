@@ -27,17 +27,14 @@ def pytest_addoption(parser):
     parser.addoption(
         "--cserver", action="store", default="notset", help="The absolut path to the cserver executable"
     )
-    parser.addoption(
-        "--handlerdir", action="store", default="notset", help="The absolut path to the handler directory"
-    )
 
 
 
 @pytest.fixture(scope="session")
 def manager(request):
     cserver_exe = request.config.getoption('--cserver')
-    cserver_handlerdir = request.config.getoption('--handlerdir')
-    manager = CserverProcessManager(cserver_exe, cserver_handlerdir)
+#    cserver_handlerdir = request.config.getoption('--handlerdir')
+    manager = CserverProcessManager(cserver_exe)
     manager.start_cserver()
     yield manager
     manager.stop_cserver()
@@ -53,12 +50,11 @@ class CserverProcessManager:
     iiif_route: str
     iiif_validator_command: str
 
-    def __init__(self, cserver_exe: str, cserver_handlerdir: str):
+    def __init__(self, cserver_exe: str):
         """
         Initialize the test environment
 
         :param cserver_exe: Path to the executable
-        :param cserver_handlerdir: Path to the directory containing all the handler
         """
         self.iiif_port = "8080"
         self.iiif_ssl_port = "8443"
@@ -71,7 +67,7 @@ class CserverProcessManager:
         self.cserver_logfile = os.path.abspath("cserver.log")
         self.cserver_exe = cserver_exe
         self.cserver_config = {
-            "CSERVE_HANDLERDIR": cserver_handlerdir,
+#            "CSERVE_HANDLERDIR": cserver_handlerdir,
             "CSERVE_PORT": self.iiif_port,
             "CSERVE_SSLPORT": self.iiif_ssl_port,
             "CSERVE_INITSCRIPT": "./iiiftestserver/config/iiif.init.lua",
@@ -80,7 +76,7 @@ class CserverProcessManager:
             "CSERVE_JWTKEY": 'UP4014, the biggest steam engine',
             "CSERVE_TMPDIR": "./iiiftestserver/tmp",
             "CSERVE_LUA_INCLUDE_PATH": "./iiiftestserver/scripts",
-            "CSERVE_NTHREADS": "4",
+            "CSERVE_NTHREADS": "6",
             "CSERVE_KEEPALIVE": "5",
             "CSERVE_MAXPOST": "12M",
             "CSERVE_LOGLEVEL": "TRACE",

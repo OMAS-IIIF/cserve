@@ -49,8 +49,8 @@
 #include "SocketControl.h"
 
 #include "RequestHandlerData.h"
-
-#include "../handlers/filehandler/FileHandler.h"
+#include "RequestHandler.h"
+//#include "../handlers/filehandler/FileHandler.h"
 
 #include "lua.hpp"
 
@@ -203,7 +203,10 @@ namespace cserve {
                                                              bool consolelog = true,
                                                              const std::string &logfile = "");
 
-        static std::shared_ptr<spdlog::logger> logger(spdlog::level::level_enum level = spdlog::level::debug);
+
+        static std::shared_ptr<spdlog::logger> logger();
+
+        static std::shared_ptr<spdlog::logger> logger(spdlog::level::level_enum level);
 
         [[maybe_unused]] [[nodiscard]] inline int port() const { return _port; }
 

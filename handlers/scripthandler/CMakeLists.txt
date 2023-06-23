@@ -24,41 +24,43 @@ include_directories(
         /usr/local/include
 )
 
-add_library(scripthandler MODULE
+add_library(scripthandler STATIC
         ScriptHandler.cpp ScriptHandler.h )
+add_dependencies(scripthandler
+        cserve)
 
-set_target_properties(scripthandler PROPERTIES PREFIX "")
+#set_target_properties(scripthandler PROPERTIES PREFIX "")
 
-target_link_libraries(scripthandler PRIVATE
-        cserve
-        magic
-        lua
-        sqlite3
-        jwtcpp
-        spdlog
-        curl
-        ssl
-        crypto
-        zlib
-        xz
-        bzip2
-        Threads::Threads
-        ${CMAKE_DL_LIBS})
+#target_link_libraries(scripthandler PRIVATE
+#        cserve
+#        magic
+#        lua
+#        sqlite3
+#        jwtcpp
+#        spdlog
+#        curl
+#        ssl
+#        crypto
+#        zlib
+#        xz
+#        bzip2
+#        Threads::Threads
+#        ${CMAKE_DL_LIBS})
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(scripthandler PRIVATE ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
-endif()
-
-
-add_custom_command(TARGET scripthandler POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:scripthandler>
-        ${PROJECT_BINARY_DIR}/handler/$<TARGET_FILE_NAME:scripthandler>)
-
-add_custom_command(TARGET scripthandler POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:scripthandler>
-        ${CMAKE_SOURCE_DIR}/serverroot/handler/$<TARGET_FILE_NAME:scripthandler>)
+#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    target_link_libraries(scripthandler PRIVATE ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
+#endif()
 
 
-install(TARGETS scripthandler DESTINATION ${COMMON_LOCAL}/share/cserver/)
+#add_custom_command(TARGET scripthandler POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy
+#        $<TARGET_FILE:scripthandler>
+#        ${PROJECT_BINARY_DIR}/handler/$<TARGET_FILE_NAME:scripthandler>)
+
+#add_custom_command(TARGET scripthandler POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy
+#        $<TARGET_FILE:scripthandler>
+#        ${CMAKE_SOURCE_DIR}/serverroot/handler/$<TARGET_FILE_NAME:scripthandler>)
+
+
+#install(TARGETS scripthandler DESTINATION ${COMMON_LOCAL}/share/cserver/)

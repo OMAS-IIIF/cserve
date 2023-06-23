@@ -14,6 +14,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 option(MAKE_SHARED_CSERVE "Create cserver using all shared libraries" OFF)
+option(IIIF_HANDLER "Add IIIF Handler" ON)
 
 set(COMMON_LOCAL ${CMAKE_BINARY_DIR}/local)
 set(COMMON_SRCS ${CMAKE_BINARY_DIR}/extsrcs)
@@ -105,8 +106,14 @@ endif()
 
 
 
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
+    find_package(Iconv REQUIRED)
+endif()
+
+#message(STATUS "--->iconv libraries: ${ICONV_LIBRARIES}")
 
 add_subdirectory(${EXT_PROJECTS_DIR}/fmt)
 add_subdirectory(${EXT_PROJECTS_DIR}/spdlog)
@@ -146,6 +153,12 @@ configure_file(${COMMON_LIBRARY_FILES_DIR}/CserveVersion.h.in ${COMMON_LIBRARY_F
 
 target_link_libraries(cserver
         cserve
+        testhandler
+        pinghandler
+        filehandler
+        scripthandler
+        iiifhandler
+        fmt
         magic
         lua
         sqlite3
@@ -157,13 +170,33 @@ target_link_libraries(cserver
         zlib
         xz
         bzip2
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        exiv2
+        kdu_aux
+        kdu
+        expat
+        lcms2
+        xz
+        zlib
+        zstd
+        deflate
+        sharpyuv
+        cserve
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
-
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(cserver ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
+if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
+    target_link_libraries(cserver
+            ${COREFOUNDATION_FRAMEWORK}
+            ${SYSTEMCONFIGURATION_FRAMEWORK}
+            iconv)
 endif()
+
 
 target_include_directories(cserver PUBLIC
         ${PROJECT_BINARY_DIR}
@@ -174,8 +207,12 @@ add_dependencies(cserver
         testhandler
         pinghandler
         scripthandler
-        filehandler
-        iiifhandler)
+        filehandler)
+
+if(${IIIF_HANDLER})
+    add_dependencies(cserver
+            iiifhandler)
+endif()
 
 add_custom_command(TARGET cserver POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy

@@ -3,6 +3,8 @@
 //
 
 #include <sys/stat.h>
+
+#include "../lib/Cserve.h"
 #include "Parsing.h"
 #include "HttpSendError.h"
 #include "IIIFHandler.h"
@@ -248,5 +250,7 @@ namespace cserve {
 
         std::string json_str = root_obj.dump(3);
         conn.sendAndFlush(json_str.c_str(), json_str.size());
+        Server::logger()->info("[{}] <IIIFSendInfo> {} {} : '{}'",
+                               conn.peer_ip(), conn.method_string(), conn.uri(), id);
    };
 }

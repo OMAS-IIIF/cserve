@@ -57,8 +57,7 @@ namespace cserve {
             struct stat fstatbuf{};
 
             if (stat(infile.c_str(), &fstatbuf) != 0) {
-                Server::logger()->debug("Cannot fstat file: {}", infile.c_str());
-                send_error(conn, Connection::INTERNAL_SERVER_ERROR);
+                send_error(conn, Connection::INTERNAL_SERVER_ERROR, fmt::format("Cannot fstat file: {}", infile.string()));
             }
             size_t fsize = fstatbuf.st_size;
 #ifdef __APPLE__
@@ -117,8 +116,9 @@ namespace cserve {
                 conn.sendFile(infile, 8192, start, end);
             }
             conn.flush();
+            Server::logger()->info("[{}] <IIIFSendBlob> {} {} : '{}'",
+                                   conn.peer_ip(), conn.method_string(), conn.uri(), infile.string());
         } else {
-            Server::logger()->warn("File '{}' not accessible.", infile.c_str());
             send_error(conn, Connection::NOT_FOUND, fmt::format("File '{}' not accessible.", infile.c_str()));
         }
     }

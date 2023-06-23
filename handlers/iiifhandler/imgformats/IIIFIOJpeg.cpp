@@ -298,7 +298,6 @@ namespace cserve {
      * Finish writing data
      */
     static void term_html_destination(j_compress_ptr cinfo) {
-        std::cerr << "term_html_destination(j_compress_ptr cinfo)" << std::endl;
         auto *html_buffer = (HtmlBuffer *) cinfo->client_data;
         size_t nbytes = cinfo->dest->next_output_byte - html_buffer->buffer;
         try {

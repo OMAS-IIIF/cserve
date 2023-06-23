@@ -38,6 +38,10 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL LINUX)
     SET(LUA_ARCH "linux")
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL DARWIN)
+    find_package(Iconv REQUIRED)
+endif()
+
 include_directories(
         ${CMAKE_SOURCE_DIR}/lib
         ${COMMON_LOCAL}/include
@@ -54,6 +58,7 @@ add_executable (iiifparser_tests test_iiifparser.cpp
 
 target_link_libraries(iiifparser_tests PRIVATE
         cserve
+        iiifhandler
         Catch2Main
         Catch2
         fmt
@@ -75,17 +80,18 @@ target_link_libraries(iiifparser_tests PRIVATE
         lerc
         jbigkit
         png
-        kdu
         kdu_aux
+        kdu
         expat
         lcms2
-        gettext_intl
+        #gettext_intl
         zlib
         zstd
         sharpyuv
         deflate
         Threads::Threads
         ${CMAKE_DL_LIBS})
+
 
 add_test(NAME iiifparser_tests COMMAND iiifparser_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -99,6 +105,11 @@ add_executable (metadata_tests test_metadata.cpp
 
 target_link_libraries(metadata_tests PRIVATE
         cserve
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
         Catch2Main
         Catch2
         fmt
@@ -114,28 +125,25 @@ target_link_libraries(metadata_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
         lerc
         jbigkit
-        kdu
         kdu_aux
+        kdu
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         sharpyuv
         deflate
-        iconv
+        #iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(metadata_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
@@ -171,7 +179,16 @@ add_executable (tiff_tests test_tiff_format.cpp)
 
 target_link_libraries(tiff_tests PRIVATE
         cserve
-        iiiflib
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu_aux
+        kdu
+        cserve
         Catch2Main
         Catch2
         fmt
@@ -187,28 +204,21 @@ target_link_libraries(tiff_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
-        lerc
-        jbigkit
-        kdu
-        kdu_aux
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         sharpyuv
         deflate
-        iconv
+        #iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(tiff_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
@@ -224,7 +234,16 @@ add_executable (png_tests test_png_format.cpp
 
 target_link_libraries(png_tests PRIVATE
         cserve
-        iiiflib
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu_aux
+        kdu
+        cserve
         Catch2Main
         Catch2
         fmt
@@ -240,28 +259,21 @@ target_link_libraries(png_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
-        lerc
-        jbigkit
-        kdu
-        kdu_aux
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         sharpyuv
         deflate
-        iconv
+        #iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(png_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
@@ -276,8 +288,17 @@ add_executable (jpeg_tests test_jpeg_format.cpp)
 
 target_link_libraries(jpeg_tests PRIVATE
         cserve
-        iiiflib
-        Catch2Main
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu_aux
+        kdu
+        cserve
+       Catch2Main
         Catch2
         fmt
         magic
@@ -292,28 +313,21 @@ target_link_libraries(jpeg_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
-        lerc
-        jbigkit
-        kdu
-        kdu_aux
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         deflate
         sharpyuv
-        iconv
+        #iconv
         Threads::Threads
         ${CMAKE_DL_LIBS})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(jpeg_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
@@ -328,7 +342,16 @@ add_executable (j2k_tests test_j2k_format.cpp)
 
 target_link_libraries(j2k_tests PRIVATE
         cserve
-        iiiflib
+        iiifhandler
+        tiff
+        turbojpeg
+        png
+        webp
+        lerc
+        jbigkit
+        kdu_aux
+        kdu
+        cserve
         Catch2Main
         Catch2
         fmt
@@ -344,18 +367,10 @@ target_link_libraries(j2k_tests PRIVATE
         xz
         bzip2
         exiv2
-        tiff
-        turbojpeg
-        png
-        webp
-        lerc
-        jbigkit
-        kdu
-        kdu_aux
         expat
         lcms2
-        iconv
-        gettext_intl
+        #iconv
+        #gettext_intl
         zlib
         zstd
         deflate
@@ -365,6 +380,7 @@ target_link_libraries(j2k_tests PRIVATE
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(j2k_tests PRIVATE
+            iconv
             ${COREFOUNDATION_FRAMEWORK}
             ${SYSTEMCONFIGURATION_FRAMEWORK})
 else()
@@ -374,7 +390,7 @@ endif()
 add_test(NAME j2k_tests COMMAND j2k_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_test(NAME iiif_e2e
-        COMMAND pytest -s --cserver=${CSERVER_EXE} --handlerdir=${PROJECT_BINARY_DIR}/handler
+        COMMAND pytest -s --cserver=${CSERVER_EXE}
         WORKING_DIRECTORY  ${PROJECT_SOURCE_DIR}/handlers/iiifhandler/tests)
 
 

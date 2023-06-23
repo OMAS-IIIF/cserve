@@ -24,41 +24,43 @@ include_directories(
         /usr/local/include
 )
 
-add_library(testhandler MODULE
+add_library(testhandler STATIC
         TestHandler.cpp TestHandler.h )
-
-set_target_properties(testhandler PROPERTIES PREFIX "")
-
-target_link_libraries(testhandler PRIVATE
+add_dependencies(testhandler
         cserve
-        magic
-        lua
-        sqlite3
-        jwtcpp
-        spdlog
-        curl
-        ssl
-        crypto
-        zlib
-        xz
-        bzip2
-        Threads::Threads
-        ${CMAKE_DL_LIBS})
+)
+#set_target_properties(testhandler PROPERTIES PREFIX "")
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(testhandler PRIVATE ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
-endif()
+#target_link_libraries(testhandler PRIVATE
+#        cserve
+#        magic
+#        lua
+#        sqlite3
+#        jwtcpp
+#        spdlog
+#        curl
+#        ssl
+#        crypto
+#        zlib
+#        xz
+#        bzip2
+#        Threads::Threads
+#        ${CMAKE_DL_LIBS})
 
-
-add_custom_command(TARGET testhandler POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:testhandler>
-        ${PROJECT_BINARY_DIR}/handler/$<TARGET_FILE_NAME:testhandler>)
-
-add_custom_command(TARGET testhandler POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:testhandler>
-        ${CMAKE_SOURCE_DIR}/serverroot/handler/$<TARGET_FILE_NAME:testhandler>)
+#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#    target_link_libraries(testhandler PRIVATE ${COREFOUNDATION_FRAMEWORK} ${SYSTEMCONFIGURATION_FRAMEWORK})
+#endif()
 
 
-install(TARGETS testhandler DESTINATION ${COMMON_LOCAL}/share/cserver/)
+#add_custom_command(TARGET testhandler POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy
+#        $<TARGET_FILE:testhandler>
+#        ${PROJECT_BINARY_DIR}/handler/$<TARGET_FILE_NAME:testhandler>)
+
+#add_custom_command(TARGET testhandler POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy
+#        $<TARGET_FILE:testhandler>
+#        ${CMAKE_SOURCE_DIR}/serverroot/handler/$<TARGET_FILE_NAME:testhandler>)
+
+
+#install(TARGETS testhandler DESTINATION ${COMMON_LOCAL}/share/cserver/)

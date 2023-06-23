@@ -13,7 +13,9 @@ namespace cserve {
     std::pair<std::string, std::string> IIIFHandler::get_canonical_url (
             uint32_t tmp_w,
             uint32_t tmp_h,
+            bool secure,
             const std::string &host,
+            const std::string &route,
             const std::string &prefix,
             const std::string &identifier,
             const std::shared_ptr<IIIFRegion>& region,
@@ -73,8 +75,8 @@ namespace cserve {
             (void)snprintf(canonical_rotation, canonical_len, "0");
         }
 
-        const unsigned canonical_header_len = 511;
-        char canonical_header[canonical_header_len + 1];
+        //const unsigned canonical_header_len = 511;
+        //char canonical_header[canonical_header_len + 1];
         char ext[5];
 
         switch (quality_format.format()) {
@@ -117,35 +119,38 @@ namespace cserve {
         if (quality_format.quality() != IIIFQualityFormat::DEFAULT){
             switch (quality_format.quality()) {
                 case IIIFQualityFormat::COLOR: {
-                    format = "/color.";
+                    format = "color.";
                     break;
                 }
                 case IIIFQualityFormat::GRAY: {
-                    format = "/gray.";
+                    format = "gray.";
                     break;
                 }
                 case IIIFQualityFormat::BITONAL: {
-                    format = "/bitonal.";
+                    format = "bitonal.";
                     break;
                 }
                 default: {
-                    format = "/default.";
+                    format = "default.";
                 }
             }
         }
         else {
-            format = "/default.";
+            format = "default.";
         }
 
         const std::string& fullid = identifier;
-        (void)snprintf(canonical_header, canonical_header_len,
-                       "<http://%s/%s/%s/%s/%s/%s/default.%s>;rel=\"canonical\"", host.c_str(), prefix.c_str(),
-                       fullid.c_str(), canonical_region, canonical_size, canonical_rotation, ext);
-        std::string canonical = host + "/" + prefix + "/" + fullid + "/" + std::string(canonical_region) + "/" +
-                                std::string(canonical_size) + "/" + std::string(canonical_rotation) + format +
-                                std::string(ext);
+        std::string canonical = host;
+        if (!route.empty()) canonical += "/" + route;
+        if (!prefix.empty()) canonical += "/" + prefix;
+        canonical += "/" + fullid +
+                "/" + std::string(canonical_region) +
+                "/" + std::string(canonical_size) +
+                "/" + std::string(canonical_rotation) +
+                "/" + format + std::string(ext);
+        std::string canonical_header = secure ? "<https://" : "<http://" + canonical + ">";
 
-        return make_pair(std::string(canonical_header), canonical);
+        return make_pair(canonical_header, canonical);
     }
 
 }

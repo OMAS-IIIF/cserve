@@ -3,6 +3,7 @@
 --- Created by rosenth.
 --- DateTime: 11.07.21 19:16
 ---
+---server.log
 require "send_response"
 
 
@@ -18,11 +19,13 @@ else
     protocol = 'http://'
 end
 
+
 files = {}
 for imgindex, fileinfo in pairs(server.uploads) do
     local mimetype, consistency
     success, consistency = server.file_mimeconsistency(imgindex)
     if not success then
+        server.log("Inconsistent mime type: " .. consistency, server.loglevel.LOG_ERR)
         return send_error(500, consistency)
     end
 
@@ -30,9 +33,8 @@ for imgindex, fileinfo in pairs(server.uploads) do
         local mimetypeobj
         success, mimetypeobj = server.file_mimetype(imgindex)
         if not success then
-            server.log("Couldn't determine mimetype!", server.loglevel.error)
-            send_error(500, mimetypeobj)
-            return false
+            server.log("Couldn't determine mimetype!", server.loglevel.LOG_ERR)
+            return send_error(500, mimetypeobj)
         end
         mimetype = mimetypeobj.mimetype
     else
@@ -49,9 +51,8 @@ for imgindex, fileinfo in pairs(server.uploads) do
     if mimetype == "image/tiff" or mimetype == "image/jpeg" or mimetype == "image/png" or mimetype == "image/jpx" or mimetype == "image/jp2" then
         success, myimg[imgindex] = IIIFImage.new(imgindex)
         if not success then
-            server.log(myimg[imgindex], server.loglevel.error)
-            send_error(500, myimg[imgindex])
-            return false
+            server.log(myimg[imgindex], server.loglevel.LOG_ERR)
+            return send_error(500, myimg[imgindex])
         end
 
         filename = fileinfo["origname"]
@@ -80,7 +81,11 @@ for imgindex, fileinfo in pairs(server.uploads) do
         --
         local status, errmsg = myimg[imgindex]:write(fullfilepath)
         if not status then
+            server.log("Error writing image as j2k: " .. filename .. " ** " .. errmsg, server.loglevel.LOG_ERR)
             server.print('Error converting image to j2k: ', filename, ' ** ', errmsg)
+            return send_error(500, errmsg)
+        else
+            server.log("Uploaded " .. filename, server.loglevel.LOG_INFO)
         end
 
     else
@@ -88,6 +93,7 @@ for imgindex, fileinfo in pairs(server.uploads) do
         info["filename"] = '_' .. fileinfo.origname
         success, errmsg = server.copyTmpfile(imgindex, fpath)
         if not success then
+            server.log("Uploaded " .. fileinfo.origname, server.loglevel.LOG_INFO)
             return send_error(500, errmsg)
         end
     end

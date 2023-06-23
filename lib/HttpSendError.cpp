@@ -67,7 +67,7 @@ namespace cserve {
         }
         catch (InputFailure &err) {}
 
-        cserve::Server::logger()->error("HTTP request {} failed ({}): {}", conn_obj.uri(), http_err_name, errmsg);
+        cserve::Server::logger()->error("[{}] {}: {} : failed ({}): {}", conn_obj.peer_ip(), conn_obj.method_string(), conn_obj.uri(), http_err_name, errmsg);
     }
 
     /*!

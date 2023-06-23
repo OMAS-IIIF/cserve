@@ -290,7 +290,7 @@ namespace cserve {
     /*!
      * Instantiates a Lua server
      */
-    LuaServer::LuaServer() {
+    LuaServer::LuaServer() : scriptfilename("none") {
         if ((L = luaL_newstate()) == nullptr) {
             throw Error(file_, __LINE__, "Couldn't start lua interpreter");
         }
@@ -302,7 +302,7 @@ namespace cserve {
     /*!
      * Instantiates a Lua server
      */
-    LuaServer::LuaServer(Connection &conn) {
+    LuaServer::LuaServer(Connection &conn) : scriptfilename("none") {
         if ((L = luaL_newstate()) == nullptr) {
             throw Error(file_, __LINE__, "Couldn't start lua interpreter");
         }
@@ -318,16 +318,16 @@ namespace cserve {
      *
      * \param
      */
-    LuaServer::LuaServer(const std::string &luafile, bool iscode) {
+    LuaServer::LuaServer(const std::string &luafile, bool iscode) : scriptfilename(luafile) {
         if ((L = luaL_newstate()) == nullptr) {
             throw Error(file_, __LINE__, "Couldn't start lua interpreter");
         }
-
         lua_atpanic(L, dont_panic);
         luaL_openlibs(L);
 
         if (!luafile.empty()) {
             if (iscode) {
+                scriptfilename = "inline";
                 if (luaL_loadstring(L, luafile.c_str()) != 0) {
                     lua_error(L);
                 }
@@ -350,13 +350,14 @@ namespace cserve {
      *
      * \param[in] luafile A file containing a Lua script or a Lua code chunk
      */
-    LuaServer::LuaServer(Connection &conn, const std::string &luafile, bool iscode, const std::string &lua_scriptdir) {
+    LuaServer::LuaServer(Connection &conn, const std::string &luafile, bool iscode, const std::string &lua_scriptdir) : scriptfilename(luafile) {
         if ((L = luaL_newstate()) == nullptr) {
             throw Error(file_, __LINE__, "Couldn't start lua interpreter");
         }
 
         lua_atpanic(L, dont_panic);
         luaL_openlibs(L);
+        if (iscode) scriptfilename = "inline";
         createGlobals(conn);
 
         // add the script directory to the standard search path for lua packages
@@ -2344,25 +2345,36 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                 lua_settop(L, 0); // clear stack
                 lua_pushboolean(L, false);
                 lua_pushstring(L, "'server.log()': level is not integer");
+                cserve::Server::logger()->critical("LUA 'server.log()': level is not integer");
                 return 2;
             }
 
             level = static_cast<int>(lua_tointeger(L, 2));
         }
+        lua_settop(L, 0); // clear stack
 
+        std::string scriptfilename("none");
+        if (lua_getglobal(L, servertablename) == LUA_TTABLE) {
+            lua_getfield(L, -1, "scriptfilename");
+            if (lua_isstring(L, -1)) {
+                scriptfilename = lua_tostring(L, -1);
+            }
+        }
+        lua_settop(L, 0); // clear stack
+
+        auto lmsg = fmt::format("LUA '{}': {}", scriptfilename, message);
         if (!message.empty()) {
             switch (level) {
-                case spdlog::level::trace: cserve::Server::logger()->trace(message); break;
-                case spdlog::level::debug: cserve::Server::logger()->debug(message); break;
-                case spdlog::level::info: cserve::Server::logger()->info(message); break;
-                case spdlog::level::warn: cserve::Server::logger()->warn(message); break;
-                case spdlog::level::err: cserve::Server::logger()->error(message); break;
-                case spdlog::level::critical: cserve::Server::logger()->critical(message); break;
-                default: cserve::Server::logger()->info(message);
+                case spdlog::level::trace: cserve::Server::logger()->trace(lmsg); break;
+                case spdlog::level::debug: cserve::Server::logger()->debug(lmsg); break;
+                case spdlog::level::info: cserve::Server::logger()->info(lmsg); break;
+                case spdlog::level::warn: cserve::Server::logger()->warn(lmsg); break;
+                case spdlog::level::err: cserve::Server::logger()->error(lmsg); break;
+                case spdlog::level::critical: cserve::Server::logger()->critical(lmsg); break;
+                default: cserve::Server::logger()->info(lmsg);
             }
         }
 
-        lua_pop(L, top);
         lua_pushboolean(L, true);
         lua_pushnil(L);
         return 2;
@@ -2579,6 +2591,10 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
         lua_createtable(L, 0, 33); // table1
         //lua_newtable(L); // table1
 
+        lua_pushstring(L, "scriptfilename"); // table1 - "index_L1"
+        lua_pushstring(L, scriptfilename.c_str());
+        lua_rawset(L, -3); // table1
+
         Connection::HttpMethod method = conn.method();
         lua_pushstring(L, "method"); // table1 - "index_L1"
         switch (method) {
@@ -2610,7 +2626,6 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
                 lua_pushstring(L, "OTHER");
                 break; // table1 - "index_L1" - "value_L1"
         }
-
         lua_rawset(L, -3); // table1
 
         lua_pushstring(L, "has_openssl"); // table1 - "index_L1"
@@ -3343,6 +3358,13 @@ using TDsec = std::chrono::time_point<std::chrono::system_clock, std::chrono::du
     }
 */
     int LuaServer::executeChunk(const std::string &luastr, const std::string &scriptname ) {
+        if (!scriptname.empty()) {
+            if (lua_getglobal(L, servertablename) == LUA_TTABLE) {
+                lua_pushstring(L, scriptname.c_str());
+                lua_setfield(L, -2, "scriptfilename");
+            }
+            lua_settop(L, 0); // clear stack
+        }
         if (luaL_dostring(L, luastr.c_str()) != LUA_OK) {
             const char *errorMsg = nullptr;
 

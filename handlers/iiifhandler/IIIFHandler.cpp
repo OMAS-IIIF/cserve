@@ -104,12 +104,15 @@ namespace cserve {
                         return;
                     }
                     conn.flush();
+                    Server::logger()->info("[{}] <IIIFHandler> {} {} : Lua script executed: {}",
+                                           conn.peer_ip(), conn.method_string(), conn.uri(), scriptpath.string());
                 } else {
                     send_error(conn, Connection::INTERNAL_SERVER_ERROR,
                                fmt::format("Script has no valid extension: '{}'", extension));
                 }
             } catch (InputFailure &iofail) {
-                Server::logger()->error("ScriptHandler: internal error: cannot send data...");
+                Server::logger()->error("[{}] <IIIFHandler>{} {} : internal error: cannot send data...",
+                                        conn.peer_ip(), conn.method_string(), conn.uri());
                 return; // we have an io error => just return, the thread will exit
             } catch (Error &err) {
                 send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
@@ -132,7 +135,7 @@ namespace cserve {
             }
             for (auto &part: tmpparts) {
                 if (!part.empty()) {
-                    parts.push_back(part);
+                    parts.push_back(urldecode(part));
                 } else {
                     send_error(conn, Connection::BAD_REQUEST, "Invalid IIIF URL. Empty parts '//' in URL.");
                     return;
@@ -305,7 +308,8 @@ namespace cserve {
             conn.header("Location", redirect);
             conn.header("Content-Type", "text/plain");
             conn << "Redirect to " << redirect;
-            Server::logger()->info("GET: redirect to {}", redirect);
+            Server::logger()->info("[{}] <IIIFHandler> {} {}: redirect to {}",
+                                   conn.peer_ip(), conn.method_string(), conn.uri(), redirect);
             conn.flush();
             return;
         }
@@ -371,7 +375,7 @@ namespace cserve {
         _scaling_quality.jpeg = get_scaling_quality(conf, "jpeg_scaling_quality", "medium");
         _scaling_quality.tiff = get_scaling_quality(conf, "tiff_scaling_quality", "high");
         _scaling_quality.png = get_scaling_quality(conf, "png_scaling_quality", "medium");
-        _scaling_quality.png = get_scaling_quality(conf, "j2k_scaling_quality", "high");
+        _scaling_quality.jk2 = get_scaling_quality(conf, "j2k_scaling_quality", "high");
         _iiif_max_image_width = conf.get_int("iiif_max_width").value_or(0);
         _iiif_max_image_height = conf.get_int("iiif_max_height").value_or(0);
         std::vector<std::string> vv{"--$$$$$$$$$$$$$$$$$$$$$--"};
@@ -381,7 +385,7 @@ namespace cserve {
         }
         catch (const IIIFError &err) {
             _cache = nullptr;
-            Server::logger()->warn("Couldn't open cache directory {}: %s", _cachedir, err.to_string());
+            Server::logger()->warn("Couldn't open cache directory {}: {}", _cachedir, err.to_string());
         }
 
     }
@@ -449,12 +453,4 @@ namespace cserve {
 
         iiif_lua_globals(L, conn, *this);
     }
-}
-
-extern "C" [[maybe_unused]] cserve::IIIFHandler * create_iiifhandler() {
-    return new cserve::IIIFHandler();
-}
-
-extern "C" [[maybe_unused]] void destroy_iiifhandler(cserve::IIIFHandler *handler) {
-    delete handler;
 }

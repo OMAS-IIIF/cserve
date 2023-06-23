@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
-#include "Cserve.h"
+#include "../../../lib/Cserve.h"
 #include "PingHandler.h"
 
 namespace cserve {
@@ -27,7 +27,8 @@ namespace cserve {
             conn << _echo << cserve::Connection::flush_data;
         }
         catch (InputFailure &err) {
-            Server::logger()->debug("conn write error: {}", err.what());
+            Server::logger()->debug("[{}] <PintHandler> {} {} : conn write error: {}",
+                                    conn.peer_ip(), conn.method_string(), conn.uri(), err.what());
             return;
         }
     }
@@ -45,11 +46,3 @@ namespace cserve {
     }
 
 } // cserve
-
-extern "C" cserve::PingHandler * create_pinghandler() {
-    return new cserve::PingHandler();
-};
-
-extern "C" void destroy_pinghandler(cserve::PingHandler *handler) {
-    delete handler;
-}

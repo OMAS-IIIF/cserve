@@ -183,8 +183,8 @@ TEST_CASE("Testing IIIFExif class", "[IIIFExif]") {
 TEST_CASE("Testing IIIFIptc class", "[IIIFIptc]") {
     SECTION("IIIFIptc basic") {
         unsigned int len{};
-        auto buf = iptc_from_tiff("/Users/rosenth/ProgDev/OMAS/cserve/handlers/iiifhandler/tests/data/IPTC-PhotometadataRef-Std2014_large.tiff",len);
 
+        auto buf = iptc_from_tiff("data/IPTC-PhotometadataRef-Std2014_large.tiff",len);
         REQUIRE_NOTHROW(cserve::IIIFIptc(buf.get(), len));
         std::vector<unsigned char> vbuf(buf.get(), buf.get() + len);
         REQUIRE_NOTHROW(cserve::IIIFIptc(vbuf));
@@ -199,7 +199,7 @@ TEST_CASE("Testing IIIFIptc class", "[IIIFIptc]") {
 TEST_CASE("Testing IIIFIcc class", "[IIIFIcc]") {
     SECTION("IIIFIcc basic") {
         unsigned int len{};
-        auto iccbuf = icc_from_tiff("/Users/rosenth/ProgDev/OMAS/cserve/handlers/iiifhandler/tests/data/image_with_icc_profile.tif",len);
+        auto iccbuf = icc_from_tiff("data/image_with_icc_profile.tif",len);
         REQUIRE_NOTHROW(cserve::IIIFIcc(iccbuf.get(), len));
         REQUIRE_NOTHROW(cserve::IIIFIcc(cserve::icc_AdobeRGB));
         cserve::IIIFIcc icc(cserve::icc_AdobeRGB);
@@ -218,7 +218,7 @@ TEST_CASE("Testing IIIFIcc class", "[IIIFIcc]") {
 TEST_CASE("Testing IIIFXmp class", "[IIIFXmp]") {
     SECTION("IIIFXmp basic") {
         unsigned int len;
-        auto xmpbuf = xmp_from_tiff("/Users/rosenth/ProgDev/OMAS/cserve/handlers/iiifhandler/tests/data/IMG_8067.tiff",len);
+        auto xmpbuf = xmp_from_tiff("data/IMG_8067.tiff",len);
         REQUIRE(len == 18845);
         REQUIRE_NOTHROW(cserve::IIIFXmp(xmpbuf.get(), len));
         cserve::IIIFXmp xmp(xmpbuf.get(), len);

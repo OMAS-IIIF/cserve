@@ -49,12 +49,3 @@ namespace cserve {
     }
 
 } // cserve
-
-
-extern "C" cserve::TestHandler * create_testhandler() {
-    return new cserve::TestHandler();
-};
-
-extern "C" void destroy_testhandler(cserve::TestHandler *handler) {
-    delete handler;
-}

@@ -15,6 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <utility>
+#include <array>
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
@@ -159,6 +160,7 @@ namespace cserve {
             OTHER = 8    //!< Fallback....
         } HttpMethod;
         static const int NumHttpMethods = 9;
+
 
         /*!
          * \typedef StatusCodes
@@ -407,6 +409,25 @@ namespace cserve {
          * \returns Returns the methods as \typedef HttpMethod
          */
         inline HttpMethod method() { return _method; }
+
+        /*!
+         * Return request method as string
+         *
+         * @return Returns the methods as \typedef std::string
+         */
+        inline std::string method_string() {
+            switch (_method) {
+                case OPTIONS: return std::string("OPTIONS");
+                case GET: return std::string("GET");
+                case HEAD: return std::string("HEAD");
+                case POST: return std::string("POST");
+                case PUT: return std::string("PUT");
+                case DELETE: return std::string("DELETE");
+                case TRACE: return std::string("TRACE");
+                case CONNECT: return std::string("CONNECT");
+                case OTHER: return std::string("OTHER");
+            }
+        }
 
         /*!
          * Returns true if keep alive header was present in request

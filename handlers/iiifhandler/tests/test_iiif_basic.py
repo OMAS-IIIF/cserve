@@ -178,7 +178,7 @@ class TestBasic:
 
     def test_orientation_topleft(self, manager):
         """rectifying the image orientation to topleft"""
-        response = manager.upload("upload", "./data/image_orientation.jpg", "image/jpeg")
+        response = manager.upload("upload", "data/image_orientation.jpg", "image/jpeg")
         filename = response["files"][0]["filename"]
         assert manager.compare_iiif_images("{}/full/max/0/default.tif".format(filename), "./data/image_orientation.tif")
 

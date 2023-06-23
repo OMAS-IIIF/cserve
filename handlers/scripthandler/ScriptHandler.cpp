@@ -11,10 +11,9 @@
  */
 #include <unistd.h>
 
-#include "HttpSendError.h"
-#include "ScriptHandler.h"
-#include "../../lib/LuaServer.h"
+#include "../../lib/HttpSendError.h"
 #include "../../lib/Cserve.h"
+#include "ScriptHandler.h"
 
 namespace cserve {
 
@@ -133,7 +132,8 @@ namespace cserve {
                            fmt::format("Script has no valid extension: '{}'", extension));
             }
         } catch (InputFailure &iofail) {
-            Server::logger()->error("ScriptHandler: internal error: cannot send data...");
+            Server::logger()->error("[{}] <ScriptHandler> {} {}: internal error: cannot send data...",
+                                    conn.peer_ip(), conn.method_string(), conn.uri());
             return; // we have an io error => just return, the thread will exit
         } catch (Error &err) {
             send_error(conn, Connection::INTERNAL_SERVER_ERROR, err.to_string());
@@ -158,13 +158,4 @@ namespace cserve {
         lua_rawset(L, -3); // table1
         lua_setglobal(L, _name.c_str());
     }
-
-}
-
-extern "C" cserve::ScriptHandler * create_scripthandler() {
-    return new cserve::ScriptHandler();
-};
-
-extern "C" void destroy_scripthandler(cserve::ScriptHandler *handler) {
-    delete handler;
 }
