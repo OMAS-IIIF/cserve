@@ -209,7 +209,6 @@ namespace cserve {
                 }
             }
         }
-
         if (max_match_len > 0) {
             //handler_data = handler_data[conn.method()][matching_path];
             return std::make_tuple(matching_handler, matching_path);

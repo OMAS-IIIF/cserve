@@ -64,8 +64,7 @@ namespace cserve {
             send_error(conn, Connection::INTERNAL_SERVER_ERROR, "Error in IIIFHandler: No script route defined.");
             return;
         }
-
-        if (scriptname != "/C++") {
+        if (scriptname != "C++") {
             if (scriptname.empty()) {
                 send_error(conn, Connection::INTERNAL_SERVER_ERROR, "IIIFHandler: No script path defined.");
                 return;

@@ -88,7 +88,7 @@ class CserverProcessManager:
                                   "POST:/fileserv:C++",
             "PINGHANDLER_ECHO": "PINGPONG",
             "IIIFHANDLER_IMGROOT": self.iiif_imgroot,
-            "IIIFHANDLER_ROUTES": "GET:/{}:/C++;"
+            "IIIFHANDLER_ROUTES": "GET:/{}:C++;"
                                   "GET:/iiifhandlervariables:iiifhandlervariables.lua;"
                                   "GET:/test_exif_gps:test_exif_gps.lua;"
                                   "POST:/upload:upload.lua;".format(self.iiif_route),
