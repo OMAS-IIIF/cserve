@@ -13,10 +13,10 @@ endif()
 
 ExternalProject_Add(project_zlib
         INSTALL_DIR ${COMMON_LOCAL}
-        URL http://zlib.net/zlib-1.2.13.tar.gz
+        URL https://zlib.net/zlib-1.3.1.tar.gz
         ${timestamp_policy}
-        SOURCE_DIR ${COMMON_SRCS}/zlib-1.2.13
-        CONFIGURE_COMMAND ${COMMON_SRCS}/zlib-1.2.13/configure
+        SOURCE_DIR ${COMMON_SRCS}/zlib-1.3.1
+        CONFIGURE_COMMAND ${COMMON_SRCS}/zlib-1.3.1/configure
             --prefix=${COMMON_LOCAL}
             --static
             # --shared

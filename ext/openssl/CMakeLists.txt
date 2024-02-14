@@ -20,7 +20,7 @@ endif ()
 
 ExternalProject_Add(project_ssl
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://www.openssl.org/source/openssl-3.0.7.tar.gz
+        URL https://www.openssl.org/source/openssl-3.2.1.tar.gz
         ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/openssl
         CONFIGURE_COMMAND ${COMMON_SRCS}/openssl/Configure ${CONF_ARCHOPT}

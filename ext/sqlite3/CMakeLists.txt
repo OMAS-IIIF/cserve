@@ -8,12 +8,12 @@ else()
     unset(timestamp_policy)
 endif()
 
-#https://www.sqlite.org/2020/sqlite-autoconf-3310000.tar.gz
+#https://www.sqlite.org/2024/sqlite-autoconf-3450100.tar.gz
 # get sqlite3
 #
 ExternalProject_Add(project_sqlite3
         INSTALL_DIR ${COMMON_LOCAL}
-        URL "https://www.sqlite.org/2022/sqlite-autoconf-3400100.tar.gz"
+        URL "https://www.sqlite.org/2024/sqlite-autoconf-3450100.tar.gz"
         ${timestamp_policy}
         SOURCE_DIR ${COMMON_SRCS}/sqlite
         CONFIGURE_COMMAND ${COMMON_SRCS}/sqlite/configure --enable-fts5  --prefix=${COMMON_LOCAL} --enable-shared --enable-static --libdir=${CONFIGURE_LIBDIR}

@@ -13,11 +13,15 @@ endif ()
 
 ExternalProject_Add(project_fmt
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://github.com/fmtlib/fmt/releases/download/10.0.0/fmt-10.0.0.zip
+        URL https://github.com/fmtlib/fmt/releases/download/10.2.0/fmt-10.2.0.zip
+        #URL https://github.com/fmtlib/fmt/releases/download/10.0.0/fmt-10.0.0.zip
         #GIT_REPOSITORY https://github.com/fmtlib/fmt.git
         ${timestamp_policy}
-        SOURCE_DIR ${COMMON_SRCS}/fmt-10.0.0
-        CMAKE_ARGS -DFMT_DOC=OFF -DFMT_INSTALL=ON
+        SOURCE_DIR ${COMMON_SRCS}/fmt-10.2.0
+        CMAKE_ARGS
+        -DFMT_DOC:BOOL=OFF
+        -DFMT_INSTALL:BOOL=ON
+        -DFMT_SYSTEM_HEADERS:BOOL=ON
         -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
         -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
         -DCMAKE_INSTALL_LIBDIR=${CONFIGURE_LIBDIR}

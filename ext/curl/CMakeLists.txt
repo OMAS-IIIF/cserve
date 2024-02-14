@@ -37,13 +37,14 @@ ExternalProject_Add(project_curl
         DEPENDS ssl
         DEPENDS crypto
         INSTALL_DIR ${COMMON_LOCAL}
-        URL https://curl.haxx.se/download/curl-7.80.0.tar.gz
+        URL https://curl.se/download/curl-8.6.0.tar.gz
         ${timestamp_policy}
-        SOURCE_DIR ${COMMON_SRCS}/curl-7.80.0
+        SOURCE_DIR ${COMMON_SRCS}/curl-8.6.0
         CMAKE_ARGS  -DCMAKE_PREFIX_PATH=${COMMON_LOCAL}
                     -DCMAKE_INSTALL_PREFIX=${COMMON_LOCAL}
                     -DBUILD_SHARED_LIBS:BOOL=OFF
-                    -DCMAKE_USE_LIBSSH2:BOOL=OFF
+                    -DBUILD_STATIC_LIBS:BOOL=ON
+                    -DCURL_USE_LIBSSH2:BOOL=OFF
                     -DHTTP_ONLY:BOOL=ON
                     ${OS_X_SPECIAL_FLAG}
         )

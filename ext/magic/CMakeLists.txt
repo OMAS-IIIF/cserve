@@ -15,10 +15,10 @@ ExternalProject_Add(project_magic
         DEPENDS xz
         DEPENDS bzip2
         INSTALL_DIR ${COMMON_LOCAL}
-        URL http://ftp.astron.com/pub/file/file-5.44.tar.gz
+        URL http://ftp.astron.com/pub/file/file-5.45.tar.gz
         ${timestamp_policy}
-        SOURCE_DIR ${COMMON_SRCS}/file-5.44
-        CONFIGURE_COMMAND ${COMMON_SRCS}/file-5.44/configure --enable-static --enable-shared --prefix=${COMMON_LOCAL}
+        SOURCE_DIR ${COMMON_SRCS}/file-5.45
+        CONFIGURE_COMMAND ${COMMON_SRCS}/file-5.45/configure --enable-static --enable-shared --prefix=${COMMON_LOCAL}
         BUILD_COMMAND make
         INSTALL_COMMAND make INSTALL_LIB=${CONFIGURE_LIBDIR} install INSTALL_TOP=${COMMON_LOCAL}
         BUILD_IN_SOURCE 1)
