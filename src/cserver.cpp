@@ -70,7 +70,23 @@ static void new_lua_func(lua_State *L, cserve::Connection &conn, [[maybe_unused]
 
 /*LUA TEST****************************************************************************/
 
+void my_terminate_handler() {
+    try {
+        // Rethrow the current exception to identify it
+        throw;
+    } catch (const std::exception& e) {
+        syslog(LOG_ERR, "Unhandled exception caught: %s", e.what());
+    } catch (...) {
+        syslog(LOG_ERR, "Unhandled unknown exception caught");
+    }
+    std::abort(); // Abort the program or perform other cleanup
+}
+
 int main(int argc, char *argv[]) {
+    (void) std::signal(SIGINT, old_sighandler);
+    (void) std::signal(SIGPIPE, old_broken_pipe_handler);
+    std::set_terminate(my_terminate_handler);
+
     auto logger = cserve::Server::create_logger(spdlog::level::trace);
     std::unordered_map<std::string, std::shared_ptr<cserve::RequestHandler>> handlers;
 
@@ -207,6 +223,4 @@ int main(int argc, char *argv[]) {
     old_broken_pipe_handler = signal(SIGPIPE, SIG_IGN);
     server.run();
     logger->info("CSERVE has finished it's service");
-    (void) std::signal(SIGINT, old_sighandler);
-    (void) std::signal(SIGPIPE, old_broken_pipe_handler);
 }

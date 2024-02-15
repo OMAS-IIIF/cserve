@@ -495,7 +495,16 @@ namespace cserve {
             case 8: {
                 auto buffer8 = std::vector<uint8_t>(dims.area() * img.nc);
                 kdu_core::kdu_byte *raw_buffer8 = buffer8.data();
-                decompressor.pull_stripe(raw_buffer8, stripe_heights);
+                try {
+                    decompressor.pull_stripe(raw_buffer8, stripe_heights);
+                } catch (kdu_exception &exc) {
+                    codestream.destroy();
+                    input->close();
+                    jpx_in.close(); // Not really necessary here.
+                    Server::logger()->error("Error while decompressing image: {}.", filepath.c_str());
+                    throw IIIFImageError(file_, __LINE__, fmt::format("Error while decompressing image: {}.", filepath.c_str()));
+                }
+
                 img.bpixels = std::move(buffer8);
                 break;
             }
@@ -503,13 +512,21 @@ namespace cserve {
                 std::vector<char> get_signed(img.nc, 0); // vector<bool> does not work -> special treatment in C++
                 auto buffer16 = std::vector<uint16_t>(dims.area() * img.nc);
                 auto raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.data();
-                decompressor.pull_stripe(raw_buffer16,
-                                         stripe_heights,
-                                         nullptr,
-                                         nullptr,
-                                         nullptr,
-                                         nullptr,
-                                         (bool *) get_signed.data());
+                try {
+                    decompressor.pull_stripe(raw_buffer16,
+                                             stripe_heights,
+                                             nullptr,
+                                             nullptr,
+                                             nullptr,
+                                             nullptr,
+                                             (bool *) get_signed.data());
+                } catch (kdu_exception &exc) {
+                    codestream.destroy();
+                    input->close();
+                    jpx_in.close(); // Not really necessary here.
+                    Server::logger()->error("Error while decompressing image: {}.", filepath.c_str());
+                    throw IIIFImageError(file_, __LINE__, fmt::format("Error while decompressing image: {}.", filepath.c_str()));
+                }
                 img.wpixels = std::move(buffer16);
                 img.bps = 16;
                 break;
@@ -518,13 +535,21 @@ namespace cserve {
                 std::vector<char> get_signed(img.nc, 0); // vector<bool> does not work -> special treatment in C++
                 auto buffer16 = std::vector<uint16_t>(dims.area() * img.nc);
                 auto raw_buffer16 = (kdu_core::kdu_int16 *) buffer16.data();
-                decompressor.pull_stripe(raw_buffer16,
-                                         stripe_heights,
-                                         nullptr,
-                                         nullptr,
-                                         nullptr,
-                                         nullptr,
-                                         (bool *) get_signed.data());
+                try {
+                    decompressor.pull_stripe(raw_buffer16,
+                                             stripe_heights,
+                                             nullptr,
+                                             nullptr,
+                                             nullptr,
+                                             nullptr,
+                                             (bool *) get_signed.data());
+                } catch (kdu_exception &exc) {
+                    codestream.destroy();
+                    input->close();
+                    jpx_in.close(); // Not really necessary here.
+                    Server::logger()->error("Error while decompressing image: {}.", filepath.c_str());
+                    throw IIIFImageError(file_, __LINE__, fmt::format("Error while decompressing image: {}.", filepath.c_str()));
+                }
                 img.wpixels = std::move(buffer16);
                 break;
             }

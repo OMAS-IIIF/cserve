@@ -71,6 +71,7 @@ namespace cserve {
             // SIGPIPE.
             if (sig == SIGINT || sig == SIGTERM) {
                 serverptr->stop();
+                Server::logger()->info("Got SIGINT or SIGTERM, stopping server");
                 return nullptr;
             }
         }
