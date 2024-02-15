@@ -110,15 +110,15 @@ namespace cserve {
                    running(false), _keep_alive_timeout(5) {
         stoppipe[0] = -1;
         stoppipe[1] = -1;
-
+/*
         std::shared_ptr<spdlog::logger> logger;
         if (_loggername.empty()) {
             spdlog::stdout_color_mt("cserve_logger");
         }
-        else /*if ((logger = spdlog::(_loggername)) == nullptr)*/ {
+        else if ((logger = spdlog::spdlog(_loggername)) == nullptr) {
             spdlog::stdout_color_mt(_loggername);
         }
-
+*/
         //
         // Her we check if we have to change to a different uid. This can only be done
         // if the server runs originally as root!

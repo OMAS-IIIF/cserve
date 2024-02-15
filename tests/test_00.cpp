@@ -133,7 +133,7 @@ TEST_CASE("Testing parsing of Mime types", "[Parsing]") {
 
     SECTION("getFileMimetype CSV-file") {
         std::pair<std::string, std::string> t = cserve::Parsing::getFileMimetype("./testdata/test.csv");
-        REQUIRE(t.first == "text/plain");
+        REQUIRE(t.first == "text/csv");
         REQUIRE(t.second == "us-ascii");
     }
 
